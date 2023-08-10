@@ -8,7 +8,9 @@ async def imagemagick_converter(
     in_file: str, out_file: str, in_format: str, out_format: str
 ):
     await (
-        await asyncio.create_subprocess_exec("convert", in_file, out_file)
+        await asyncio.create_subprocess_exec(
+            "convert", "-format", out_format, in_file, out_file
+        )
     ).wait()
 
 
@@ -31,7 +33,7 @@ def install_imagemagick():
             if len(line) > mode_index + 1:
                 decode = line[mode_index] == "r"
                 encode = line[mode_index + 1] == "w"
-                extension = line[:format_index].strip().replace("*", "")
+                extension = line[: format_index + 1].strip().replace("*", "")
                 if extension:
                     if decode:
                         readable_formats.add(extension)
