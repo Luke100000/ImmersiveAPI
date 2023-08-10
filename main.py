@@ -1,13 +1,21 @@
 import os
+import random
 import shutil
 import uuid
+from typing import Any
 
 import aiofile
 import aiohttp
+import orjson
 from dotenv import load_dotenv
+from fastapi_cache import FastAPICache
+from fastapi_cache.backends.redis import RedisBackend
+from fastapi_cache.coder import Coder
+from fastapi_cache.decorator import cache
+from redis import asyncio as aioredis
 from starlette.responses import Response
 
-from converter import conversions, file_formats
+from converter import conversions, file_formats, clean_format
 from converters.abc2midi import install_abc2midi
 from converters.ffmpeg import install_ffmpeg
 from converters.imagemagick import install_imagemagick
@@ -47,20 +55,53 @@ async def fetch_file(url, target):
             await outfile.write(data)
 
 
-@app.on_event("startup")
-async def _startup():
-    instrumentator.expose(app)
-
-
 install_abc2midi()
 install_ffmpeg()
 install_imagemagick()
 install_opencv()
 install_pillow()
 
+app = FastAPI()
 
-@app.get("/v1/convert/")
-async def fetch_list():
+
+@app.on_event("startup")
+async def startup():
+    instrumentator.expose(app)
+
+    redis = aioredis.from_url("redis://localhost")
+    FastAPICache.init(RedisBackend(redis), prefix="fastapi-cache")
+
+
+class ORJsonCoder(Coder):
+    @classmethod
+    def encode(cls, value: Any) -> bytes:
+        return orjson.dumps(value, default=vars)
+
+    @classmethod
+    def decode(cls, value: bytes) -> Any:
+        return Response(value, media_type="application/json")
+
+
+class BytesCoder(Coder):
+    @classmethod
+    def encode(cls, value: Any) -> bytes:
+        return value.body
+
+    @classmethod
+    def decode(cls, value: bytes) -> Any:
+        return Response(value)
+
+
+@app.get("/test/")
+@cache(expire=3600, coder=BytesCoder())
+async def test():
+    print("Carl")
+    return Response(str(random.randint(0, 10000)))
+
+
+@app.get("/v1/formats/")
+@cache(expire=3600, coder=BytesCoder())
+async def fetch_formats():
     sorted_file_formats = sorted(file_formats)
     header = (
         "<tr><td></td>"
@@ -85,34 +126,34 @@ async def fetch_list():
 
     page = (
         """
-            <!DOCTYPE html>
-            <html lang="en-us">
-            <head>
-            <style>
-              .red-square {
-                width: 20px;
-                height: 20px;
-                background-color: red;
-              }
-              
-              .orange-square {
-                width: 20px;
-                height: 20px;
-                background-color: orange;
-              }
-              
-              .green-square {
-                width: 20px;
-                height: 20px;
-                background-color: green;
-              }
-            </style>
-            <title>Supported Formats</title>
-            </head>
-            <body>
-            
-            <table>
-            """
+                    <!DOCTYPE html>
+                    <html lang="en-us">
+                    <head>
+                    <style>
+                      .red-square {
+                        width: 20px;
+                        height: 20px;
+                        background-color: red;
+                      }
+                      
+                      .orange-square {
+                        width: 20px;
+                        height: 20px;
+                        background-color: orange;
+                      }
+                      
+                      .green-square {
+                        width: 20px;
+                        height: 20px;
+                        background-color: green;
+                      }
+                    </style>
+                    <title>Supported Formats</title>
+                    </head>
+                    <body>
+                    
+                    <table>
+                    """
         + data
         + """
         </table>
@@ -129,7 +170,8 @@ async def fetch_list():
 async def convert(
     request: Request, to_format: str = None, from_format: str = None, url: str = None
 ):
-    from_format = str(from_format)
+    from_format = clean_format(str(from_format))
+    to_format = clean_format(to_format)
 
     temp_name = uuid.uuid4().hex
     in_file = f"temp/in.{temp_name}.{from_format}"
