@@ -8,13 +8,13 @@ async def imagemagick_converter(
     in_file: str, out_file: str, in_format: str, out_format: str
 ):
     await (
-        await asyncio.create_subprocess_exec("magick convert", in_file, out_file)
+        await asyncio.create_subprocess_exec("convert", in_file, out_file)
     ).wait()
 
 
 def install_imagemagick():
     process = subprocess.run(
-        ["magick", "identify", "-list", "format"],
+        ["identify", "-list", "format"],
         stdout=asyncio.subprocess.PIPE,
         stderr=asyncio.subprocess.PIPE,
     )
