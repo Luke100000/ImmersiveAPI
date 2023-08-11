@@ -1,6 +1,23 @@
 import os
-import random
 import shutil
+
+from prometheus_client import CollectorRegistry, multiprocess
+from starlette.middleware.gzip import GZipMiddleware
+
+# Setup prometheus for multiprocessing
+prom_dir = (
+    os.environ["PROMETHEUS_MULTIPROC_DIR"]
+    if "PROMETHEUS_MULTIPROC_DIR" in os.environ
+    else None
+)
+if prom_dir is not None:
+    print("Hi")
+    shutil.rmtree(prom_dir, ignore_errors=True)
+    os.makedirs(prom_dir, exist_ok=True)
+    registry = CollectorRegistry()
+    multiprocess.MultiProcessCollector(registry)
+
+import random
 import uuid
 from typing import Any
 
@@ -20,28 +37,15 @@ from converters.ffmpeg import install_ffmpeg
 from converters.imagemagick import install_imagemagick
 from converters.opencv import install_opencv
 from converters.pillow import install_pillow
-
-from prometheus_client import CollectorRegistry, multiprocess
-
-# Setup prometheus for multiprocessing
-prom_dir = (
-    os.environ["PROMETHEUS_MULTIPROC_DIR"]
-    if "PROMETHEUS_MULTIPROC_DIR" in os.environ
-    else None
-)
-if prom_dir is not None:
-    shutil.rmtree(prom_dir, ignore_errors=True)
-    os.makedirs(prom_dir, exist_ok=True)
-    registry = CollectorRegistry()
-    multiprocess.MultiProcessCollector(registry)
-
 from fastapi import FastAPI, Request
 from prometheus_fastapi_instrumentator import Instrumentator
 
-app = FastAPI()
-
 shutil.rmtree("temp", ignore_errors=True)
 os.makedirs("temp", exist_ok=True)
+
+app = FastAPI()
+
+app.add_middleware(GZipMiddleware, minimum_size=1024, compresslevel=6)
 
 # Prometheus integration
 instrumentator = Instrumentator().instrument(app)
@@ -62,8 +66,6 @@ install_ffmpeg()
 install_imagemagick()
 install_opencv()
 install_pillow()
-
-app = FastAPI()
 
 
 @app.on_event("startup")
@@ -128,34 +130,34 @@ async def fetch_formats():
 
     page = (
         """
-                            <!DOCTYPE html>
-                            <html lang="en-us">
-                            <head>
-                            <style>
-                              .red-square {
-                                width: 20px;
-                                height: 20px;
-                                background-color: red;
-                              }
-                              
-                              .orange-square {
-                                width: 20px;
-                                height: 20px;
-                                background-color: orange;
-                              }
-                              
-                              .green-square {
-                                width: 20px;
-                                height: 20px;
-                                background-color: green;
-                              }
-                            </style>
-                            <title>Supported Formats</title>
-                            </head>
-                            <body>
-                            
-                            <table>
-                            """
+        <!DOCTYPE html>
+        <html lang="en-us">
+        <head>
+        <style>
+          .red-square {
+            width: 20px;
+            height: 20px;
+            background-color: red;
+          }
+          
+          .orange-square {
+            width: 20px;
+            height: 20px;
+            background-color: orange;
+          }
+          
+          .green-square {
+            width: 20px;
+            height: 20px;
+            background-color: green;
+          }
+        </style>
+        <title>Supported Formats</title>
+        </head>
+        <body>
+        
+        <table>
+        """
         + data
         + """
         </table>

@@ -7,3 +7,4 @@ Pillow~=10.0.0
 numpy~=1.25.2
 redis~=4.6.0
 fastapi-cache2[redis]
+orjson~=3.9.4
