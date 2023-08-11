@@ -11,24 +11,18 @@ prom_dir = (
     else None
 )
 if prom_dir is not None:
-    print("Hi")
     shutil.rmtree(prom_dir, ignore_errors=True)
     os.makedirs(prom_dir, exist_ok=True)
     registry = CollectorRegistry()
     multiprocess.MultiProcessCollector(registry)
 
-import random
 import uuid
 from typing import Any
 
 import aiofile
 import aiohttp
 import orjson
-from fastapi_cache import FastAPICache
-from fastapi_cache.backends.redis import RedisBackend
 from fastapi_cache.coder import Coder
-from fastapi_cache.decorator import cache
-from redis import asyncio as aioredis
 from starlette.responses import Response
 
 from converter import conversions, file_formats, clean_format
@@ -72,9 +66,6 @@ install_pillow()
 async def startup():
     instrumentator.expose(app)
 
-    redis = aioredis.from_url("redis://localhost")
-    FastAPICache.init(RedisBackend(redis), prefix="fastapi-cache")
-
 
 class ORJsonCoder(Coder):
     @classmethod
@@ -96,25 +87,12 @@ class BytesCoder(Coder):
         return Response(value)
 
 
-@app.get("/test/")
-@cache(expire=3600, coder=BytesCoder())
-async def test():
-    print("Carl")
-    return Response(str(random.randint(0, 10000)))
-
-
 @app.get("/v1/formats/")
-@cache(expire=3600, coder=BytesCoder())
 async def fetch_formats():
     sorted_file_formats = sorted(file_formats)
     header = (
         "<tr><td></td>"
-        + " ".join(
-            [
-                f"<td style='writing-mode: vertical-lr; text-align: right'>{f}</td>"
-                for f in sorted_file_formats
-            ]
-        )
+        + " ".join([f"<td class='v'>{f}</td>" for f in sorted_file_formats])
         + "</tr>"
     )
 
@@ -123,8 +101,8 @@ async def fetch_formats():
         data += f"<tr><td style='text-align: right'>{first_format}</td>"
         for second_format in sorted_file_formats:
             converters = conversions[first_format][second_format]
-            f = "green-square" if len(converters) > 0 else "red-square"
-            tooltip = f"Supported by {len(converters)} converters."
+            f = "green" if len(converters) > 0 else "red"
+            tooltip = f"{len(converters)} converters."
             data += f"<td class='{f}' title='{tooltip}'></td>"
         data += "</tr>\n"
 
@@ -134,23 +112,28 @@ async def fetch_formats():
         <html lang="en-us">
         <head>
         <style>
-          .red-square {
+          .red {
             width: 20px;
             height: 20px;
             background-color: red;
           }
           
-          .orange-square {
+          .orange {
             width: 20px;
             height: 20px;
             background-color: orange;
           }
           
-          .green-square {
+          .green {
             width: 20px;
             height: 20px;
             background-color: green;
           }
+          
+          .v {
+             writing-mode: vertical-lr;
+             text-align: right;
+           }
         </style>
         <title>Supported Formats</title>
         </head>
