@@ -7,7 +7,6 @@ from typing import Any
 import aiofile
 import aiohttp
 import orjson
-from dotenv import load_dotenv
 from fastapi_cache import FastAPICache
 from fastapi_cache.backends.redis import RedisBackend
 from fastapi_cache.coder import Coder
@@ -22,16 +21,19 @@ from converters.imagemagick import install_imagemagick
 from converters.opencv import install_opencv
 from converters.pillow import install_pillow
 
-load_dotenv()
-
 from prometheus_client import CollectorRegistry, multiprocess
 
 # Setup prometheus for multiprocessing
-prom_dir = os.environ["PROMETHEUS_MULTIPROC_DIR"]
-shutil.rmtree(prom_dir, ignore_errors=True)
-os.makedirs(prom_dir, exist_ok=True)
-registry = CollectorRegistry()
-multiprocess.MultiProcessCollector(registry)
+prom_dir = (
+    os.environ["PROMETHEUS_MULTIPROC_DIR"]
+    if "PROMETHEUS_MULTIPROC_DIR" in os.environ
+    else None
+)
+if prom_dir is not None:
+    shutil.rmtree(prom_dir, ignore_errors=True)
+    os.makedirs(prom_dir, exist_ok=True)
+    registry = CollectorRegistry()
+    multiprocess.MultiProcessCollector(registry)
 
 from fastapi import FastAPI, Request
 from prometheus_fastapi_instrumentator import Instrumentator
@@ -126,34 +128,34 @@ async def fetch_formats():
 
     page = (
         """
-                    <!DOCTYPE html>
-                    <html lang="en-us">
-                    <head>
-                    <style>
-                      .red-square {
-                        width: 20px;
-                        height: 20px;
-                        background-color: red;
-                      }
-                      
-                      .orange-square {
-                        width: 20px;
-                        height: 20px;
-                        background-color: orange;
-                      }
-                      
-                      .green-square {
-                        width: 20px;
-                        height: 20px;
-                        background-color: green;
-                      }
-                    </style>
-                    <title>Supported Formats</title>
-                    </head>
-                    <body>
-                    
-                    <table>
-                    """
+                            <!DOCTYPE html>
+                            <html lang="en-us">
+                            <head>
+                            <style>
+                              .red-square {
+                                width: 20px;
+                                height: 20px;
+                                background-color: red;
+                              }
+                              
+                              .orange-square {
+                                width: 20px;
+                                height: 20px;
+                                background-color: orange;
+                              }
+                              
+                              .green-square {
+                                width: 20px;
+                                height: 20px;
+                                background-color: green;
+                              }
+                            </style>
+                            <title>Supported Formats</title>
+                            </head>
+                            <body>
+                            
+                            <table>
+                            """
         + data
         + """
         </table>
