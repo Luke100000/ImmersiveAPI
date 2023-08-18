@@ -1,5 +1,7 @@
+import json
 import os
 import shutil
+from fastapi.templating import Jinja2Templates
 
 from prometheus_client import CollectorRegistry, multiprocess
 from starlette.middleware.gzip import GZipMiddleware
@@ -44,6 +46,11 @@ app.add_middleware(GZipMiddleware, minimum_size=1024, compresslevel=6)
 # Prometheus integration
 instrumentator = Instrumentator().instrument(app)
 
+if os.path.exists("test/results.json"):
+    with open("test/results.json") as results_file:
+        recommended_converter = json.load(results_file)
+
+templates = Jinja2Templates(directory="templates")
 
 async def fetch_file(url, target):
     async with aiohttp.ClientSession() as session:
@@ -87,6 +94,10 @@ class BytesCoder(Coder):
         return Response(value)
 
 
+@app.get("/")
+async def index(request: Request):
+    return templates.TemplateResponse("index.html", {"request": request, "id": id})
+
 @app.get("/v1/formats/")
 async def fetch_formats():
     sorted_file_formats = sorted(file_formats)
@@ -101,7 +112,12 @@ async def fetch_formats():
         data += f"<tr><td style='text-align: right'>{first_format}</td>"
         for second_format in sorted_file_formats:
             converters = conversions[first_format][second_format]
-            f = "green" if len(converters) > 0 else "red"
+            recommended = recommended_converter[first_format][second_format]
+            f = (
+                ("orange" if recommended is None else "green")
+                if len(converters) > 0
+                else "red"
+            )
             tooltip = f"{len(converters)} converters."
             data += f"<td class='{f}' title='{tooltip}'></td>"
         data += "</tr>\n"
@@ -153,7 +169,7 @@ async def fetch_formats():
 
 
 @app.get("/v1/convert/{to_format}")
-@app.get("/v1/convert/{to_format}")
+@app.post("/v1/convert/{to_format}")
 async def convert(
     request: Request, to_format: str = None, from_format: str = None, url: str = None
 ):
@@ -175,7 +191,13 @@ async def convert(
     if len(converters) == 0:
         return Response("No matching converter", status_code=400)
 
-    await next(iter(converters))(request, from_format, from_format, to_format)
+    recommended = recommended_converter[from_format][to_format]
+    converter = (
+        next(iter(converters.values()))
+        if recommended is None
+        else converters[recommended]
+    )
+    await converter(in_file, out_file, from_format, to_format)
 
     with open(out_file, "rb") as file:
         return Response(content=file.read(), media_type="image")

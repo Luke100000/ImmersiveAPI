@@ -1,3 +1,6 @@
 /prometheus/
 .env
 .idea
+temp
+/test/output/
+/test/results.json
