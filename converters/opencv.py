@@ -36,4 +36,4 @@ def install_opencv():
         "pic",
     }
 
-    add_converter(formats, formats, opencv_converter)
+    add_converter(formats, formats, opencv_converter, "opencv")

@@ -15,4 +15,4 @@ def install_pillow():
     readable_formats = {ex for ex, f in extensions.items() if f in Image.OPEN}
     savable_formats = {ex for ex, f in extensions.items() if f in Image.SAVE}
 
-    add_converter(readable_formats, savable_formats, pillow_converter)
+    add_converter(readable_formats, savable_formats, pillow_converter, "pillow")

@@ -1,4 +1,6 @@
 import asyncio
+import glob
+import os
 import subprocess
 
 from converter import add_converter
@@ -12,6 +14,9 @@ async def imagemagick_converter(
             "convert", "-format", out_format, in_file, out_file
         )
     ).wait()
+
+    for file in glob.glob("**.shtml"):
+        os.remove(file)
 
 
 def install_imagemagick():
@@ -45,4 +50,6 @@ def install_imagemagick():
             format_index = line.find("Format") + 5
             mode_index = line.find("Mode")
 
-    add_converter(readable_formats, savable_formats, imagemagick_converter)
+    add_converter(
+        readable_formats, savable_formats, imagemagick_converter, "imagemagick"
+    )
