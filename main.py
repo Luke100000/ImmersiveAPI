@@ -52,6 +52,7 @@ if os.path.exists("test/results.json"):
 
 templates = Jinja2Templates(directory="templates")
 
+
 async def fetch_file(url, target):
     async with aiohttp.ClientSession() as session:
         async with session.get(url) as resp:
@@ -98,6 +99,7 @@ class BytesCoder(Coder):
 async def index(request: Request):
     return templates.TemplateResponse("index.html", {"request": request, "id": id})
 
+
 @app.get("/v1/formats/")
 async def fetch_formats():
     sorted_file_formats = sorted(file_formats)
@@ -124,39 +126,39 @@ async def fetch_formats():
 
     page = (
         """
-        <!DOCTYPE html>
-        <html lang="en-us">
-        <head>
-        <style>
-          .red {
-            width: 20px;
-            height: 20px;
-            background-color: red;
-          }
-          
-          .orange {
-            width: 20px;
-            height: 20px;
-            background-color: orange;
-          }
-          
-          .green {
-            width: 20px;
-            height: 20px;
-            background-color: green;
-          }
-          
-          .v {
-             writing-mode: vertical-lr;
-             text-align: right;
-           }
-        </style>
-        <title>Supported Formats</title>
-        </head>
-        <body>
-        
-        <table>
-        """
+            <!DOCTYPE html>
+            <html lang="en-us">
+            <head>
+            <style>
+              .red {
+                width: 20px;
+                height: 20px;
+                background-color: red;
+              }
+              
+              .orange {
+                width: 20px;
+                height: 20px;
+                background-color: orange;
+              }
+              
+              .green {
+                width: 20px;
+                height: 20px;
+                background-color: green;
+              }
+              
+              .v {
+                 writing-mode: vertical-lr;
+                 text-align: right;
+               }
+            </style>
+            <title>Supported Formats</title>
+            </head>
+            <body>
+            
+            <table>
+            """
         + data
         + """
         </table>
@@ -191,7 +193,14 @@ async def convert(
     if len(converters) == 0:
         return Response("No matching converter", status_code=400)
 
-    recommended = recommended_converter[from_format][to_format]
+    recommended = (
+        recommended_converter[from_format][to_format]
+        if (
+            from_format in recommended_converter
+            and to_format in recommended_converter[from_format]
+        )
+        else None
+    )
     converter = (
         next(iter(converters.values()))
         if recommended is None
