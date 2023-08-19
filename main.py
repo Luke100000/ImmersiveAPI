@@ -49,6 +49,8 @@ instrumentator = Instrumentator().instrument(app)
 if os.path.exists("test/results.json"):
     with open("test/results.json") as results_file:
         recommended_converter = json.load(results_file)
+else:
+    recommended_converter = {}
 
 templates = Jinja2Templates(directory="templates")
 
