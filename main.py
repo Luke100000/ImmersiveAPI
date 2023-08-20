@@ -128,39 +128,39 @@ async def fetch_formats():
 
     page = (
         """
-            <!DOCTYPE html>
-            <html lang="en-us">
-            <head>
-            <style>
-              .red {
-                width: 20px;
-                height: 20px;
-                background-color: red;
-              }
-              
-              .orange {
-                width: 20px;
-                height: 20px;
-                background-color: orange;
-              }
-              
-              .green {
-                width: 20px;
-                height: 20px;
-                background-color: green;
-              }
-              
-              .v {
-                 writing-mode: vertical-lr;
-                 text-align: right;
-               }
-            </style>
-            <title>Supported Formats</title>
-            </head>
-            <body>
-            
-            <table>
-            """
+                <!DOCTYPE html>
+                <html lang="en-us">
+                <head>
+                <style>
+                  .red {
+                    width: 20px;
+                    height: 20px;
+                    background-color: red;
+                  }
+                  
+                  .orange {
+                    width: 20px;
+                    height: 20px;
+                    background-color: orange;
+                  }
+                  
+                  .green {
+                    width: 20px;
+                    height: 20px;
+                    background-color: green;
+                  }
+                  
+                  .v {
+                     writing-mode: vertical-lr;
+                     text-align: right;
+                   }
+                </style>
+                <title>Supported Formats</title>
+                </head>
+                <body>
+                
+                <table>
+                """
         + data
         + """
         </table>
@@ -184,34 +184,44 @@ async def convert(
     in_file = f"temp/in.{temp_name}.{from_format}"
     out_file = f"temp/out.{temp_name}.{to_format}"
 
-    if url is None:
-        with open(in_file, "wb") as file:
-            file.write(await request.body())
-    else:
-        await fetch_file(url, in_file)
+    try:
+        if url is None:
+            with open(in_file, "wb") as file:
+                file.write(await request.body())
+        else:
+            await fetch_file(url, in_file)
 
-    converters = conversions[str(from_format)][to_format]
+        converters = conversions[str(from_format)][to_format]
 
-    if len(converters) == 0:
-        return Response("No matching converter", status_code=400)
+        if len(converters) == 0:
+            return Response("No matching converter", status_code=400)
 
-    recommended = (
-        recommended_converter[from_format][to_format]
-        if (
-            from_format in recommended_converter
-            and to_format in recommended_converter[from_format]
+        recommended = (
+            recommended_converter[from_format][to_format]
+            if (
+                from_format in recommended_converter
+                and to_format in recommended_converter[from_format]
+            )
+            else None
         )
-        else None
-    )
-    converter = (
-        next(iter(converters.values()))
-        if recommended is None
-        else converters[recommended]
-    )
-    await converter(in_file, out_file, from_format, to_format)
+        converter = (
+            next(iter(converters.values()))
+            if recommended is None
+            else converters[recommended]
+        )
+        await converter(in_file, out_file, from_format, to_format)
 
-    with open(out_file, "rb") as file:
-        return Response(content=file.read(), media_type="image")
+        with open(out_file, "rb") as file:
+            return Response(content=file.read(), media_type="image")
+    finally:
+        try:
+            os.remove(in_file)
+        except FileNotFoundError:
+            pass
+        try:
+            os.remove(out_file)
+        except FileNotFoundError:
+            pass
 
 
 print(f"{len(file_formats)} formats loaded")
