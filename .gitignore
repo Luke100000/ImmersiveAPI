@@ -2,5 +2,6 @@
 .env
 .idea
 temp
-/test/output/
-/test/results.json
+/modules/converter/test/output/
+/modules/converter/test/results.json
+/temp_conversion/

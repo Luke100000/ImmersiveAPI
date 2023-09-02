@@ -1,6 +1,6 @@
 from PIL import Image
 
-from converter import add_converter
+from modules.converter.converter import add_converter
 
 
 async def pillow_converter(

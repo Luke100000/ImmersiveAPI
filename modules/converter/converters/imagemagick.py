@@ -3,7 +3,7 @@ import glob
 import os
 import subprocess
 
-from converter import add_converter
+from modules.converter.converter import add_converter
 
 
 async def imagemagick_converter(

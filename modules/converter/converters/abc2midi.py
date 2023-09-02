@@ -1,6 +1,6 @@
 import asyncio
 
-from converter import add_converter
+from modules.converter.converter import add_converter
 
 
 async def abc2midi_converter(

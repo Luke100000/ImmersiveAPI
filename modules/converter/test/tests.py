@@ -5,12 +5,8 @@ import shutil
 import time
 from collections import defaultdict
 
-from converter import conversions, file_formats
-from converters.abc2midi import install_abc2midi
-from converters.ffmpeg import install_ffmpeg
-from converters.imagemagick import install_imagemagick
-from converters.opencv import install_opencv
-from converters.pillow import install_pillow
+from modules.converter.converter import conversions, file_formats
+from modules.converter.converters.abc2midi import install_abc2midi
 
 install_abc2midi()
 # install_ffmpeg()
