@@ -1,3 +1,7 @@
+from dotenv import load_dotenv
+
+load_dotenv()
+
 import os
 import shutil
 
@@ -5,6 +9,7 @@ from prometheus_client import CollectorRegistry, multiprocess
 from starlette.middleware.gzip import GZipMiddleware
 
 from modules.converter.converterModule import initConverterModule
+from modules.patreon.patreonModule import initPatreon
 
 # Setup prometheus for multiprocessing
 prom_dir = (
@@ -30,6 +35,7 @@ instrumentator = Instrumentator().instrument(app)
 
 # Enable modules
 initConverterModule(app)
+initPatreon(app)
 
 
 @app.on_event("startup")
