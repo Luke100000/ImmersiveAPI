@@ -6,7 +6,6 @@ from cachetools import cached, TTLCache
 from fastapi import FastAPI
 
 creator_access_token = os.getenv("PATREON_API_KEY")
-print(len(creator_access_token))
 
 api_client = patreon.API(creator_access_token)
 
