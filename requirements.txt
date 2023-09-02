@@ -10,3 +10,4 @@ fastapi-cache2[redis]
 orjson~=3.9.4
 patreon~=0.5.0
 cachetools~=5.3.1
+itchio~=1.1.2

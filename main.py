@@ -9,6 +9,7 @@ import shutil
 from prometheus_client import CollectorRegistry, multiprocess
 from starlette.middleware.gzip import GZipMiddleware
 
+from modules.itchio.itchioModule import itchioModule
 from modules.converter.converterModule import initConverterModule
 from modules.patreon.patreonModule import initPatreon
 
@@ -46,6 +47,7 @@ instrumentator = Instrumentator().instrument(app)
 # Enable modules
 initConverterModule(app)
 initPatreon(app)
+itchioModule(app)
 
 
 @app.on_event("startup")
