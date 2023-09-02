@@ -9,20 +9,26 @@ session = itchio.Session(key)
 
 games = []
 for game in itchio.GameCollection(session).all():
-    games.append(
-        {
-            "id": game.id,
-            "title": game.title,
-            "short_text": game.short_text,
-            "url": game.url,
-            "published_at": game.published_at,
-            "downloads_count": game.downloads_count,
-            "views_count": game.views_count,
-            "cover_url": game.cover_url,
-        }
-    )
+    available = game.p_windows or game.p_osx or game.p_linux or game.p_android
+    if available:
+        games.append(
+            {
+                "id": game.id,
+                "title": game.title,
+                "short_text": game.short_text,
+                "url": game.url,
+                "published_at": game.published_at,
+                "downloads_count": game.downloads_count,
+                "views_count": game.views_count,
+                "cover_url": game.cover_url,
+                "p_windows": game.p_windows,
+                "p_osx": game.p_osx,
+                "p_linux": game.p_linux,
+                "p_android": game.p_android,
+            }
+        )
 
-print(games)
+games.sort(key=lambda x: x["downloads_count"], reverse=True)
 
 
 def itchioModule(app: FastAPI):
