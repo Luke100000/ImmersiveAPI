@@ -33,5 +33,5 @@ games.sort(key=lambda x: x["downloads_count"], reverse=True)
 
 def itchioModule(app: FastAPI):
     @app.get("/v1/itchio")
-    def get_patrons():
+    def get_itchio():
         return games
