@@ -12,6 +12,7 @@ from starlette.middleware.gzip import GZipMiddleware
 from modules.itchio.itchioModule import itchioModule
 from modules.converter.converterModule import initConverterModule
 from modules.patreon.patreonModule import initPatreon
+from modules.hagrid.hagrid import initHagrid
 
 # Setup prometheus for multiprocessing
 prom_dir = (
@@ -48,6 +49,7 @@ instrumentator = Instrumentator().instrument(app)
 initConverterModule(app)
 initPatreon(app)
 itchioModule(app)
+initHagrid(app)
 
 
 @app.on_event("startup")
