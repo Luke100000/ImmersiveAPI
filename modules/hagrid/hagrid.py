@@ -18,10 +18,10 @@ async def setup():
         "CREATE UNIQUE INDEX IF NOT EXISTS primary_index on users (guild, discord_id)"
     )
     await database.execute(
-        "CREATE UNIQUE INDEX IF NOT EXISTS minecraft_username on users (minecraft_username)"
+        "CREATE UNIQUE INDEX IF NOT EXISTS minecraft_username on users (guild, minecraft_username)"
     )
     await database.execute(
-        "CREATE UNIQUE INDEX IF NOT EXISTS minecraft_uuid on users (minecraft_uuid)"
+        "CREATE UNIQUE INDEX IF NOT EXISTS minecraft_uuid on users (guild, minecraft_uuid)"
     )
 
 
