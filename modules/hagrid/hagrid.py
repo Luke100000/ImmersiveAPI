@@ -98,14 +98,14 @@ def initHagrid(app: FastAPI):
             return {"error", "Permission denied."}
 
         if await database.fetch_one(
-            "SELECT * FROM users WHERE minecraft_username = :minecraft_username",
-            {"minecraft_username": minecraft_username},
+            "SELECT * FROM users WHERE guild = :guild AND minecraft_username = :minecraft_username",
+            {"guild": guild, "minecraft_username": minecraft_username},
         ):
             return {"error": "Minecraft account already linked."}
 
         if await database.fetch_one(
-            "SELECT * FROM users WHERE discord_id = :discord_id",
-            {"discord_id": discord_id},
+            "SELECT * FROM users WHERE guild = :guild AND discord_id = :discord_id",
+            {"guild": guild, "discord_id": discord_id},
         ):
             return {"error": "Discord account already linked."}
 
