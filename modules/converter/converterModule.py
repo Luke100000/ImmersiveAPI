@@ -37,9 +37,9 @@ install_pillow()
 
 
 def initConverterModule(app: FastAPI):
-    @app.get("/convert")
-    async def index(request: Request):
-        return templates.TemplateResponse("index.html", {"request": request, "id": id})
+    @app.get("/convert/{output_format}")
+    async def index(request: Request, output_format: str = "png"):
+        return templates.TemplateResponse("index.html", {"request": request, "id": id, "output_format": output_format})
 
     @app.get("/v1/convert/{to_format}")
     @app.post("/v1/convert/{to_format}")
@@ -83,8 +83,11 @@ def initConverterModule(app: FastAPI):
             )
             await converter(in_file, out_file, from_format, to_format)
 
-            with open(out_file, "rb") as file:
-                return Response(content=file.read(), media_type="image")
+            try:
+                with open(out_file, "rb") as file:
+                    return Response(content=file.read(), media_type="image")
+            except FileNotFoundError:
+                return Response("Converter provided no output.", status_code=400)
         finally:
             try:
                 os.remove(in_file)
