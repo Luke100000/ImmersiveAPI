@@ -29,17 +29,18 @@ else:
     recommended_converter = {}
 
 
-install_abc2midi()
-install_ffmpeg()
-install_imagemagick()
-install_opencv()
-install_pillow()
-
-
 def initConverterModule(app: FastAPI):
+    install_abc2midi()
+    install_ffmpeg()
+    install_imagemagick()
+    install_opencv()
+    install_pillow()
+
     @app.get("/convert/{output_format}")
     async def index(request: Request, output_format: str = "png"):
-        return templates.TemplateResponse("index.html", {"request": request, "id": id, "output_format": output_format})
+        return templates.TemplateResponse(
+            "index.html", {"request": request, "id": id, "output_format": output_format}
+        )
 
     @app.get("/v1/convert/{to_format}")
     @app.post("/v1/convert/{to_format}")

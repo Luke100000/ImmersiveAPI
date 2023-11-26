@@ -6,3 +6,4 @@ temp
 /modules/converter/test/results.json
 /temp_conversion/
 /hagrid.db
+/cache

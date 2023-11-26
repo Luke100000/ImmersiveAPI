@@ -1,8 +1,11 @@
+from typing import Callable
+
 from dotenv import load_dotenv
 from starlette.middleware.cors import CORSMiddleware
 
 load_dotenv()
 
+import time
 import os
 import shutil
 
@@ -13,6 +16,7 @@ from modules.itchio.itchioModule import itchioModule
 from modules.converter.converterModule import initConverterModule
 from modules.patreon.patreonModule import initPatreon
 from modules.hagrid.hagrid import initHagrid
+from modules.phrasey.phrases import initPhrasey
 
 # Setup prometheus for multiprocessing
 prom_dir = (
@@ -45,11 +49,20 @@ app.add_middleware(
 # Prometheus integration
 instrumentator = Instrumentator().instrument(app)
 
+
+def benchmark(initializer: Callable, *args, **kwargs):
+    start = time.time()
+    initializer(*args, **kwargs)
+    end = time.time()
+    print(f"Initialized {initializer.__name__} in {end - start:.2f}s")
+
+
 # Enable modules
-initConverterModule(app)
-initPatreon(app)
-itchioModule(app)
-initHagrid(app)
+benchmark(initConverterModule, app)
+benchmark(initPatreon, app)
+benchmark(itchioModule, app)
+benchmark(initHagrid, app)
+benchmark(initPhrasey, app)
 
 
 @app.on_event("startup")
