@@ -12,8 +12,9 @@ from fastapi import FastAPI, HTTPException
 from sentence_transformers import SentenceTransformer
 from starlette.responses import FileResponse, Response
 
+from modules.phrasey.elvenlabs import voice_map, generate_elevenlabs_tts
 from modules.phrasey.openai_helper import generate_phrase
-from modules.phrasey.playht import voices, request_tts, download_tts, Voice
+from modules.phrasey.playht import voices, request_tts, download_tts
 from modules.phrasey.utils import hash_string, cosine_dist
 
 model = SentenceTransformer("multi-qa-MiniLM-L6-cos-v1", device="cpu")
@@ -34,6 +35,7 @@ types = [
     EventType("OpponentEquipment", 1.0),
     EventType("OpponentStatus", 1.0),
     EventType("Biome", 1.0),
+    EventType("Light", 1.0),
     EventType("Time", 1.0),
     EventType("Nearby", 1.0),
     EventType("First", 1.0),
@@ -74,7 +76,7 @@ class Event:
 
 
 class Phrasey:
-    def __init__(self, cache_dir: str, voice: Voice) -> None:
+    def __init__(self, cache_dir: str, voice: str) -> None:
         super().__init__()
 
         self.voice = voice
@@ -83,6 +85,7 @@ class Phrasey:
         self.dataset_full: List[Event] = []
         self.annoy_index: AnnoyIndex = None
 
+        os.makedirs(cache_dir, exist_ok=True)
         self.counts = shelve.open(cache_dir + "/phrase_count.db")
 
         self.load()
@@ -149,7 +152,9 @@ class Phrasey:
                 )
             else:
                 scores[i] = event.get_importance(event_count) * math.sqrt(
-                    self.counts[event.get_hash()] or 1
+                    self.counts[event.get_hash()]
+                    if event.get_hash() in self.counts
+                    else 1
                 )
 
         # Generate more phrases
@@ -174,11 +179,12 @@ class Phrasey:
                 print("Phrase: " + phrase)
 
                 # Generate TTS
-                identifier = request_tts(phrase, self.voice)
-                print("Play.ht identifier: " + identifier)
-                download_tts(
-                    identifier, f"{self.cache_dir}/{event_hash}/tts/{phrase_hash}.ogg"
-                )
+                output_file = f"{self.cache_dir}/{event_hash}/tts/{phrase_hash}.ogg"
+                if self.voice in voice_map:
+                    generate_elevenlabs_tts(phrase, self.voice, output_file)
+                else:
+                    identifier = request_tts(phrase, self.voice)
+                    download_tts(identifier, output_file)
                 print("")
 
     def save(self, event_hash: str, event: Event):
@@ -211,14 +217,24 @@ class Phrasey:
         return f"{self.cache_dir}/{event_hash}/tts/{phrase_hash}.ogg"
 
 
+def load_phraseys():
+    phraseys = {}
+
+    for voice in voices.values():
+        phraseys[voice.name] = Phrasey("cache/" + voice.name, voice.name)
+
+    for voice in voice_map.keys():
+        phraseys[voice] = Phrasey("cache/" + voice, voice)
+
+    return phraseys
+
+
 def initPhrasey(app: FastAPI):
-    phraseys: dict[str, Phrasey] = {
-        voice.name: Phrasey("cache/" + voice.name, voice) for voice in voices.values()
-    }
+    phraseys: dict[str, Phrasey] = load_phraseys()
 
     @app.get("/v1/phrasey/hash/{voice}")
     def get_hash(voice: str, events: str):
-        if voice not in voices:
+        if voice not in phraseys:
             raise HTTPException(status_code=404, detail="Voice not found")
 
         query_event = Event(json.loads(events))
@@ -227,14 +243,14 @@ def initPhrasey(app: FastAPI):
 
     @app.get("/v1/phrasey/phrase/{voice}/{event_hash}/{phrase_hash}")
     def get_phrase(voice: str, event_hash: str, phrase_hash: str):
-        if voice not in voices:
+        if voice not in phraseys:
             raise HTTPException(status_code=404, detail="Voice not found")
 
         return Response(phraseys[voice].get_phrase(event_hash, phrase_hash))
 
     @app.get("/v1/phrasey/audio/{voice}/{event_hash}/{phrase_hash}")
     def get_audio(voice: str, event_hash: str, phrase_hash: str):
-        if voice not in voices:
+        if voice not in phraseys:
             raise HTTPException(status_code=404, detail="Voice not found")
 
         path = phraseys[voice].get_audio_path(event_hash, phrase_hash)
@@ -242,12 +258,12 @@ def initPhrasey(app: FastAPI):
 
     @app.get("/v1/phrasey/voices")
     def get_audio():
-        return [v.name for v in voices.values()]
+        return [v for v in phraseys.keys()]
 
 
 def main():
     print("Training phrasey")
-    phrasey = Phrasey("../../cache/hardtack", voices["hardtack"])
+    phrasey = Phrasey("../../cache/hardtack", "hardtack")
     phrasey.generate(1)
 
 

@@ -6,6 +6,8 @@ from time import sleep
 import requests
 from dotenv import load_dotenv
 
+from modules.phrasey.utils import convert_to_ogg
+
 load_dotenv()
 headers = {
     "accept": "application/json",
@@ -52,15 +54,22 @@ def fetch_voices(url):
 fetch_voices("https://api.play.ht/api/v2/cloned-voices")
 
 
+def generate_play_ht_tts(text: str, voice_name: str, file: str):
+    identifier = request_tts(text, voice_name)
+    download_tts(identifier, file)
+
+
 def request_tts(
-    text: str, voice: Voice, emotion: Emotion = Emotion.NEUTRAL, speed: float = 1.0
+    text: str, voice_name: str, emotion: Emotion = Emotion.NEUTRAL, speed: float = 1.0
 ):
+    voice = voices[voice_name]
+
     payload = {
         "text": text,
         "voice": voice.id,
         "quality": "high",
         "speed": speed,
-        "output_format": "ogg",
+        "output_format": "wav",
         "sample_rate": "48000",
         "voice_engine": voice.voice_engine,
         "emotion": None
@@ -71,8 +80,6 @@ def request_tts(
     response = requests.post(
         "https://api.play.ht/api/v2/tts", json=payload, headers=headers
     )
-
-    print("Request", response.json())
 
     return response.json()["id"]
 
@@ -87,11 +94,11 @@ def download_tts(identifier, file):
             print("Failed to parse response", response.json())
             break
 
-        print("Response", response.json())
-
         output = response.json()["output"]
         if output is not None:
-            urllib.request.urlretrieve(output["url"], file)
+            urllib.request.urlretrieve(output["url"], file + ".wav")
+            convert_to_ogg(file + ".wav", file)
+            os.remove(file + ".wav")
             break
         else:
             print("Waiting for TTS to be generated...")

@@ -1,4 +1,5 @@
 import hashlib
+import subprocess
 
 import numpy as np
 
@@ -13,3 +14,22 @@ def cosine_dist(A, B):
     B_mag = np.sqrt(np.sum(np.square(B)))
     dist = 1.0 - (A_dot_B / (A_mag * B_mag))
     return dist
+
+
+def convert_to_ogg(input_file: str, output_file: str, sample_rate: int = 48000):
+    try:
+        subprocess.run(
+            [
+                "ffmpeg",
+                "-i",
+                input_file,
+                "-ar",
+                str(sample_rate),
+                "-filter:a",
+                "" "loudnorm=i=-14" "",
+                output_file,
+            ]
+        )
+        print(f"Conversion successful: {input_file} -> {output_file}")
+    except Exception as e:
+        print(f"Error during conversion: {e}")
