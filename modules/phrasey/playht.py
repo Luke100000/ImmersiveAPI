@@ -6,6 +6,7 @@ from time import sleep
 import requests
 from dotenv import load_dotenv
 
+from modules.phrasey.tts import TTS
 from modules.phrasey.utils import convert_to_ogg
 
 load_dotenv()
@@ -40,29 +41,24 @@ class Emotion(Enum):
     SURPRISED = "surprised"
 
 
-voices: dict[str, Voice] = {}
+voice_map: dict[str, Voice] = {}
 
 
 def fetch_voices(url):
     response = requests.get(url, headers=headers)
     for voice in response.json():
         v = Voice(voice)
-        voices[v.name] = v
+        voice_map[v.name] = v
 
 
 # fetch_voices("https://api.play.ht/api/v2/voices")
 fetch_voices("https://api.play.ht/api/v2/cloned-voices")
 
 
-def generate_play_ht_tts(text: str, voice_name: str, file: str):
-    identifier = request_tts(text, voice_name)
-    download_tts(identifier, file)
-
-
 def request_tts(
     text: str, voice_name: str, emotion: Emotion = Emotion.NEUTRAL, speed: float = 1.0
 ):
-    voice = voices[voice_name]
+    voice = voice_map[voice_name]
 
     payload = {
         "text": text,
@@ -103,3 +99,12 @@ def download_tts(identifier, file):
         else:
             print("Waiting for TTS to be generated...")
             sleep(5)
+
+
+class PlayHTEngine(TTS):
+    def get_voices(self):
+        return ["ht_" + v for v in voice_map.keys()]
+
+    def generate(self, text: str, voice: str, file: str):
+        identifier = request_tts(text, voice[3:])
+        download_tts(identifier, file)

@@ -12,12 +12,27 @@ from fastapi import FastAPI, HTTPException
 from sentence_transformers import SentenceTransformer
 from starlette.responses import FileResponse, Response
 
-from modules.phrasey.elvenlabs import voice_map, generate_elevenlabs_tts
+from modules.phrasey.elvenlabs import (
+    voice_map,
+    ElevenLabsEngine,
+)
+from modules.phrasey.mystic import MysticEngine
 from modules.phrasey.openai_helper import generate_phrase
-from modules.phrasey.playht import voices, request_tts, download_tts
+from modules.phrasey.playht import voice_map, PlayHTEngine
 from modules.phrasey.utils import hash_string, cosine_dist
 
-model = SentenceTransformer("multi-qa-MiniLM-L6-cos-v1", device="cpu")
+embedding_model = SentenceTransformer("multi-qa-MiniLM-L6-cos-v1", device="cpu")
+
+engines = [
+    PlayHTEngine(),
+    ElevenLabsEngine(),
+    MysticEngine(),
+]
+
+voices = {}
+for engine in engines:
+    for voice_name in engine.get_voices():
+        voices[voice_name] = engine
 
 
 class EventType:
@@ -36,6 +51,7 @@ types = [
     EventType("OpponentStatus", 1.0),
     EventType("Biome", 1.0),
     EventType("Light", 1.0),
+    EventType("Weather", 1.0),
     EventType("Time", 1.0),
     EventType("Nearby", 1.0),
     EventType("First", 1.0),
@@ -60,7 +76,7 @@ class Event:
         return "\n".join(self.get_full())
 
     def get_embedding(self) -> np.ndarray:
-        return model.encode(self.get_full_str())
+        return embedding_model.encode(self.get_full_str())
 
     def get_hash(self) -> str:
         return hash_string(self.get_full_str())
@@ -180,11 +196,7 @@ class Phrasey:
 
                 # Generate TTS
                 output_file = f"{self.cache_dir}/{event_hash}/tts/{phrase_hash}.ogg"
-                if self.voice in voice_map:
-                    generate_elevenlabs_tts(phrase, self.voice, output_file)
-                else:
-                    identifier = request_tts(phrase, self.voice)
-                    download_tts(identifier, output_file)
+                voices[self.voice].generate(phrase, self.voice, output_file)
                 print("")
 
     def save(self, event_hash: str, event: Event):
@@ -220,7 +232,7 @@ class Phrasey:
 def load_phraseys():
     phraseys = {}
 
-    for voice in voices.values():
+    for voice in voice_map.values():
         phraseys[voice.name] = Phrasey("cache/" + voice.name, voice.name)
 
     for voice in voice_map.keys():
@@ -263,8 +275,8 @@ def initPhrasey(app: FastAPI):
 
 def main():
     print("Training phrasey")
-    phrasey = Phrasey("../../cache/hardtack", "hardtack")
-    phrasey.generate(1)
+    phrasey = Phrasey("../../cache/my_hardtack", "my_hardtack")
+    phrasey.generate(10)
 
 
 if __name__ == "__main__":
