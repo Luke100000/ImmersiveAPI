@@ -13,12 +13,11 @@ from sentence_transformers import SentenceTransformer
 from starlette.responses import FileResponse, Response
 
 from modules.phrasey.elvenlabs import (
-    voice_map,
     ElevenLabsEngine,
 )
 from modules.phrasey.mystic import MysticEngine
 from modules.phrasey.openai_helper import generate_phrase
-from modules.phrasey.playht import voice_map, PlayHTEngine
+from modules.phrasey.playht import PlayHTEngine
 from modules.phrasey.utils import hash_string, cosine_dist
 
 embedding_model = SentenceTransformer("multi-qa-MiniLM-L6-cos-v1", device="cpu")
@@ -42,20 +41,20 @@ class EventType:
 
 
 types = [
-    EventType("Task", 1.0),
-    EventType("You", 1.0),
-    EventType("Equipment", 1.0),
-    EventType("Status", 1.0),
-    EventType("Opponent", 1.0),
-    EventType("OpponentEquipment", 1.0),
-    EventType("OpponentStatus", 1.0),
-    EventType("Biome", 1.0),
-    EventType("Light", 1.0),
-    EventType("Weather", 1.0),
-    EventType("Time", 1.0),
-    EventType("Nearby", 1.0),
-    EventType("First", 1.0),
-    EventType("Second", 1.0),
+    EventType("Task", 10),
+    EventType("You", 8),
+    EventType("Equipment", 4),
+    EventType("Status", 6),
+    EventType("Opponent", 8),
+    EventType("OpponentEquipment", 3),
+    EventType("OpponentStatus", 2),
+    EventType("Biome", 2),
+    EventType("Light", 4),
+    EventType("Weather", 4),
+    EventType("Time", 4),
+    EventType("Nearby", 4),
+    EventType("First", 6),
+    EventType("Second", 4),
 ]
 
 
@@ -76,7 +75,22 @@ class Event:
         return "\n".join(self.get_full())
 
     def get_embedding(self) -> np.ndarray:
-        return embedding_model.encode(self.get_full_str())
+        embeddings = embedding_model.encode(
+            [
+                self.events[type.identifier]
+                for type in types
+                if type.identifier in self.events
+            ]
+        )
+
+        weights = np.asarray(
+            [type.weight for type in types if type.identifier in self.events]
+        )
+
+        return np.sum(
+            np.asarray(embeddings) * weights[:, None],
+            axis=0,
+        ) / np.sum(weights)
 
     def get_hash(self) -> str:
         return hash_string(self.get_full_str())
@@ -137,6 +151,10 @@ class Phrasey:
 
         # Build lookup
         self.annoy_index.build(n_trees=10, n_jobs=2)
+
+    def generate_fake_cache(self):
+        # given a query field (task primarily), produce variation from the pool of other fields
+        pass
 
     def generate(self, samples: int = 10):
         event_count = defaultdict(int)
@@ -232,10 +250,7 @@ class Phrasey:
 def load_phraseys():
     phraseys = {}
 
-    for voice in voice_map.values():
-        phraseys[voice.name] = Phrasey("cache/" + voice.name, voice.name)
-
-    for voice in voice_map.keys():
+    for voice in voices.keys():
         phraseys[voice] = Phrasey("cache/" + voice, voice)
 
     return phraseys
@@ -275,7 +290,9 @@ def initPhrasey(app: FastAPI):
 
 def main():
     print("Training phrasey")
-    phrasey = Phrasey("../../cache/my_hardtack", "my_hardtack")
+    phrasey = Phrasey("cache/my_keeper", "my_keeper")
+    phrasey.generate_fake_cache()
+    phrasey.clear() # todo make clear function to start from scratch, only using inputs
     phrasey.generate(10)
 
 

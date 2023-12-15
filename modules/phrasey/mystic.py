@@ -12,10 +12,10 @@ load_dotenv()
 
 # Collect all voices
 voices = {}
-for filename in os.listdir("./mystic_embeddings"):
+for filename in os.listdir("modules/phrasey/mystic_embeddings"):
     if filename.endswith(".pth"):
         name = filename[:-4]
-        voices[name] = "./mystic_embeddings/" + filename
+        voices[name] = "modules/phrasey/mystic_embeddings/" + filename
 
 
 class MysticEngine(TTS):
