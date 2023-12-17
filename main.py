@@ -17,6 +17,7 @@ from modules.converter.converterModule import initConverterModule
 from modules.patreon.patreonModule import initPatreon
 from modules.hagrid.hagrid import initHagrid
 from modules.phrasey.phrases import initPhrasey
+from modules.youare.youare import initYouAre
 
 # Setup prometheus for multiprocessing
 prom_dir = (
@@ -63,6 +64,7 @@ benchmark(initPatreon, app)
 benchmark(itchioModule, app)
 benchmark(initHagrid, app)
 benchmark(initPhrasey, app)
+benchmark(initYouAre, app)
 
 
 @app.on_event("startup")
