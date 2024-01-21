@@ -1,0 +1,20 @@
+runtime:
+  container_commands:
+  - apt-get update
+  - apt-get install -y git
+  python:
+    version: '3.10'
+    requirements:
+    - pipeline-ai
+    - torch==2.1.2
+    - torchaudio==2.1.2
+    - deepspeed==0.8.3
+    - tortoise-tts==3.0.0
+    cuda_version: '12.1'
+accelerators: ["nvidia_all"]
+accelerator_memory: 10000
+pipeline_graph: pipeline:pipeline
+pipeline_name: conczin/tortoise-tts-latents
+description: "Tortoise-TTS but with latents upload instead of raw voice samples."
+readme: null
+extras: {}
