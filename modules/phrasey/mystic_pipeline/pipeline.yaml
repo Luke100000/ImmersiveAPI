@@ -13,7 +13,7 @@ runtime:
     cuda_version: '12.1'
 accelerators: ["nvidia_all"]
 accelerator_memory: 10000
-pipeline_graph: pipeline:pipeline
+pipeline_graph: tts_pipeline:pipeline
 pipeline_name: conczin/tortoise-tts-latents
 description: "Tortoise-TTS but with latents upload instead of raw voice samples."
 readme: null
