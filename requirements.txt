@@ -1,10 +1,10 @@
 aiofile~=3.8.7
-aiohttp==3.9.1
+aiohttp~=3.8.6
 python-dotenv~=1.0.0
 starlette==0.35.1
 fastapi==0.109.0
-Pillow==10.2.0
-numpy~=1.26.3
+Pillow~=10.0.0
+numpy~=1.22.0
 redis==5.0.1
 fastapi-cache2[redis]
 orjson~=3.9.4
@@ -22,3 +22,8 @@ mistralai~=0.0.11
 tqdm~=4.66.1
 torchaudio~=2.1.2
 pipeline-ai~=2.0.5
+vllm~=0.2.7
+optimum[openvino]~=1.16.2
+diffusers~=0.25.1
+TTS~=0.22.0
+pydantic==2.5.3
