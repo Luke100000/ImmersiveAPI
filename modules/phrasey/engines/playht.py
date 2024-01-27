@@ -51,8 +51,9 @@ def fetch_voices(url):
         voice_map[v.name] = v
 
 
-# fetch_voices("https://api.play.ht/api/v2/voices")
-fetch_voices("https://api.play.ht/api/v2/cloned-voices")
+if os.getenv("PLAY_HT_SECRET_KEY"):
+    # fetch_voices("https://api.play.ht/api/v2/voices")
+    fetch_voices("https://api.play.ht/api/v2/cloned-voices")
 
 
 def request_tts(
