@@ -8,7 +8,9 @@ from modules.phrasey.utils import convert_to_ogg
 
 load_dotenv()
 
-set_api_key(os.getenv("ELEVENLABS_API_KEY"))
+key = os.getenv("ELEVENLABS_API_KEY")
+if key:
+    set_api_key(key)
 
 CHUNK_SIZE = 1024
 
