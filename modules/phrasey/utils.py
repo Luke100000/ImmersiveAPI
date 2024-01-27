@@ -21,6 +21,7 @@ def convert_to_ogg(input_file: str, output_file: str, sample_rate: int = 48000):
         subprocess.run(
             [
                 "ffmpeg",
+                "-y",
                 "-i",
                 input_file,
                 "-ar",

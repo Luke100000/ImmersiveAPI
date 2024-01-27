@@ -17,6 +17,7 @@ from modules.converter.converterModule import initConverterModule
 from modules.patreon.patreonModule import initPatreon
 from modules.hagrid.hagrid import initHagrid
 from modules.phrasey.phrases import initPhrasey
+from modules.hugging.hugging import initHugging
 from modules.youare.youare import initYouAre
 
 # Setup prometheus for multiprocessing
@@ -59,12 +60,13 @@ def benchmark(initializer: Callable, *args, **kwargs):
 
 
 # Enable modules
-benchmark(initConverterModule, app)
-benchmark(initPatreon, app)
-benchmark(itchioModule, app)
-benchmark(initHagrid, app)
+# benchmark(initConverterModule, app)
+# benchmark(initPatreon, app)
+# benchmark(itchioModule, app)
+# benchmark(initHagrid, app)
 benchmark(initPhrasey, app)
-benchmark(initYouAre, app)
+benchmark(initHugging, app)
+# benchmark(initYouAre, app)
 
 
 @app.on_event("startup")

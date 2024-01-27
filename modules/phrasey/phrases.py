@@ -3,21 +3,25 @@ import math
 import os
 import random
 import shelve
+import shutil
 from collections import defaultdict
-from typing import List
+from functools import cache
+from typing import List, Mapping
 
 import numpy as np
 from annoy import AnnoyIndex
 from fastapi import FastAPI, HTTPException
 from sentence_transformers import SentenceTransformer
 from starlette.responses import FileResponse, Response
+from tqdm.auto import tqdm
 
-from modules.phrasey.elvenlabs import (
+from modules.phrasey.engines.elvenlabs import (
     ElevenLabsEngine,
 )
-from modules.phrasey.mystic import MysticEngine
-from modules.phrasey.openai_helper import generate_phrase
-from modules.phrasey.playht import PlayHTEngine
+from modules.phrasey.engines.mystic import MysticEngine
+from modules.phrasey.engines.xtts import XTTSEngine
+from modules.phrasey.llm_helper import generate_phrase
+from modules.phrasey.engines.playht import PlayHTEngine
 from modules.phrasey.utils import hash_string, cosine_dist
 
 embedding_model = SentenceTransformer("multi-qa-MiniLM-L6-cos-v1", device="cpu")
@@ -26,6 +30,7 @@ engines = [
     PlayHTEngine(),
     ElevenLabsEngine(),
     MysticEngine(),
+    XTTSEngine(),
 ]
 
 voices = {}
@@ -45,17 +50,21 @@ types = [
     EventType("You", 8),
     EventType("Equipment", 4),
     EventType("Status", 6),
-    EventType("Opponent", 8),
-    EventType("OpponentEquipment", 3),
-    EventType("OpponentStatus", 2),
     EventType("Biome", 2),
     EventType("Light", 4),
     EventType("Weather", 4),
     EventType("Time", 4),
     EventType("Nearby", 4),
-    EventType("First", 6),
-    EventType("Second", 4),
+    EventType("Target", 8),
+    EventType("Opponent", 8),
+    EventType("OpponentEquipment", 3),
+    EventType("OpponentStatus", 7),
 ]
+
+
+@cache
+def cached_embedd(sentence: str):
+    return embedding_model.encode(sentence)
 
 
 class Event:
@@ -75,13 +84,11 @@ class Event:
         return "\n".join(self.get_full())
 
     def get_embedding(self) -> np.ndarray:
-        embeddings = embedding_model.encode(
-            [
-                self.events[type.identifier]
-                for type in types
-                if type.identifier in self.events
-            ]
-        )
+        embeddings = [
+            cached_embedd(self.events[type.identifier])
+            for type in types
+            if type.identifier in self.events
+        ]
 
         weights = np.asarray(
             [type.weight for type in types if type.identifier in self.events]
@@ -98,11 +105,15 @@ class Event:
     def add_phrase(self, phrase):
         self.phrases.append(phrase)
 
-    def get_importance(self, event_count):
+    def get_importance(self, event_counts: Mapping[str, float]) -> float:
+        """
+        Count the total times phrases from this event have been used.
+        Higher counts mean more commonly used.
+        """
         importance = 0.0
         for type in self.events.values():
-            importance += event_count[type]
-        return importance / (len(self.phrases) + 0.1)
+            importance += event_counts[type] if type in event_counts else 0
+        return importance / len(self.events)
 
 
 class Phrasey:
@@ -116,12 +127,13 @@ class Phrasey:
         self.annoy_index: AnnoyIndex = None
 
         os.makedirs(cache_dir, exist_ok=True)
-        self.counts = shelve.open(cache_dir + "/phrase_count.db")
+        self.usage_counts = shelve.open(cache_dir + "/phrase_count.db")
 
         self.load()
 
     def load(self):
         vector_size = 384
+
         self.dataset = []
         self.dataset_full = []
         self.annoy_index = AnnoyIndex(vector_size, "angular")
@@ -152,72 +164,116 @@ class Phrasey:
         # Build lookup
         self.annoy_index.build(n_trees=10, n_jobs=2)
 
-    def generate_fake_cache(self):
+    def generate_fake_dataset(self, count: int = 1000):
         # given a query field (task primarily), produce variation from the pool of other fields
-        pass
+        index = ("task",)
+        phrases = defaultdict(lambda: defaultdict(list))
+        for e in self.dataset_full:
+            e_index = tuple((e.events[i] if i in e.events else "?") for i in index)
+            for key, value in e.events.items():
+                phrases[e_index][key].append(value)
 
-    def generate(self, samples: int = 10):
-        event_count = defaultdict(int)
+        fake_events = []
+        for e_index, e_phrases in phrases.items():
+            for sample in range(int(math.ceil(count / len(phrases)))):
+                fake_event = {}
+                for type in types:
+                    if type.identifier in e_phrases:
+                        fake_event[type.identifier] = random.choice(
+                            e_phrases[type.identifier]
+                        )
+                fake_events.append(Event(fake_event))
+
+        return fake_events
+
+    def clear(self):
+        """
+        Deletes all tts and phrases generated, but keeps the event descriptors.
+        """
+        for event_hash in os.listdir(self.cache_dir):
+            if event_hash == "phrase_count.db":
+                continue
+
+            d = os.path.join(self.cache_dir, event_hash, "phrases")
+            shutil.rmtree(d, ignore_errors=True)
+            os.makedirs(d, exist_ok=True)
+
+            d = os.path.join(self.cache_dir, event_hash, "tts")
+            shutil.rmtree(d, ignore_errors=True)
+            os.makedirs(d, exist_ok=True)
+
+        self.usage_counts.clear()
+        self.load()
+
+    def generate(self, samples: int = 1, threshold: float = 1.0, dataset=None):
+        if dataset is None:
+            dataset = self.dataset_full
 
         # Count different events to construct importance
+        event_counts = defaultdict(int)
         for event in self.dataset_full:
+            h = event.get_hash()
+            count = self.usage_counts[h] if h in self.usage_counts else 1
             for e in event.events.values():
-                event_count[e] += 1
-
-        # Normalize event importance
-        counts = [v for v in event_count.values()]
-        max_count = 0 if len(counts) == 0 else max(counts)
-        for key in event_count:
-            event_count[key] /= max_count
+                event_counts[e] += count
 
         # For every event, find the closest event
-        scores = np.zeros(len(self.dataset_full))
-        for i, event in enumerate(self.dataset_full):
+        distances = np.zeros(len(dataset))
+        for i, event in tqdm(enumerate(dataset)):
+            event_hash = event.get_hash()
+
+            # The more it is used, the more important it is to generate another phrase
+            usage_count = math.sqrt(
+                self.usage_counts[event_hash] if event_hash in self.usage_counts else 1
+            )
+
+            # Find the closest event
             embedding = event.get_embedding()
             nn = self.annoy_index.get_nns_by_vector(embedding, 2)
-            if len(nn) > 1:
-                distance = max(
-                    0.0, cosine_dist(self.dataset[nn[1]].get_embedding(), embedding)
-                )
-                scores[i] = (
-                    distance
-                    * event.get_importance(event_count)
-                    * math.sqrt(self.counts[event.get_hash()] or 1)
-                )
-            else:
-                scores[i] = event.get_importance(event_count) * math.sqrt(
-                    self.counts[event.get_hash()]
-                    if event.get_hash() in self.counts
-                    else 1
-                )
+            distance = (
+                cosine_dist(self.dataset[nn[1]].get_embedding(), embedding) * 0.5 + 0.5
+                if len(nn) > 1
+                else 0
+            )
+
+            # Based on how well this even aligns with global usage, increase the importance
+            importance = event.get_importance(event_counts)
+
+            distances[i] = (
+                distance / importance * (1 + len(event.phrases)) / usage_count
+            )
+
+        # Too unimportant
+        distances = distances[distances < threshold]
 
         # Generate more phrases
-        indices = np.argsort(-scores)
-        for i in range(min(samples, len(self.dataset_full))):
-            if scores[i] > 0.01:
-                event = self.dataset_full[indices[i]]
-                event_hash = event.get_hash()
+        indices = np.argsort(-distances)
+        for i in range(min(samples, len(indices))):
+            event = dataset[indices[i]]
+            event_hash = event.get_hash()
+            self.save(event, event_hash)
 
-                print("Generating phrase for event:")
-                print(event.get_full_str())
-                print("Score: ", scores[i])
+            print("Generating phrase for event:")
+            print(event.get_full_str())
+            print("Score: ", distances[i])
 
-                # Generate phrase
-                phrase = generate_phrase(event.get_full())
-                phrase_hash = hash_string(phrase)
-                with open(
-                    f"{self.cache_dir}/{event_hash}/phrases/{phrase_hash}", "w"
-                ) as f:
-                    f.write(phrase)
+            # Generate phrase
+            phrase = generate_phrase(event.get_full())
+            phrase_hash = hash_string(phrase)
+            with open(f"{self.cache_dir}/{event_hash}/phrases/{phrase_hash}", "w") as f:
+                f.write(phrase)
 
-                print("Phrase: " + phrase)
+            print("Phrase: " + phrase)
 
-                # Generate TTS
-                output_file = f"{self.cache_dir}/{event_hash}/tts/{phrase_hash}.ogg"
-                voices[self.voice].generate(phrase, self.voice, output_file)
-                print("")
+            # Generate TTS
+            output_file = f"{self.cache_dir}/{event_hash}/tts/{phrase_hash}.ogg"
+            voices[self.voice].generate(phrase, self.voice, output_file)
+            print("")
 
-    def save(self, event_hash: str, event: Event):
+    def save(self, event: Event, event_hash: str = None):
+        if event_hash is None:
+            event_hash = event.get_hash()
+
         os.makedirs(f"{self.cache_dir}/{event_hash}/phrases", exist_ok=True)
         os.makedirs(f"{self.cache_dir}/{event_hash}/tts", exist_ok=True)
 
@@ -227,11 +283,14 @@ class Phrasey:
     def query(self, event: Event) -> (str, str):
         # Increase counter
         event_hash = event.get_hash()
-        if event_hash not in self.counts:
-            self.counts[event_hash] = 1
-            self.save(event_hash, event)
+        if event_hash not in self.usage_counts:
+            self.usage_counts[event_hash] = 1
+            self.save(event, event_hash)
         else:
-            self.counts[event_hash] += 1
+            self.usage_counts[event_hash] += 1
+
+        if len(self.dataset) == 0:
+            return None, None
 
         # Find the closest event
         index = self.annoy_index.get_nns_by_vector(event.get_embedding(), 1)[0]
@@ -258,6 +317,29 @@ def load_phraseys():
 
 def initPhrasey(app: FastAPI):
     phraseys: dict[str, Phrasey] = load_phraseys()
+
+    @app.get("/v1/phrasey/generate/{voice}")
+    def get_hash(voice: str):
+        if voice not in phraseys:
+            raise HTTPException(status_code=404, detail="Voice not found")
+
+        for sample in range(100):
+            phraseys[voice].load()
+            fake_dataset = (
+                phraseys[voice].generate_fake_dataset() + phraseys[voice].dataset_full
+            )
+            phraseys[voice].generate(dataset=fake_dataset)
+
+        return Response("Done")
+
+    @app.get("/v1/phrasey/clear/{voice}")
+    def get_hash(voice: str):
+        if voice not in phraseys:
+            raise HTTPException(status_code=404, detail="Voice not found")
+
+        phraseys[voice].clear()
+
+        return Response("Done")
 
     @app.get("/v1/phrasey/hash/{voice}")
     def get_hash(voice: str, events: str):
@@ -286,15 +368,3 @@ def initPhrasey(app: FastAPI):
     @app.get("/v1/phrasey/voices")
     def get_audio():
         return [v for v in phraseys.keys()]
-
-
-def main():
-    print("Training phrasey")
-    phrasey = Phrasey("cache/my_keeper", "my_keeper")
-    phrasey.generate_fake_cache()
-    phrasey.clear() # todo make clear function to start from scratch, only using inputs
-    phrasey.generate(10)
-
-
-if __name__ == "__main__":
-    main()

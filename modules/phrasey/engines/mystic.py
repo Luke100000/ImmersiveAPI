@@ -1,6 +1,7 @@
 import os
 import urllib.request
 import urllib.request
+from time import sleep
 
 import requests
 from dotenv import load_dotenv
@@ -40,7 +41,7 @@ class MysticEngine(TTS):
 
     def generate(self, text: str, voice: str, file: str):
         data = {
-            "pipeline_id_or_pointer": "Conczin/tortoise-tts:v3",
+            "pipeline_id_or_pointer": "conczin/tortoise-tts-latents:v2",
             "async_run": False,
             "input_data": [
                 {"type": "string", "value": text},
@@ -64,12 +65,29 @@ class MysticEngine(TTS):
             "Content-Type": "application/json",
         }
 
-        response = requests.post(
-            "https://www.mystic.ai/v3/runs", headers=headers, json=data
-        )
+        response = None
+        for attempt in range(20):
+            response = requests.post(
+                "https://www.mystic.ai/v3/runs", headers=headers, json=data
+            )
+
+            if response.status_code != 503:
+                break
+            else:
+                print("Mystic is busy, waiting...")
+                sleep(10)
+
+        if response.status_code == 503:
+            print("Mystic is still busy, giving up...")
+            return
+
+        json = response.json()
+        if "result" not in json:
+            print(json)
+            return
 
         urllib.request.urlretrieve(
-            response.json()["result"]["outputs"][0]["file"]["url"], file + ".wav"
+            json["result"]["outputs"][0]["file"]["url"], file + ".wav"
         )
 
         convert_to_ogg(file + ".wav", file)

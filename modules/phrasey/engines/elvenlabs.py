@@ -12,7 +12,7 @@ set_api_key(os.getenv("ELEVENLABS_API_KEY"))
 
 CHUNK_SIZE = 1024
 
-voice_map = { }
+voice_map = {}
 
 
 def populate_voices():
@@ -20,14 +20,13 @@ def populate_voices():
         voice_map[voice.name.lower()] = voice.voice_id
 
 
-# populate_voices()
+populate_voices()
 
 
 def generate_elevenlabs_tts(text: str, voice_name: str, file: str):
     audio = generate(
         text=text,
         voice=Voice(voice_id=voice_map[voice_name]),
-        model="eleven_multilingual_v2",
     )
 
     with open(file + ".mp3", "wb") as f:

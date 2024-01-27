@@ -24,9 +24,9 @@ def get_model() -> Llama:
 
 def generate_text(
     messages: List[dict],
-    temperature: float = 0.2,
+    temperature: float = 0.75,
     top_p: float = 0.95,
-    top_k: int = 40,
+    top_k: int = 50,
     stop: Optional[Union[str, List[str]]] = None,
     seed: Optional[int] = None,
     max_tokens: Optional[int] = None,
