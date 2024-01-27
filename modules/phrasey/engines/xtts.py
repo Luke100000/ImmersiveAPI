@@ -7,10 +7,13 @@ from modules.phrasey.utils import convert_to_ogg
 
 # Collect all voices
 voices = {}
-for filename in os.listdir("data/voices"):
-    if filename.endswith(".mp3"):
-        name = filename[:-4]
-        voices[name] = "data/voices/" + filename
+try:
+    for filename in os.listdir("data/voices"):
+        if filename.endswith(".mp3"):
+            name = filename[:-4]
+            voices[name] = "data/voices/" + filename
+except FileNotFoundError:
+    pass
 
 
 class XTTSEngine(TTS):
