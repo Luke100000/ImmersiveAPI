@@ -1,6 +1,7 @@
 from typing import Callable
 
 from dotenv import load_dotenv
+from dynaconf import Dynaconf
 from starlette.middleware.cors import CORSMiddleware
 
 load_dotenv()
@@ -12,8 +13,8 @@ import shutil
 from prometheus_client import CollectorRegistry, multiprocess
 from starlette.middleware.gzip import GZipMiddleware
 
-from modules.itchio.itchioModule import itchioModule
-from modules.converter.converterModule import initConverterModule
+from modules.itchio.itchioModule import initItchIo
+from modules.converter.converterModule import initConverter
 from modules.patreon.patreonModule import initPatreon
 from modules.hagrid.hagrid import initHagrid
 from modules.phrasey.phrases import initPhrasey
@@ -51,22 +52,26 @@ app.add_middleware(
 # Prometheus integration
 instrumentator = Instrumentator().instrument(app)
 
+settings = Dynaconf(settings_files=["config.toml", "default_config.toml"])
+
 
 def benchmark(initializer: Callable, *args, **kwargs):
-    start = time.time()
-    initializer(*args, **kwargs)
-    end = time.time()
-    print(f"Initialized {initializer.__name__} in {end - start:.2f}s")
+    print(initializer.__name__[4:])
+    if settings[initializer.__name__[4:]].enable:
+        start = time.time()
+        initializer(*args, **kwargs)
+        end = time.time()
+        print(f"Initialized {initializer.__name__} in {end - start:.2f}s")
 
 
 # Enable modules
-# benchmark(initConverterModule, app)
-# benchmark(initPatreon, app)
-# benchmark(itchioModule, app)
-# benchmark(initHagrid, app)
+benchmark(initConverter, app)
+benchmark(initPatreon, app)
+benchmark(initItchIo, app)
+benchmark(initHagrid, app)
 benchmark(initPhrasey, app)
 benchmark(initHugging, app)
-# benchmark(initYouAre, app)
+benchmark(initYouAre, app)
 
 
 @app.on_event("startup")

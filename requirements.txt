@@ -27,3 +27,4 @@ optimum[openvino]~=1.16.2
 diffusers~=0.25.1
 TTS~=0.22.0
 pydantic==2.5.3
+dynaconf~=3.2.4

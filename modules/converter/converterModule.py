@@ -29,7 +29,7 @@ else:
     recommended_converter = {}
 
 
-def initConverterModule(app: FastAPI):
+def initConverter(app: FastAPI):
     install_abc2midi()
     install_ffmpeg()
     install_imagemagick()
