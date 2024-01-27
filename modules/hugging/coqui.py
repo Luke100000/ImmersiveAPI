@@ -28,12 +28,12 @@ def get_embedding(audio_path: str):
 
 
 def generate_speech(
-    text: str, speaker_wav: str, language: str = "en", file_path: str = None
+    text: str, speaker: str = None, language: str = "en", file_path: str = None
 ) -> bytes:
     tts = get_model()
 
     # Fetch embeddings
-    gpt_cond_latent, speaker_embedding = get_embedding(speaker_wav)
+    gpt_cond_latent, speaker_embedding = get_embedding(speaker)
 
     # Generate speech
     wav = tts.synthesizer.tts_model.inference(

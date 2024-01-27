@@ -1,9 +1,10 @@
 import asyncio
 import io
+import tempfile
 from concurrent.futures import ThreadPoolExecutor
-from typing import List, Any, Optional
+from typing import List, Any, Optional, Union
 
-from fastapi import FastAPI
+from fastapi import FastAPI, UploadFile
 from pydantic import BaseModel
 from starlette.responses import Response
 
@@ -37,10 +38,6 @@ class TextRequest(BaseModel):
 class ImageRequest(BaseModel):
     prompt: str
     num_inference_steps: int = 2
-
-
-class TTSRequest(BaseModel):
-    text: str
 
 
 worker = ThreadPoolExecutor(max_workers=1)
@@ -79,8 +76,15 @@ def initHugging(app: FastAPI):
         return Response(content=buffer.getvalue(), media_type="image/png")
 
     @app.post("/v1/tts/xtts-v2")
-    async def post_tts_xtts(params: TTSRequest):
-        wav = await run(
-            generate_speech, **params.model_dump(), speaker_wav="pirate.mp3"
-        )
+    async def post_tts_xtts(
+        text: str, speaker: Optional[str] = None, file: Union[UploadFile, None] = None
+    ):
+        if file is not None:
+            f = tempfile.NamedTemporaryFile()
+            f.write(await file.read())
+            f.flush()
+            speaker = f.name
+
+        wav = await run(generate_speech, text=text, speaker=speaker)
+
         return Response(content=wav, media_type="audio/wav")
