@@ -1,20 +1,20 @@
 [Converter]
-enable = true
+enable = false
 
 [Patreon]
-enable = true
+enable = false
 
 [ItchIo]
-enable = true
+enable = false
 
 [Hagrid]
-enable = true
+enable = false
 
 [Phrasey]
-enable = true
+enable = false
 
 [Hugging]
-enable = true
+enable = false
 
 [YouAre]
-enable = true
+enable = false
