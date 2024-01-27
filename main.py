@@ -19,7 +19,6 @@ from modules.patreon.patreonModule import initPatreon
 from modules.hagrid.hagrid import initHagrid
 from modules.phrasey.phrases import initPhrasey
 from modules.hugging.hugging import initHugging
-from modules.youare.youare import initYouAre
 
 # Setup prometheus for multiprocessing
 prom_dir = (
@@ -52,7 +51,7 @@ app.add_middleware(
 # Prometheus integration
 instrumentator = Instrumentator().instrument(app)
 
-settings = Dynaconf(settings_files=["config.toml", "default_config.toml"])
+settings = Dynaconf(settings_files=["default_config.toml", "config.toml"])
 
 
 def benchmark(initializer: Callable, *args, **kwargs):
@@ -71,7 +70,6 @@ benchmark(initItchIo, app)
 benchmark(initHagrid, app)
 benchmark(initPhrasey, app)
 benchmark(initHugging, app)
-benchmark(initYouAre, app)
 
 
 @app.on_event("startup")

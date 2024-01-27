@@ -15,6 +15,3 @@ enable = false
 
 [Hugging]
 enable = false
-
-[YouAre]
-enable = false
