@@ -1,15 +1,13 @@
 import asyncio
-import io
 import tempfile
 from concurrent.futures import ThreadPoolExecutor
 from typing import List, Any, Optional, Union
 
 from fastapi import FastAPI, UploadFile
 from pydantic import BaseModel
-from starlette.responses import Response
+from starlette.responses import Response, StreamingResponse
 
 from modules.hugging.coqui import generate_speech
-from modules.hugging.image import generate_image
 from modules.hugging.mistral import generate_text
 
 
@@ -33,6 +31,7 @@ class TextRequest(BaseModel):
     presence_penalty: float = 0.0
     frequency_penalty: float = 0.0
     repeat_penalty: float = 1.1
+    stream: bool = False
 
 
 class ImageRequest(BaseModel):
@@ -66,14 +65,14 @@ def initHugging(app: FastAPI):
             params.messages,
             **params.model_dump(exclude={"messages"}),
         )
-        return Response(text)
+        return StreamingResponse(text) if params.stream else Response(text)
 
-    @app.post("/v1/image/sdxl-turbo")
-    async def post_image_sdxl_turbo(params: ImageRequest):
-        image = await run(generate_image, **params.model_dump())
-        buffer = io.BytesIO()
-        image.save(buffer, format="PNG")
-        return Response(content=buffer.getvalue(), media_type="image/png")
+    # @app.post("/v1/image/sdxl-turbo")
+    # async def post_image_sdxl_turbo(params: ImageRequest):
+    #    image = await run(generate_image, **params.model_dump())
+    #    buffer = io.BytesIO()
+    #    image.save(buffer, format="PNG")
+    #    return Response(content=buffer.getvalue(), media_type="image/png")
 
     @app.post("/v1/tts/xtts-v2")
     async def post_tts_xtts(

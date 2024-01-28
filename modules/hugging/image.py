@@ -7,17 +7,14 @@ from optimum.intel.openvino.modeling_diffusion import OVStableDiffusionXLPipelin
 @cache
 def get_model() -> OVStableDiffusionXLPipeline:
     return OVStableDiffusionXLPipeline.from_pretrained(
-        "rupeshs/sdxl-turbo-openvino-int8",
-        ov_config={"CACHE_DIR": ""},
+        "rupeshs/sdxl-turbo-openvino-int8"
     )
 
 
 def generate_image(prompt: str, num_inference_steps: int = 2) -> PIL.Image:
     pipeline = get_model()
 
-    # pipeline.load_textual_inversion("/home/jonas/Downloads/0xisometric.pt", "<cat-toy>")
-
-    print(prompt)
+    # pipeline.load_textual_inversion("embedding.pt", "<keyword>")
 
     return pipeline(
         prompt=prompt,

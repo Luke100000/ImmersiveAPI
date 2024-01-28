@@ -1,8 +1,8 @@
 from functools import cache
-from typing import List, Optional, Union
+from typing import List, Optional, Union, Iterator
 
 from huggingface_hub import hf_hub_download
-from llama_cpp import Llama
+from llama_cpp import Llama, CreateChatCompletionStreamResponse
 
 
 @cache
@@ -22,6 +22,13 @@ def get_model() -> Llama:
     )
 
 
+def text_generator(iterator: Iterator[CreateChatCompletionStreamResponse]):
+    for line in iterator:
+        chunk = line["choices"][0]["delta"]
+        if "content" in chunk:
+            yield chunk["content"]
+
+
 def generate_text(
     messages: List[dict],
     temperature: float = 0.75,
@@ -33,6 +40,7 @@ def generate_text(
     presence_penalty: float = 0.0,
     frequency_penalty: float = 0.0,
     repeat_penalty: float = 1.1,
+    stream: bool = False,
 ) -> str:
     if stop is None:
         stop = []
@@ -50,6 +58,10 @@ def generate_text(
         presence_penalty=presence_penalty,
         frequency_penalty=frequency_penalty,
         repeat_penalty=repeat_penalty,
+        stream=stream,
     )
 
-    return output["choices"][0]["message"]["content"]
+    if stream:
+        return text_generator(output)
+    else:
+        return output["choices"][0]["message"]["content"]

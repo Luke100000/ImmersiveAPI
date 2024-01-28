@@ -19,9 +19,9 @@ from modules.phrasey.engines.elvenlabs import (
     ElevenLabsEngine,
 )
 from modules.phrasey.engines.mystic import MysticEngine
+from modules.phrasey.engines.playht import PlayHTEngine
 from modules.phrasey.engines.xtts import XTTSEngine
 from modules.phrasey.llm_helper import generate_phrase
-from modules.phrasey.engines.playht import PlayHTEngine
 from modules.phrasey.utils import hash_string, cosine_dist
 
 embedding_model = SentenceTransformer("multi-qa-MiniLM-L6-cos-v1", device="cpu")

@@ -55,7 +55,6 @@ settings = Dynaconf(settings_files=["default_config.toml", "config.toml"])
 
 
 def benchmark(initializer: Callable, *args, **kwargs):
-    print(initializer.__name__[4:])
     if settings[initializer.__name__[4:]].enable:
         start = time.time()
         initializer(*args, **kwargs)
