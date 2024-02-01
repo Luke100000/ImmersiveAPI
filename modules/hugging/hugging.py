@@ -7,7 +7,7 @@ from fastapi import FastAPI, UploadFile
 from pydantic import BaseModel
 from starlette.responses import Response, StreamingResponse
 
-from modules.hugging.coqui import generate_speech
+from modules.hugging.coqui import generate_speech, get_languages, get_speakers
 from modules.hugging.mistral import generate_text
 
 
@@ -56,7 +56,6 @@ async def run(func, *args, **kwargs):
     )
 
 
-# todo all initializers are not snake case
 def initHugging(app: FastAPI):
     @app.post("/v1/text/mistral")
     async def post_text_mistral(params: TextRequest):
@@ -74,16 +73,40 @@ def initHugging(app: FastAPI):
     #    image.save(buffer, format="PNG")
     #    return Response(content=buffer.getvalue(), media_type="image/png")
 
+    @app.get("/v1/tts/xtts-v2/model")
+    async def get_tts_xtts_model():
+        return await run(
+            lambda: {
+                "speakers": get_speakers(),
+                "languages": get_languages(),
+            }
+        )
+
     @app.post("/v1/tts/xtts-v2")
     async def post_tts_xtts(
-        text: str, speaker: Optional[str] = None, file: Union[UploadFile, None] = None
+        text: str,
+        language: str = "en",
+        speaker: Optional[str] = None,
+        file: Union[UploadFile, None] = None,
     ):
+        # Save speaker audio to file
+        speaker_wav = None
         if file is not None:
             f = tempfile.NamedTemporaryFile()
             f.write(await file.read())
             f.flush()
-            speaker = f.name
+            speaker_wav = f.name
 
-        wav = await run(generate_speech, text=text, speaker=speaker)
+        # Generate audio
+        wav = await run(
+            generate_speech,
+            text=text,
+            language=language,
+            speaker=speaker,
+            speaker_wav=speaker_wav,
+        )
+
+        # Convert it
+        # todo
 
         return Response(content=wav, media_type="audio/wav")

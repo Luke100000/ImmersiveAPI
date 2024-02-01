@@ -24,7 +24,11 @@ from modules.phrasey.engines.xtts import XTTSEngine
 from modules.phrasey.llm_helper import generate_phrase
 from modules.phrasey.utils import hash_string, cosine_dist
 
-embedding_model = SentenceTransformer("multi-qa-MiniLM-L6-cos-v1", device="cpu")
+
+@cache
+def get_embedding_model():
+    return SentenceTransformer("multi-qa-MiniLM-L6-cos-v1", device="cpu")
+
 
 engines = [
     PlayHTEngine(),
@@ -64,7 +68,7 @@ types = [
 
 @cache
 def cached_embedd(sentence: str):
-    return embedding_model.encode(sentence)
+    return get_embedding_model().encode(sentence)
 
 
 class Event:

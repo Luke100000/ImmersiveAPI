@@ -3,11 +3,12 @@ import wave
 from functools import cache
 
 import numpy as np
-from TTS.api import TTS
 
 
 @cache
-def get_model() -> TTS:
+def get_model():
+    from TTS.api import TTS
+
     return TTS("tts_models/multilingual/multi-dataset/xtts_v2")
 
 
@@ -27,13 +28,29 @@ def get_embedding(audio_path: str):
     return tts.synthesizer.tts_model.get_conditioning_latents(audio_path=audio_path)
 
 
+def get_speakers():
+    return list(get_model().synthesizer.tts_model.speaker_manager.speakers.keys())
+
+
+def get_languages():
+    return get_model().synthesizer.tts_model.language_manager.language_names
+
+
 def generate_speech(
-    text: str, speaker: str = None, language: str = "en", file_path: str = None
+    text: str,
+    language: str = "en",
+    speaker: str = None,
+    speaker_wav: str = None,
+    file_path: str = None,
 ) -> bytes:
     tts = get_model()
 
     # Fetch embeddings
-    gpt_cond_latent, speaker_embedding = get_embedding(speaker)
+    if speaker_wav is not None:
+        gpt_cond_latent, speaker_embedding = get_embedding(speaker_wav)
+    else:
+        speakers = tts.synthesizer.tts_model.speaker_manager.speakers
+        gpt_cond_latent, speaker_embedding = speakers[speaker].values()
 
     # Generate speech
     wav = tts.synthesizer.tts_model.inference(
