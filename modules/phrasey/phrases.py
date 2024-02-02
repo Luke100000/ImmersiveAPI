@@ -314,7 +314,7 @@ def load_phraseys():
     phraseys = {}
 
     for voice in voices.keys():
-        phraseys[voice] = Phrasey("cache/" + voice, voice)
+        phraseys[voice] = Phrasey("cache/voices/" + voice, voice)
 
     return phraseys
 

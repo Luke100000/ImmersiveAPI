@@ -1,4 +1,6 @@
 import asyncio
+import hashlib
+import os
 import tempfile
 from concurrent.futures import ThreadPoolExecutor
 from typing import List, Any, Optional, Union
@@ -7,7 +9,12 @@ from fastapi import FastAPI, UploadFile
 from pydantic import BaseModel
 from starlette.responses import Response, StreamingResponse
 
-from modules.hugging.coqui import generate_speech, get_languages, get_speakers
+from modules.hugging.coqui import (
+    generate_speech,
+    get_languages,
+    get_speakers,
+    get_base_speakers,
+)
 from modules.hugging.mistral import generate_text
 
 
@@ -79,6 +86,7 @@ def initHugging(app: FastAPI):
             lambda: {
                 "speakers": get_speakers(),
                 "languages": get_languages(),
+                "base_speakers": get_base_speakers(),
             }
         )
 
@@ -87,8 +95,20 @@ def initHugging(app: FastAPI):
         text: str,
         language: str = "en",
         speaker: Optional[str] = None,
+        file_format: str = "wav",
+        cache: bool = False,
         file: Union[UploadFile, None] = None,
     ):
+        cache_key = None
+        if cache:
+            text_hash = hashlib.sha256(text.encode("utf-8")).hexdigest()
+            cache_key = f"cache/tts/{language}-{speaker}/{text_hash}.{file_format}"
+            os.makedirs(os.path.dirname(cache_key), exist_ok=True)
+
+            if os.path.exists(cache_key):
+                with open(cache_key, "rb") as f:
+                    return Response(content=f.read(), media_type=f"audio/{file_format}")
+
         # Save speaker audio to file
         speaker_wav = None
         if file is not None:
@@ -98,15 +118,17 @@ def initHugging(app: FastAPI):
             speaker_wav = f.name
 
         # Generate audio
-        wav = await run(
+        audio = await run(
             generate_speech,
             text=text,
             language=language,
             speaker=speaker,
             speaker_wav=speaker_wav,
+            file_format=file_format,
         )
 
-        # Convert it
-        # todo
+        if cache:
+            with open(cache_key, "wb") as f:
+                f.write(audio)
 
-        return Response(content=wav, media_type="audio/wav")
+        return Response(content=audio, media_type=f"audio/{file_format}")
