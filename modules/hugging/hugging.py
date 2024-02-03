@@ -49,18 +49,15 @@ class ImageRequest(BaseModel):
 worker = ThreadPoolExecutor(max_workers=1)
 
 
-def expand_args(func, args, kwargs):
-    return func(*args, **kwargs)
+def expand_args(func, future, args, kwargs):
+    future.set_result(func(*args, **kwargs))
 
 
-async def run(func, *args, **kwargs):
-    return await asyncio.get_event_loop().run_in_executor(
-        worker,
-        expand_args,
-        func,
-        args,
-        kwargs,
-    )
+def run(func, *args, **kwargs):
+    print(f"Tasks: {worker._work_queue.qsize()}")
+    future = asyncio.get_running_loop().create_future()
+    worker.submit(expand_args, func, future, args, kwargs)
+    return future
 
 
 def initHugging(app: FastAPI):
@@ -80,6 +77,10 @@ def initHugging(app: FastAPI):
     #    image.save(buffer, format="PNG")
     #    return Response(content=buffer.getvalue(), media_type="image/png")
 
+    @app.get("/v1/tts/xtts-v2/queue")
+    async def get_tts_xtts_model():
+        return str(worker._work_queue.qsize())
+
     @app.get("/v1/tts/xtts-v2/model")
     async def get_tts_xtts_model():
         return await run(
@@ -97,17 +98,39 @@ def initHugging(app: FastAPI):
         speaker: Optional[str] = None,
         file_format: str = "wav",
         cache: bool = False,
+        prepare_languages: bool = False,
+        load_async: bool = False,
         file: Union[UploadFile, None] = None,
     ):
+        # Map generic speakers to actual speakers
+        if speaker is not None and speaker in get_base_speakers():
+            speaker = get_base_speakers()[speaker]
+
         cache_key = None
         if cache:
             text_hash = hashlib.sha256(text.encode("utf-8")).hexdigest()
             cache_key = f"cache/tts/{language}-{speaker}/{text_hash}.{file_format}"
             os.makedirs(os.path.dirname(cache_key), exist_ok=True)
 
+            # If a cached file is found, return it
             if os.path.exists(cache_key):
                 with open(cache_key, "rb") as f:
                     return Response(content=f.read(), media_type=f"audio/{file_format}")
+
+            # If an uncached file is found, load all other languages as well
+            if prepare_languages:
+                for s in get_base_speakers().values():
+                    await asyncio.create_task(
+                        post_tts_xtts(
+                            text=text,
+                            language=language,
+                            speaker=s,
+                            file_format=file_format,
+                            cache=True,
+                            prepare_languages=False,
+                            load_async=True,
+                        )
+                    )
 
         # Save speaker audio to file
         speaker_wav = None
@@ -118,17 +141,20 @@ def initHugging(app: FastAPI):
             speaker_wav = f.name
 
         # Generate audio
-        audio = await run(
+        c = run(
             generate_speech,
             text=text,
             language=language,
             speaker=speaker,
             speaker_wav=speaker_wav,
             file_format=file_format,
+            file_path=cache_key,
+            overwrite=False,
         )
 
-        if cache:
-            with open(cache_key, "wb") as f:
-                f.write(audio)
+        # Don't wait for the audio to load if it's async
+        if load_async:
+            return Response(content="")
 
+        audio = await c
         return Response(content=audio, media_type=f"audio/{file_format}")

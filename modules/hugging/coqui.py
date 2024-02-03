@@ -1,4 +1,5 @@
 import io
+import os.path
 from functools import cache
 from random import randint
 
@@ -33,69 +34,64 @@ Gitta Nikolina, Viktor Eka
 
 Not included because children
 Daisy Studious, Andrew Chipper
+
+Not included to match number of male voices
+Badr Odhiambo, Chandra MacFarland, Szofi Granger, Brenda Stern
 """
 
 
 def get_base_speakers():
     return {
-        "female": {
-            "female_0": "Claribel Dervla",
-            "female_1": "Gracie Wise",
-            "female_2": "Tammie Ema",
-            "female_3": "Alison Dietlinde",
-            "female_4": "Ana Florence",
-            "female_5": "Annmarie Nele",
-            "female_6": "Asya Anara",
-            "female_7": "Brenda Stern",
-            "female_8": "Henriette Usha",
-            "female_9": "Sofia Hellen",
-            "female_10": "Tammy Grit",
-            "female_11": "Tanja Adelina",
-            "female_12": "Vjollca Johnnie",
-            "female_13": "Badr Odhiambo",
-            "female_14": "Nova Hogarth",
-            "female_15": "Maja Ruoho",
-            "female_16": "Uta Obando",
-            "female_17": "Lidiya Szekeres",
-            "female_18": "Chandra MacFarland",
-            "female_19": "Szofi Granger",
-            "female_20": "Camilla Holmström",
-            "female_21": "Lilya Stainthorpe",
-            "female_22": "Zofija Kendrick",
-            "female_23": "Narelle Moon",
-            "female_24": "Barbora MacLean",
-            "female_25": "Alexandra Hisakawa",
-            "female_26": "Alma María",
-            "female_27": "Rosemary Okafor",
-            "female_28": "Suad Qasim",
-        },
-        "male": {
-            "male_0": "Dionisio Schuyler",
-            "male_1": "Royston Min",
-            "male_2": "Abrahan Mack",
-            "male_3": "Adde Michal",
-            "male_4": "Baldur Sanjin",
-            "male_5": "Craig Gutsy",
-            "male_6": "Damien Black",
-            "male_7": "Gilberto Mathias",
-            "male_8": "Ilkin Urbano",
-            "male_9": "Kazuhiko Atallah",
-            "male_10": "Ludvig Milivoj",
-            "male_11": "Torcull Diarmuid",
-            "male_12": "Viktor Menelaos",
-            "male_13": "Zacharie Aimilios",
-            "male_14": "Ige Behringer",
-            "male_15": "Filip Traverse",
-            "male_16": "Damjan Chapman",
-            "male_17": "Wulf Carlevaro",
-            "male_18": "Aaron Dreschner",
-            "male_19": "Kumar Dahl",
-            "male_20": "Eugenio Mataracı",
-            "male_21": "Ferran Simen",
-            "male_22": "Xavier Hayasaka",
-            "male_23": "Luis Moray",
-            "male_24": "Marcos Rudaski",
-        },
+        "female_0": "Claribel Dervla",
+        "female_1": "Gracie Wise",
+        "female_2": "Tammie Ema",
+        "female_3": "Alison Dietlinde",
+        "female_4": "Ana Florence",
+        "female_5": "Annmarie Nele",
+        "female_6": "Asya Anara",
+        "female_7": "Rosemary Okafor",
+        "female_8": "Henriette Usha",
+        "female_9": "Sofia Hellen",
+        "female_10": "Tammy Grit",
+        "female_11": "Tanja Adelina",
+        "female_12": "Vjollca Johnnie",
+        "female_13": "Suad Qasim",
+        "female_14": "Nova Hogarth",
+        "female_15": "Maja Ruoho",
+        "female_16": "Uta Obando",
+        "female_17": "Lidiya Szekeres",
+        "female_18": "Alma María",
+        "female_19": "Alexandra Hisakawa",
+        "female_20": "Camilla Holmström",
+        "female_21": "Lilya Stainthorpe",
+        "female_22": "Zofija Kendrick",
+        "female_23": "Narelle Moon",
+        "female_24": "Barbora MacLean",
+        "male_0": "Dionisio Schuyler",
+        "male_1": "Royston Min",
+        "male_2": "Abrahan Mack",
+        "male_3": "Adde Michal",
+        "male_4": "Baldur Sanjin",
+        "male_5": "Craig Gutsy",
+        "male_6": "Damien Black",
+        "male_7": "Gilberto Mathias",
+        "male_8": "Ilkin Urbano",
+        "male_9": "Kazuhiko Atallah",
+        "male_10": "Ludvig Milivoj",
+        "male_11": "Torcull Diarmuid",
+        "male_12": "Viktor Menelaos",
+        "male_13": "Zacharie Aimilios",
+        "male_14": "Ige Behringer",
+        "male_15": "Filip Traverse",
+        "male_16": "Damjan Chapman",
+        "male_17": "Wulf Carlevaro",
+        "male_18": "Aaron Dreschner",
+        "male_19": "Kumar Dahl",
+        "male_20": "Eugenio Mataracı",
+        "male_21": "Ferran Simen",
+        "male_22": "Xavier Hayasaka",
+        "male_23": "Luis Moray",
+        "male_24": "Marcos Rudaski",
     }
 
 
@@ -106,7 +102,13 @@ def generate_speech(
     speaker_wav: str = None,
     file_format: str = "wav",
     file_path: str = None,
+    overwrite: bytes = True,
 ) -> bytes:
+    # Load from file
+    if file_path is not None and not overwrite and os.path.exists(file_path):
+        with open(file_path, "rb") as f:
+            return f.read()
+
     tts = get_model()
 
     # Fetch embeddings
@@ -136,9 +138,12 @@ def generate_speech(
     )
     audio.export(buffer, format=file_format)
 
-    if file_path is None:
-        return buffer.getvalue()
-    else:
+    audio = buffer.getvalue()
+
+    # Write to file
+    if file_path is not None:
         with open(file_path, "wb") as f:
-            f.write(buffer.getvalue())
+            f.write(audio)
         return file_path
+
+    return audio

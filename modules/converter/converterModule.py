@@ -13,7 +13,7 @@ from modules.converter.converters.ffmpeg import install_ffmpeg
 from modules.converter.converters.imagemagick import install_imagemagick
 from modules.converter.converters.opencv import install_opencv
 from modules.converter.converters.pillow import install_pillow
-from utils import fetch_file
+from src.utils import fetch_file
 
 templates = Jinja2Templates(directory="modules/converter/templates")
 
