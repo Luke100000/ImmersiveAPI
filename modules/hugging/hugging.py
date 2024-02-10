@@ -54,7 +54,6 @@ def expand_args(func, future, args, kwargs):
 
 
 def run(func, *args, **kwargs):
-    print(f"Tasks: {worker._work_queue.qsize()}")
     future = asyncio.get_running_loop().create_future()
     worker.submit(expand_args, func, future, args, kwargs)
     return future
@@ -79,7 +78,7 @@ def initHugging(app: FastAPI):
 
     @app.get("/v1/tts/xtts-v2/queue")
     async def get_tts_xtts_model():
-        return str(worker._work_queue.qsize())
+        return worker._work_queue.qsize()
 
     @app.get("/v1/tts/xtts-v2/model")
     async def get_tts_xtts_model():
@@ -98,7 +97,7 @@ def initHugging(app: FastAPI):
         speaker: Optional[str] = None,
         file_format: str = "wav",
         cache: bool = False,
-        prepare_languages: bool = False,
+        prepare_speakers: int = 0,
         load_async: bool = False,
         file: Union[UploadFile, None] = None,
     ):
@@ -117,20 +116,21 @@ def initHugging(app: FastAPI):
                 with open(cache_key, "rb") as f:
                     return Response(content=f.read(), media_type=f"audio/{file_format}")
 
-            # If an uncached file is found, load all other languages as well
-            if prepare_languages:
-                for s in get_base_speakers().values():
-                    await asyncio.create_task(
-                        post_tts_xtts(
-                            text=text,
-                            language=language,
-                            speaker=s,
-                            file_format=file_format,
-                            cache=True,
-                            prepare_languages=False,
-                            load_async=True,
+            # If an uncached file is found, load all other speakers as well
+            if prepare_speakers > 0:
+                for gender in ["male", "female"]:
+                    for count in range(min(25, prepare_speakers)):
+                        await asyncio.create_task(
+                            post_tts_xtts(
+                                text=text,
+                                language=language,
+                                speaker=f"{gender}_{count}",
+                                file_format=file_format,
+                                cache=True,
+                                prepare_speakers=False,
+                                load_async=True,
+                            )
                         )
-                    )
 
         # Save speaker audio to file
         speaker_wav = None

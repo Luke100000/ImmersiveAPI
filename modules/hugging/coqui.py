@@ -28,6 +28,7 @@ def get_languages():
     return get_model().synthesizer.tts_model.language_manager.language_names
 
 
+# noinspection SpellCheckingInspection
 """
 Not included because of low quality
 Gitta Nikolina, Viktor Eka
@@ -40,6 +41,7 @@ Badr Odhiambo, Chandra MacFarland, Szofi Granger, Brenda Stern
 """
 
 
+# noinspection SpellCheckingInspection
 def get_base_speakers():
     return {
         "female_0": "Claribel Dervla",

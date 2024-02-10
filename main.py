@@ -53,6 +53,10 @@ instrumentator = Instrumentator().instrument(app)
 
 settings = Dynaconf(settings_files=["default_config.toml", "config.toml"])
 
+import torch
+
+torch.set_num_threads(settings.torch.num_threads)
+
 
 def benchmark(initializer: Callable, *args, **kwargs):
     if settings[initializer.__name__[4:]].enable:
