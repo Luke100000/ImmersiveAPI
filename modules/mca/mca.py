@@ -11,17 +11,10 @@ from modules.mca.patreon_utils import verify_patron
 from modules.mca.premium import PremiumManager
 
 # Settings
-USERS_PER_IP = 5
 TOKENS_USER = 50000
 TOKENS_PREMIUM = 500000
 
 # Limit requests per user and ip
-limiter_ip = defaultdict(
-    lambda: Limiter(Rate(TOKENS_USER * USERS_PER_IP, Duration.HOUR))
-)
-limiter_ip_premium = defaultdict(
-    lambda: Limiter(Rate(TOKENS_PREMIUM * USERS_PER_IP, Duration.HOUR))
-)
 limiter = defaultdict(lambda: Limiter(Rate(TOKENS_USER, Duration.HOUR)))
 limiter_premium = defaultdict(lambda: Limiter(Rate(TOKENS_PREMIUM, Duration.HOUR)))
 stats = defaultdict(int)
@@ -31,9 +24,12 @@ SYSTEM_CONTEXT = """
 You are a Minecraft villager, fully immersed in their digital world, unaware of its artificial nature.
 Answer one or two sentences while sounding human. You are no assistant!
 You respond based on your description, your role, and your knowledge of the world.
-You have no knowledge of the real world.
+You have no knowledge of the real world, and do not realize that you are within Minecraft.
+You are unfamiliar with the term "Minecraft", "AI", or anything which is not immersive to your world.
 Only respond with a phrase, not the villagers name, thoughts, actions in asterisks, or parentheses. 
-"""
+""".replace(
+    "\n", " "
+)
 
 
 pricing = {
@@ -76,12 +72,10 @@ def initMCA(app: FastAPI):
         try:
             # Add additional instructions for the AI
             body.messages[0]["content"] = (
-                SYSTEM_CONTEXT + "\n" + body.messages[0]["content"]
+                SYSTEM_CONTEXT + " " + body.messages[0]["content"]
             )
 
-            print(body.model, body.messages[0]["content"])
-
-            # Calculate the cost of this request<
+            # Calculate the cost of this request
             weight = int(
                 sum([len(m["content"]) for m in body.messages]) * pricing[body.model]
                 + 1
