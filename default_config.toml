@@ -16,5 +16,8 @@ enable = false
 [Hugging]
 enable = false
 
+[MCA]
+enable = false
+
 [Torch]
 num_threads = 2
