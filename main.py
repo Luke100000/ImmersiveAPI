@@ -13,12 +13,13 @@ import shutil
 from prometheus_client import CollectorRegistry, multiprocess
 from starlette.middleware.gzip import GZipMiddleware
 
-from modules.itchio.itchioModule import initItchIo
+from modules.itchio.itchio import initItchIo
 from modules.converter.converterModule import initConverter
 from modules.patreon.patreonModule import initPatreon
 from modules.hagrid.hagrid import initHagrid
 from modules.phrasey.phrases import initPhrasey
 from modules.hugging.hugging import initHugging
+from modules.mca.mca import initMCA
 
 # Setup prometheus for multiprocessing
 prom_dir = (
@@ -73,6 +74,7 @@ benchmark(initItchIo, app)
 benchmark(initHagrid, app)
 benchmark(initPhrasey, app)
 benchmark(initHugging, app)
+benchmark(initMCA, app)
 
 
 @app.on_event("startup")
