@@ -1,7 +1,7 @@
 aiofile~=3.8.7
 aiohttp~=3.9.3
 python-dotenv==1.0.1
-starlette~=0.37.1
+starlette~=0.36.3
 fastapi~=0.109.2
 Pillow~=10.2.0
 numpy~=1.24.3
