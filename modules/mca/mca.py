@@ -33,7 +33,7 @@ Answer one or two sentences while sounding human. You are no assistant! You can 
 
 
 pricing = {
-    "gpt-3.5-turbo": 0.5 * 0.8 + 1.5 * 0.2,
+    "gpt-3.5-turbo": 0.47 * 0.8 + 1.4 * 0.2,
     "mistral-tiny": 0.14 * 0.8 + 0.42 * 0.2,
     "mistral-small": 0.6 * 0.8 + 1.8 * 0.2,
 }
