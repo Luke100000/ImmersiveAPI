@@ -4,7 +4,10 @@ from functools import cache
 from random import randint
 
 import numpy as np
+import torch
 from pydub import AudioSegment
+
+xtts_num_threads = 3
 
 
 @cache
@@ -111,6 +114,9 @@ def generate_speech(
         with open(file_path, "rb") as f:
             return f.read()
 
+    # We use fewer cores because we go for model-level parallelism
+    num_threads = torch.get_num_threads()
+    torch.set_num_threads(xtts_num_threads)
     tts = get_model()
 
     # Fetch embeddings
@@ -126,6 +132,8 @@ def generate_speech(
     wav = tts.synthesizer.tts_model.inference(
         text, language, gpt_cond_latent, speaker_embedding
     )["wav"]
+
+    torch.set_num_threads(num_threads)
 
     # Convert to 16 bit PCM
     pcm_data = (np.array(wav) * 32767).astype(np.int16)

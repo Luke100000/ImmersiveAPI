@@ -2,7 +2,6 @@ import asyncio
 import hashlib
 import os
 import tempfile
-from concurrent.futures import ThreadPoolExecutor
 from typing import List, Any, Optional, Union
 
 from fastapi import FastAPI, UploadFile
@@ -16,6 +15,7 @@ from modules.hugging.coqui import (
     get_base_speakers,
 )
 from modules.hugging.mistral import generate_text
+from modules.hugging.worker import Executor
 
 
 class Message(BaseModel):
@@ -46,23 +46,14 @@ class ImageRequest(BaseModel):
     num_inference_steps: int = 2
 
 
-worker = ThreadPoolExecutor(max_workers=1)
-
-
-def expand_args(func, future, args, kwargs):
-    future.set_result(func(*args, **kwargs))
-
-
-def run(func, *args, **kwargs):
-    future = asyncio.get_running_loop().create_future()
-    worker.submit(expand_args, func, future, args, kwargs)
-    return future
+executor = Executor(1)
 
 
 def initHugging(app: FastAPI):
     @app.post("/v1/text/mistral")
     async def post_text_mistral(params: TextRequest):
-        text = await run(
+        text = await executor.submit(
+            0,
             generate_text,
             params.messages,
             **params.model_dump(exclude={"messages"}),
@@ -78,16 +69,17 @@ def initHugging(app: FastAPI):
 
     @app.get("/v1/tts/xtts-v2/queue")
     async def get_tts_xtts_model():
-        return worker._work_queue.qsize()
+        return executor.queue.qsize()
 
     @app.get("/v1/tts/xtts-v2/model")
     async def get_tts_xtts_model():
-        return await run(
+        return await executor.submit(
+            0,
             lambda: {
                 "speakers": get_speakers(),
                 "languages": get_languages(),
                 "base_speakers": get_base_speakers(),
-            }
+            },
         )
 
     @app.post("/v1/tts/xtts-v2")
@@ -141,7 +133,8 @@ def initHugging(app: FastAPI):
             speaker_wav = f.name
 
         # Generate audio
-        c = run(
+        c = executor.submit(
+            2 if load_async else 0,
             generate_speech,
             text=text,
             language=language,
