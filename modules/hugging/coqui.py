@@ -7,7 +7,7 @@ import numpy as np
 import torch
 from pydub import AudioSegment
 
-xtts_num_threads = 3
+xtts_num_threads = 4
 
 
 @cache
