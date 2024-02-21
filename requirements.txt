@@ -4,7 +4,7 @@ python-dotenv==1.0.1
 starlette~=0.36.3
 fastapi~=0.109.2
 Pillow~=10.2.0
-numpy==1.22.0
+numpy~=1.22.0
 redis~=5.0.1
 fastapi-cache2[redis]
 orjson~=3.9.4
@@ -35,3 +35,4 @@ llama-cpp-python~=0.2.33
 python-multipart==0.0.9
 pydub~=0.25.1
 pyrate-limiter~=3.2.0
+cutlet~=0.3.0
