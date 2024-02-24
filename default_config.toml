@@ -19,5 +19,8 @@ enable = false
 [MCA]
 enable = false
 
+[Error]
+enable = false
+
 [Torch]
 num_threads = 2

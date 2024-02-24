@@ -20,6 +20,7 @@ from modules.hagrid.hagrid import initHagrid
 from modules.phrasey.phrases import initPhrasey
 from modules.hugging.hugging import initHugging
 from modules.mca.mca import initMCA
+from modules.error.error import initError
 
 # Setup prometheus for multiprocessing
 prom_dir = (
@@ -71,6 +72,7 @@ benchmark(initHagrid, app)
 benchmark(initPhrasey, app)
 benchmark(initHugging, app)
 benchmark(initMCA, app)
+benchmark(initError, app)
 
 
 @app.on_event("startup")

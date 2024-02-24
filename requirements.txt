@@ -36,3 +36,4 @@ python-multipart==0.0.9
 pydub~=0.25.1
 pyrate-limiter~=3.2.0
 cutlet~=0.3.0
+PyGithub~=2.2.0
