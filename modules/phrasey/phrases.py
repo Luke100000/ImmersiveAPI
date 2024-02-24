@@ -18,7 +18,6 @@ from tqdm.auto import tqdm
 from modules.phrasey.engines.elvenlabs import (
     ElevenLabsEngine,
 )
-from modules.phrasey.engines.mystic import MysticEngine
 from modules.phrasey.engines.playht import PlayHTEngine
 from modules.phrasey.engines.xtts import XTTSEngine
 from modules.phrasey.llm_helper import generate_phrase
@@ -30,17 +29,19 @@ def get_embedding_model():
     return SentenceTransformer("multi-qa-MiniLM-L6-cos-v1", device="cpu")
 
 
-engines = [
-    PlayHTEngine(),
-    ElevenLabsEngine(),
-    MysticEngine(),
-    XTTSEngine(),
-]
+@cache
+def get_voices():
+    engines = [
+        PlayHTEngine(),
+        ElevenLabsEngine(),
+        XTTSEngine(),
+    ]
 
-voices = {}
-for engine in engines:
-    for voice_name in engine.get_voices():
-        voices[voice_name] = engine
+    voices = {}
+    for engine in engines:
+        for voice_name in engine.get_voices():
+            voices[voice_name] = engine
+    return voices
 
 
 class EventType:
@@ -271,7 +272,7 @@ class Phrasey:
 
             # Generate TTS
             output_file = f"{self.cache_dir}/{event_hash}/tts/{phrase_hash}.ogg"
-            voices[self.voice].generate(phrase, self.voice, output_file)
+            get_voices()[self.voice].generate(phrase, self.voice, output_file)
             print("")
 
     def save(self, event: Event, event_hash: str = None):
@@ -313,7 +314,7 @@ class Phrasey:
 def load_phraseys():
     phraseys = {}
 
-    for voice in voices.keys():
+    for voice in get_voices().keys():
         phraseys[voice] = Phrasey("cache/voices/" + voice, voice)
 
     return phraseys

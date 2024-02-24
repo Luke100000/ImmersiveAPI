@@ -6,8 +6,8 @@ from dotenv import load_dotenv
 from mistralai.client import MistralClient
 from mistralai.models.chat_completion import ChatMessage
 
-from modules.hugging.hugging import executor
 from modules.hugging.mistral import generate_text
+from modules.hugging.worker import get_primary_executor
 
 load_dotenv()
 
@@ -61,9 +61,11 @@ def generate_phrase_mistral(events: List[str]):
 def generate_phrase(events: List[str], llm="local_mistral"):
     if llm == "local_mistral":
         # We use the worker here as well to prevent access from another thread
-        phrase = executor.submit(
-            1, generate_text, to_history(events), stop=["\n", "("]
-        ).result()
+        phrase = (
+            get_primary_executor()
+            .submit(1, generate_text, to_history(events), stop=["\n", "("])
+            .result()
+        )
     elif llm == "mistral":
         phrase = generate_phrase_mistral(events)
     elif llm == "openai":

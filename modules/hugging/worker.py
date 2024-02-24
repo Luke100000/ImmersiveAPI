@@ -2,6 +2,7 @@ import asyncio
 import queue
 import threading
 from dataclasses import dataclass, field
+from functools import cache
 from typing import Any
 
 
@@ -49,3 +50,8 @@ class Executor:
     def shutdown(self):
         for worker in self.workers:
             worker.stop()
+
+
+@cache
+def get_primary_executor():
+    return Executor(1)

@@ -15,7 +15,7 @@ from modules.hugging.coqui import (
     get_base_speakers,
 )
 from modules.hugging.mistral import generate_text
-from modules.hugging.worker import Executor
+from modules.hugging.worker import get_primary_executor
 
 
 class Message(BaseModel):
@@ -46,13 +46,10 @@ class ImageRequest(BaseModel):
     num_inference_steps: int = 2
 
 
-executor = Executor(1)
-
-
 def initHugging(app: FastAPI):
     @app.post("/v1/text/mistral")
     async def post_text_mistral(params: TextRequest):
-        text = await executor.submit(
+        text = await get_primary_executor().submit(
             0,
             generate_text,
             params.messages,
@@ -69,11 +66,11 @@ def initHugging(app: FastAPI):
 
     @app.get("/v1/tts/xtts-v2/queue")
     async def get_tts_xtts_model():
-        return executor.queue.qsize()
+        return get_primary_executor().queue.qsize()
 
     @app.get("/v1/tts/xtts-v2/model")
     async def get_tts_xtts_model():
-        return await executor.submit(
+        return await get_primary_executor().submit(
             0,
             lambda: {
                 "speakers": get_speakers(),
@@ -133,7 +130,7 @@ def initHugging(app: FastAPI):
             speaker_wav = f.name
 
         # Generate audio
-        c = executor.submit(
+        c = get_primary_executor().submit(
             2 if load_async else 0,
             generate_speech,
             text=text,

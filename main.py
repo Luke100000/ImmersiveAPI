@@ -4,6 +4,8 @@ from dotenv import load_dotenv
 from dynaconf import Dynaconf
 from starlette.middleware.cors import CORSMiddleware
 
+from modules.hugging.worker import get_primary_executor
+
 load_dotenv()
 
 import time
@@ -12,15 +14,6 @@ import shutil
 
 from prometheus_client import CollectorRegistry, multiprocess
 from starlette.middleware.gzip import GZipMiddleware
-
-from modules.itchio.itchio import initItchIo
-from modules.converter.converterModule import initConverter
-from modules.patreon.patreonModule import initPatreon
-from modules.hagrid.hagrid import initHagrid
-from modules.phrasey.phrases import initPhrasey
-from modules.hugging.hugging import initHugging
-from modules.mca.mca import initMCA
-from modules.error.error import initError
 
 # Setup prometheus for multiprocessing
 prom_dir = (
@@ -40,6 +33,7 @@ from prometheus_fastapi_instrumentator import Instrumentator
 app = FastAPI()
 
 app.add_middleware(GZipMiddleware, minimum_size=1024, compresslevel=6)
+
 
 # Allow CORS
 app.add_middleware(
@@ -65,16 +59,52 @@ def benchmark(initializer: Callable, *args, **kwargs):
 
 
 # Enable modules
-benchmark(initConverter, app)
-benchmark(initPatreon, app)
-benchmark(initItchIo, app)
-benchmark(initHagrid, app)
-benchmark(initPhrasey, app)
-benchmark(initHugging, app)
-benchmark(initMCA, app)
-benchmark(initError, app)
+if settings.Converter.enable:
+    from modules.converter.converterModule import initConverter
+
+    benchmark(initConverter, app)
+
+if settings.Patreon.enable:
+    from modules.patreon.patreonModule import initPatreon
+
+    benchmark(initPatreon, app)
+
+if settings.ItchIo.enable:
+    from modules.itchio.itchio import initItchIo
+
+    benchmark(initItchIo, app)
+
+if settings.Hagrid.enable:
+    from modules.hagrid.hagrid import initHagrid
+
+    benchmark(initHagrid, app)
+
+if settings.Phrasey.enable:
+    from modules.phrasey.phrases import initPhrasey
+
+    benchmark(initPhrasey, app)
+
+if settings.Hugging.enable:
+    from modules.hugging.hugging import initHugging
+
+    benchmark(initHugging, app)
+
+if settings.MCA.enable:
+    from modules.mca.mca import initMCA
+
+    benchmark(initMCA, app)
+
+if settings.Error.enable:
+    from modules.error.error import initError
+
+    benchmark(initError, app)
 
 
 @app.on_event("startup")
 async def startup():
     instrumentator.expose(app)
+
+
+@app.on_event("shutdown")
+async def shutdown():
+    get_primary_executor().shutdown()

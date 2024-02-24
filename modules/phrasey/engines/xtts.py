@@ -1,7 +1,7 @@
 import os
 
 from modules.hugging.coqui import generate_speech
-from modules.hugging.hugging import executor
+from modules.hugging.worker import get_primary_executor
 from modules.phrasey.tts import TTS
 from modules.phrasey.utils import convert_to_ogg
 
@@ -21,7 +21,7 @@ class XTTSEngine(TTS):
         return ["xt_" + v for v in voices.keys()]
 
     def generate(self, text: str, voice: str, file: str):
-        executor.submit(
+        get_primary_executor().submit(
             1,
             generate_speech,
             text,
