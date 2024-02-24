@@ -1,4 +1,5 @@
 import os
+from functools import cache
 
 import requests
 from databases import Database
@@ -6,21 +7,24 @@ from fastapi import FastAPI
 
 HAGRID_SECRET = os.getenv("HAGRID_SECRET")
 
+
 # Open Database
-database = Database("sqlite:///hagrid.db")
+@cache
+def get_database():
+    return Database("sqlite:///hagrid.db")
 
 
 async def setup():
-    await database.execute(
+    await get_database().execute(
         "CREATE TABLE IF NOT EXISTS users (oid INTEGER PRIMARY KEY AUTOINCREMENT, guild INTEGER, discord_id INTEGER, discord_username CHAR, minecraft_username CHAR, minecraft_uuid CHAR, roles CHAR)"
     )
-    await database.execute(
+    await get_database().execute(
         "CREATE UNIQUE INDEX IF NOT EXISTS primary_index on users (guild, discord_id)"
     )
-    await database.execute(
+    await get_database().execute(
         "CREATE UNIQUE INDEX IF NOT EXISTS minecraft_username on users (guild, minecraft_username)"
     )
-    await database.execute(
+    await get_database().execute(
         "CREATE UNIQUE INDEX IF NOT EXISTS minecraft_uuid on users (guild, minecraft_uuid)"
     )
 
@@ -36,7 +40,7 @@ def get_uuid(username: str):
 def initHagrid(app: FastAPI):
     @app.on_event("startup")
     async def _startup():
-        await database.connect()
+        await get_database().connect()
         await setup()
 
     def pack(user):
@@ -51,7 +55,7 @@ def initHagrid(app: FastAPI):
 
     @app.get("/v1/minecraft/{guild}")
     async def get_all_users(guild: int):
-        users = await database.fetch_all(
+        users = await get_database().fetch_all(
             "SELECT * FROM users WHERE guild = :guild",
             {"guild": guild},
         )
@@ -59,7 +63,7 @@ def initHagrid(app: FastAPI):
 
     @app.get("/v1/minecraft/{guild}/{identifier}")
     async def get_user(guild: int, identifier: str):
-        user = await database.fetch_one(
+        user = await get_database().fetch_one(
             "SELECT * FROM users WHERE guild = :guild AND (minecraft_username = :identifier OR minecraft_uuid = :identifier)",
             {
                 "guild": guild,
@@ -73,7 +77,7 @@ def initHagrid(app: FastAPI):
 
     @app.delete("/v1/minecraft/{guild}/{username}")
     async def delete_user(guild: int, username: str):
-        user = await database.execute(
+        user = await get_database().execute(
             "DELETE FROM users WHERE guild = :guild AND (minecraft_username = :username OR discord_id = :username)",
             {
                 "guild": guild,
@@ -97,13 +101,13 @@ def initHagrid(app: FastAPI):
         if token != HAGRID_SECRET:
             return {"error", "Permission denied."}
 
-        if await database.fetch_one(
+        if await get_database().fetch_one(
             "SELECT * FROM users WHERE guild = :guild AND minecraft_username = :minecraft_username",
             {"guild": guild, "minecraft_username": minecraft_username},
         ):
             return {"error": "Minecraft account already linked."}
 
-        if await database.fetch_one(
+        if await get_database().fetch_one(
             "SELECT * FROM users WHERE guild = :guild AND discord_id = :discord_id",
             {"guild": guild, "discord_id": discord_id},
         ):
@@ -114,7 +118,7 @@ def initHagrid(app: FastAPI):
         if uuid is None:
             return {"error": "Minecraft account does not exist."}
 
-        await database.execute(
+        await get_database().execute(
             """
             INSERT INTO users(guild, discord_id, discord_username, minecraft_username, minecraft_uuid, roles)
                 VALUES(:guild, :discord_id, :discord_username, :minecraft_username, :minecraft_uuid, :roles)
@@ -141,7 +145,7 @@ def initHagrid(app: FastAPI):
         if token != HAGRID_SECRET:
             return {"error", "Permission denied."}
 
-        affected = await database.execute(
+        affected = await get_database().execute(
             """
             UPDATE users
             SET discord_username = :discord_username, roles = :roles
