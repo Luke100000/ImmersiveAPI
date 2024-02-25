@@ -21,7 +21,7 @@ def generate_random_base64(length):
 
 def index_issues(repo: Repository):
     issues = {}
-    for issue in repo.get_issues():
+    for issue in repo.get_issues(state="all"):
         issues[get_issue_hash(issue.body)] = issue
     return issues
 
