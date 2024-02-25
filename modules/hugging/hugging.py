@@ -97,13 +97,20 @@ def initHugging(app: FastAPI):
         cache_key = None
         if cache:
             text_hash = hashlib.sha256(text.encode("utf-8")).hexdigest()
-            cache_key = f"cache/tts/{language}-{speaker}/{text_hash}.{file_format}"
-            os.makedirs(os.path.dirname(cache_key), exist_ok=True)
 
-            # If a cached file is found, return it
-            if os.path.exists(cache_key):
-                with open(cache_key, "rb") as f:
-                    return Response(content=f.read(), media_type=f"audio/{file_format}")
+            # Also scan for english, if the phrase is identical in most cases its fine to use the English version
+            for scan_language in ["en", language]:
+                cache_key = (
+                    f"cache/tts/{scan_language}-{speaker}/{text_hash}.{file_format}"
+                )
+                os.makedirs(os.path.dirname(cache_key), exist_ok=True)
+
+                # If a cached file is found, return it
+                if os.path.exists(cache_key):
+                    with open(cache_key, "rb") as f:
+                        return Response(
+                            content=f.read(), media_type=f"audio/{file_format}"
+                        )
 
             # If an uncached file is found, load all other speakers as well
             if prepare_speakers > 0:
