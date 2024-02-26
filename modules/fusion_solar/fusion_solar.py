@@ -55,6 +55,9 @@ def initFusionSolar(app: FastAPI):
         # Grid is not available in the API, so we calculate it
         values["grid"] = -(values["home"] + values["pv"] + values["battery"])
 
+        del values["load"]
+        del values["battery_abs"]
+
         for key, value in values.items():
             metrics.append(f'flow_watt{{handler="{key}"}} {value}')
 
