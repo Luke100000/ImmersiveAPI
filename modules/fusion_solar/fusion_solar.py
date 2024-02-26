@@ -7,7 +7,7 @@ from starlette.responses import Response
 translation = {
     "neteco.pvms.devTypeLangKey.string": "pv",
     "neteco.pvms.KPI.kpiView.electricalLoad": "load",
-    "neteco.pvms.devTypeLangKey.energy_store": "battery",
+    "neteco.pvms.devTypeLangKey.energy_store": "battery_abs",
 }
 
 
@@ -43,8 +43,10 @@ def initFusionSolar(app: FastAPI):
         data: BatteryStatus = client.get_battery_basic_stats(battery_id)
         metrics.append(f"battery_state_of_charge {data.state_of_charge / 100}")
         metrics.append(f"battery_bus_voltage {data.bus_voltage}")
+
+        # Battery flow can be negative, so lets also provide the more accurate battery state
         metrics.append(
-            f"battery_current_charge_discharge {data.current_charge_discharge_kw * 1000}"
+            f'flow_watt{{handler="battery"}} {data.current_charge_discharge_kw * 1000}'
         )
 
         return Response("\n".join(metrics), media_type="text/plain")
