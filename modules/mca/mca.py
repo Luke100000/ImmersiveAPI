@@ -48,8 +48,8 @@ def initMCA(app: FastAPI):
     premium_manager = PremiumManager()
 
     @app.get("/v1/mca/verify")
-    def verify(email: str, player: str):
-        if verify_patron(email):
+    async def verify(email: str, player: str):
+        if await verify_patron(email):
             premium_manager.set_premium(player, 30)
             return {"answer": "success"}
         return {"answer": "failed"}
