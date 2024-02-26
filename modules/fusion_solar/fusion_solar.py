@@ -25,8 +25,9 @@ def initFusionSolar(app: FastAPI):
     @app.get("/fusion_solar/metrics")
     def get_itchio():
         metrics = []
+        values = {}
 
-        # Plant flow
+        # Extract values from plant flow
         data: dict = client.get_plant_flow(plant_id)
         for node in data["data"]["flow"]["nodes"]:
             label = node["description"]["label"]
@@ -37,16 +38,24 @@ def initFusionSolar(app: FastAPI):
                 else:
                     label = label.replace(".", "_")
                 value = float(value.replace("kW", "").strip()) * 1000
-                metrics.append(f'flow_watt{{handler="{label}"}} {value}')
+                values[label] = value
 
         # Battery
         data: BatteryStatus = client.get_battery_basic_stats(battery_id)
         metrics.append(f"battery_state_of_charge {data.state_of_charge / 100}")
         metrics.append(f"battery_bus_voltage {data.bus_voltage}")
 
-        # Battery flow can be negative, so lets also provide the more accurate battery state
-        metrics.append(
-            f'flow_watt{{handler="battery"}} {data.current_charge_discharge_kw * 1000}'
-        )
+        # The home always consumes
+        values["home"] = -values["load"]
+
+        # Battery flow can be negative, so lets also provide the more accurate battery charge value
+        # We also invert the battery to make it consistent with the rest
+        values["battery"] = -data.current_charge_discharge_kw * 1000
+
+        # Grid is not available in the API, so we calculate it
+        values["grid"] = -(values["home"] + values["pv"] + values["battery"])
+
+        for key, value in values.items():
+            metrics.append(f'flow_watt{{handler="{key}"}} {value}')
 
         return Response("\n".join(metrics), media_type="text/plain")
