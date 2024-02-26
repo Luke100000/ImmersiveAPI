@@ -37,7 +37,7 @@ def initFusionSolar(app: FastAPI):
                 else:
                     label = label.replace(".", "_")
                 value = float(value.replace("kW", "").strip()) * 1000
-                metrics.append(f"flow_{label} {value}")
+                metrics.append(f"flow_watt{{handler={label}}} {value}")
 
         # Battery
         data: BatteryStatus = client.get_battery_basic_stats(battery_id)
