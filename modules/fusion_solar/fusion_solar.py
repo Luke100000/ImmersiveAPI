@@ -23,7 +23,7 @@ def initFusionSolar(app: FastAPI):
     battery_id = os.getenv("FUSION_SOLAR_BATTERY_ID")
 
     @app.get("/fusion_solar/metrics")
-    def get_itchio():
+    def get_fusion():
         metrics = []
         values = {}
 
