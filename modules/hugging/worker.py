@@ -45,9 +45,14 @@ class Executor:
 
     def submit(self, priority: int, func, *args, **kwargs):
         future = asyncio.get_running_loop().create_future()
-        self.queue.put(
-            PrioritizedItem(priority, lambda: future.set_result(func(*args, **kwargs)))
-        )
+
+        def task():
+            try:
+                future.set_result(func(*args, **kwargs))
+            except Exception as e:
+                future.set_exception(e)
+
+        self.queue.put(PrioritizedItem(priority, task))
         return future
 
     def shutdown(self):
