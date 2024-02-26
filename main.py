@@ -99,6 +99,11 @@ if settings.Error.enable:
 
     benchmark(initError, app)
 
+if settings.FusionSolar.enable:
+    from modules.fusion_solar.fusion_solar import initFusionSolar
+
+    benchmark(initFusionSolar, app)
+
 
 @app.on_event("startup")
 async def startup():

@@ -22,5 +22,8 @@ enable = false
 [Error]
 enable = false
 
+[FusionSolar]
+enable = false
+
 [Torch]
 num_threads = 2
