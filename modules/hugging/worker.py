@@ -17,7 +17,10 @@ class Worker:
         while not self.stop_event.is_set():
             try:
                 item = self.task_queue.get(timeout=1)
-                item.item()
+                try:
+                    item.item()
+                except Exception as e:
+                    print(e)
             except queue.Empty:
                 pass
 
