@@ -1,9 +1,11 @@
 from collections import defaultdict
+from multiprocessing.pool import ThreadPool
 
 from fastapi import FastAPI
 from fastapi import HTTPException, Header
 from pydantic import BaseModel
-from pyrate_limiter import Duration, Limiter, Rate, BucketFullException
+from pyrate_limiter import Duration, Limiter, Rate, BucketFullException, BucketFactory, RateItem, AbstractBucket, \
+    InMemoryBucket, TimeClock
 
 from modules.mca.mistral_utils import get_chat_completion_mistral
 from modules.mca.openai_utils import get_chat_completion_openai
@@ -13,11 +15,6 @@ from modules.mca.premium import PremiumManager
 # Settings
 TOKENS_USER = 50000
 TOKENS_PREMIUM = 500000
-
-# Limit requests per user and ip
-limiter = defaultdict(lambda: Limiter(Rate(TOKENS_USER, Duration.HOUR)))
-limiter_premium = defaultdict(lambda: Limiter(Rate(TOKENS_PREMIUM, Duration.HOUR)))
-stats = defaultdict(int)
 
 
 SYSTEM_CONTEXT = """
@@ -34,8 +31,8 @@ Answer one or two sentences while sounding human. You are no assistant! You can 
 
 pricing = {
     "gpt-3.5-turbo": 0.47 * 0.8 + 1.4 * 0.2,
-    "mistral-tiny": 0.14 * 0.8 + 0.42 * 0.2,
-    "mistral-small": 0.6 * 0.8 + 1.8 * 0.2,
+    "mistral-tiny": 0.2,
+    "mistral-small": 0.65,
 }
 
 
@@ -43,9 +40,31 @@ class Body(BaseModel):
     model: str
     messages: list
 
+class MultiBucketFactory(BucketFactory):
+    def __init__(self, rates):
+        self.clock = TimeClock()
+        self.rates = rates
+        self.buckets = {}
+        self.thread_pool = ThreadPool(2)
+
+    def wrap_item(self, name: str, weight: int = 1) -> RateItem:
+        return RateItem(name, self.clock.now(), weight=weight)
+
+    def get(self, item: RateItem) -> AbstractBucket:
+        if item.name not in self.buckets:
+            new_bucket = self.create(self.clock, InMemoryBucket, self.rates)
+            self.buckets.update({item.name: new_bucket})
+
+        return self.buckets[item.name]
+
 
 def initMCA(app: FastAPI):
     premium_manager = PremiumManager()
+
+    # Limit requests per user and ip
+    limiter = Limiter(MultiBucketFactory([Rate(TOKENS_USER, Duration.HOUR)]))
+    limiter_premium = Limiter(MultiBucketFactory([Rate(TOKENS_PREMIUM, Duration.HOUR)]))
+    stats = defaultdict(int)
 
     @app.get("/v1/mca/verify")
     async def verify(email: str, player: str):
@@ -82,10 +101,10 @@ def initMCA(app: FastAPI):
             )
 
             # Fetch premium status
-            lim = (limiter_premium if premium else limiter)[player]
+            lim = (limiter_premium if premium else limiter)
 
             # noinspection PyAsyncCall
-            lim.try_acquire(player, weight=weight)
+            lim.try_acquire(name=player, weight=weight)
 
             # Logging
             stats[player] += weight
