@@ -101,7 +101,7 @@ def initMCA(app: FastAPI):
             )
 
             # Fetch premium status
-            lim = (limiter_premium if premium else limiter)
+            lim = limiter_premium if premium else limiter
 
             # noinspection PyAsyncCall
             lim.try_acquire(name=player, weight=weight)

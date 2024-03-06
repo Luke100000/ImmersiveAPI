@@ -22,6 +22,25 @@ def initFusionSolar(app: FastAPI):
     plant_id = os.getenv("FUSION_SOLAR_PLANT_ID")
     battery_id = os.getenv("FUSION_SOLAR_BATTERY_ID")
 
+    def safe_float(value: str) -> float:
+        try:
+            return float(value)
+        except ValueError:
+            return 0.0
+
+    def get_battery_basic_stats() -> BatteryStatus:
+        battery_stats = client.get_battery_status(battery_id)
+        return BatteryStatus(
+            state_of_charge=safe_float(battery_stats[8]["realValue"]),
+            rated_capacity=safe_float(battery_stats[2]["realValue"]),
+            operating_status=battery_stats[0]["value"],
+            backup_time=battery_stats[3]["value"],
+            bus_voltage=safe_float(battery_stats[7]["realValue"]),
+            total_charged_today_kwh=safe_float(battery_stats[4]["realValue"]),
+            total_discharged_today_kwh=safe_float(battery_stats[5]["realValue"]),
+            current_charge_discharge_kw=safe_float(battery_stats[6]["realValue"]),
+        )
+
     @app.get("/fusion_solar/metrics")
     def get_fusion():
         metrics = []
@@ -41,7 +60,7 @@ def initFusionSolar(app: FastAPI):
                 values[label] = value
 
         # Battery
-        data: BatteryStatus = client.get_battery_basic_stats(battery_id)
+        data: BatteryStatus = get_battery_basic_stats()
         metrics.append(f"battery_state_of_charge {data.state_of_charge / 100}")
         metrics.append(f"battery_bus_voltage {data.bus_voltage}")
 
