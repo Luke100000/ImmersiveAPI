@@ -320,10 +320,10 @@ def load_phraseys():
     return phraseys
 
 
-def initPhrasey(app: FastAPI):
+def init(app: FastAPI):
     phraseys: dict[str, Phrasey] = load_phraseys()
 
-    @app.get("/v1/phrasey/generate/{voice}")
+    @app.get("/v1/phrasey/generate/{voice}", tags=["phrasey"])
     def get_hash(voice: str):
         if voice not in phraseys:
             raise HTTPException(status_code=404, detail="Voice not found")
@@ -337,7 +337,7 @@ def initPhrasey(app: FastAPI):
 
         return Response("Done")
 
-    @app.get("/v1/phrasey/clear/{voice}")
+    @app.get("/v1/phrasey/clear/{voice}", tags=["phrasey"])
     def get_hash(voice: str):
         if voice not in phraseys:
             raise HTTPException(status_code=404, detail="Voice not found")
@@ -346,7 +346,7 @@ def initPhrasey(app: FastAPI):
 
         return Response("Done")
 
-    @app.get("/v1/phrasey/hash/{voice}")
+    @app.get("/v1/phrasey/hash/{voice}", tags=["phrasey"])
     def get_hash(voice: str, events: str):
         if voice not in phraseys:
             raise HTTPException(status_code=404, detail="Voice not found")
@@ -355,14 +355,14 @@ def initPhrasey(app: FastAPI):
         event_hash, phrase_hash = phraseys[voice].query(query_event)
         return Response("" if event_hash is None else (event_hash + "/" + phrase_hash))
 
-    @app.get("/v1/phrasey/phrase/{voice}/{event_hash}/{phrase_hash}")
+    @app.get("/v1/phrasey/phrase/{voice}/{event_hash}/{phrase_hash}", tags=["phrasey"])
     def get_phrase(voice: str, event_hash: str, phrase_hash: str):
         if voice not in phraseys:
             raise HTTPException(status_code=404, detail="Voice not found")
 
         return Response(phraseys[voice].get_phrase(event_hash, phrase_hash))
 
-    @app.get("/v1/phrasey/audio/{voice}/{event_hash}/{phrase_hash}")
+    @app.get("/v1/phrasey/audio/{voice}/{event_hash}/{phrase_hash}", tags=["phrasey"])
     def get_audio(voice: str, event_hash: str, phrase_hash: str):
         if voice not in phraseys:
             raise HTTPException(status_code=404, detail="Voice not found")
@@ -370,6 +370,6 @@ def initPhrasey(app: FastAPI):
         path = phraseys[voice].get_audio_path(event_hash, phrase_hash)
         return FileResponse(path, media_type="audio/ogg")
 
-    @app.get("/v1/phrasey/voices")
+    @app.get("/v1/phrasey/voices", tags=["phrasey"])
     def get_audio():
         return [v for v in phraseys.keys()]

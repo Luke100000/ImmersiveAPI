@@ -1,8 +1,6 @@
 import asyncio
 import subprocess
 
-from modules.converter.converter import add_converter
-
 
 async def ffmpeg_converter(
     in_file: str, out_file: str, in_format: str, out_format: str
@@ -22,7 +20,7 @@ async def ffmpeg_converter(
     ).wait()
 
 
-def install_ffmpeg():
+def install_ffmpeg(add_converter):
     process = subprocess.run(
         ["ffmpeg", "-formats"],
         stdout=asyncio.subprocess.PIPE,

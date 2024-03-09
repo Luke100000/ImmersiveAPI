@@ -4,7 +4,7 @@ import itchio
 from fastapi import FastAPI
 
 
-def initItchIo(app: FastAPI):
+def init(app: FastAPI):
     key = os.getenv("ITCHIO_API_KEY")
 
     session = itchio.Session(key)
@@ -32,6 +32,6 @@ def initItchIo(app: FastAPI):
 
     games.sort(key=lambda x: x["downloads_count"], reverse=True)
 
-    @app.get("/v1/itchio")
+    @app.get("/v1/itchio", tags=["itch"])
     def get_itchio():
         return games

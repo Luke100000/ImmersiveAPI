@@ -1,7 +1,5 @@
 from PIL import Image
 
-from modules.converter.converter import add_converter
-
 
 async def opencv_converter(
     in_file: str, out_file: str, in_format: str, out_format: str
@@ -10,7 +8,7 @@ async def opencv_converter(
         img.save(out_file, format=out_format)
 
 
-def install_opencv():
+def install_opencv(add_converter):
     formats = {
         "bmp",
         "dib",

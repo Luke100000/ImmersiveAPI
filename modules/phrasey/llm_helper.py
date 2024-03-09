@@ -7,7 +7,7 @@ from mistralai.client import MistralClient
 from mistralai.models.chat_completion import ChatMessage
 
 from modules.hugging.mistral import generate_text
-from modules.hugging.worker import get_primary_executor
+from common.worker import get_primary_executor
 
 load_dotenv()
 

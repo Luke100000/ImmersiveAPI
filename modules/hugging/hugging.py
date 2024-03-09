@@ -15,7 +15,7 @@ from modules.hugging.coqui import (
     get_base_speakers,
 )
 from modules.hugging.mistral import generate_text
-from modules.hugging.worker import get_primary_executor
+from common.worker import get_primary_executor
 
 
 class Message(BaseModel):
@@ -46,8 +46,8 @@ class ImageRequest(BaseModel):
     num_inference_steps: int = 2
 
 
-def initHugging(app: FastAPI):
-    @app.post("/v1/text/mistral")
+def init(app: FastAPI):
+    @app.post("/v1/text/mistral", tags=["hugging"])
     async def post_text_mistral(params: TextRequest):
         text = await get_primary_executor().submit(
             0,
@@ -57,18 +57,11 @@ def initHugging(app: FastAPI):
         )
         return StreamingResponse(text) if params.stream else Response(text)
 
-    # @app.post("/v1/image/sdxl-turbo")
-    # async def post_image_sdxl_turbo(params: ImageRequest):
-    #    image = await run(generate_image, **params.model_dump())
-    #    buffer = io.BytesIO()
-    #    image.save(buffer, format="PNG")
-    #    return Response(content=buffer.getvalue(), media_type="image/png")
-
-    @app.get("/v1/tts/xtts-v2/queue")
+    @app.get("/v1/tts/xtts-v2/queue", tags=["hugging"])
     async def get_tts_xtts_model():
         return get_primary_executor().queue.qsize()
 
-    @app.get("/v1/tts/xtts-v2/model")
+    @app.get("/v1/tts/xtts-v2/model", tags=["hugging"])
     async def get_tts_xtts_model():
         return await get_primary_executor().submit(
             0,
@@ -79,7 +72,7 @@ def initHugging(app: FastAPI):
             },
         )
 
-    @app.post("/v1/tts/xtts-v2")
+    @app.post("/v1/tts/xtts-v2", tags=["hugging"])
     async def post_tts_xtts(
         text: str,
         language: str = "en",

@@ -3,8 +3,6 @@ import glob
 import os
 import subprocess
 
-from modules.converter.converter import add_converter
-
 
 async def imagemagick_converter(
     in_file: str, out_file: str, in_format: str, out_format: str
@@ -19,7 +17,7 @@ async def imagemagick_converter(
         os.remove(file)
 
 
-def install_imagemagick():
+def install_imagemagick(add_converter):
     process = subprocess.run(
         ["identify", "-list", "format"],
         stdout=asyncio.subprocess.PIPE,

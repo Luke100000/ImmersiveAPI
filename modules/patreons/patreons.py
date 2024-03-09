@@ -10,8 +10,8 @@ creator_access_token = os.getenv("PATREON_API_KEY")
 api_client = patreon.API(creator_access_token)
 
 
-def initPatreon(app: FastAPI):
-    @app.get("/v1/patrons")
+def init(app: FastAPI):
+    @app.get("/v1/patrons", tags=["patreons"])
     @cached(TTLCache(maxsize=1, ttl=1800))
     def get_patrons():
         users = {}

@@ -60,7 +60,7 @@ class Issue(BaseModel):
     files: List[IssueFile]
 
 
-def initError(app: FastAPI):
+def init(app: FastAPI):
     auth = Auth.Token(os.getenv("GITHUB_TOKEN"))
     g = Github(auth=auth)
 
@@ -70,7 +70,7 @@ def initError(app: FastAPI):
     repo = g.get_repo(repo_id)
     issues = index_issues(repo)
 
-    @app.post("/v1/error")
+    @app.post("/v1/error", tags=["error"])
     def post_issue(body: Issue):
         # Create issue
         issue = get_issue(repo, issues, body.stacktrace, body.project)

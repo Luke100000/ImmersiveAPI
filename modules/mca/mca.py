@@ -58,7 +58,7 @@ class MultiBucketFactory(BucketFactory):
         return self.buckets[item.name]
 
 
-def initMCA(app: FastAPI):
+def init(app: FastAPI):
     premium_manager = PremiumManager()
 
     # Limit requests per user and ip
@@ -66,18 +66,18 @@ def initMCA(app: FastAPI):
     limiter_premium = Limiter(MultiBucketFactory([Rate(TOKENS_PREMIUM, Duration.HOUR)]))
     stats = defaultdict(int)
 
-    @app.get("/v1/mca/verify")
+    @app.get("/v1/mca/verify", tags=["mca"])
     async def verify(email: str, player: str):
         if await verify_patron(email):
             premium_manager.set_premium(player, 30)
             return {"answer": "success"}
         return {"answer": "failed"}
 
-    @app.get("/v1/mca/stats")
+    @app.get("/v1/mca/stats", tags=["mca"])
     def get_stats():
         return stats
 
-    @app.post("/v1/mca/chat")
+    @app.post("/v1/mca/chat", tags=["mca"])
     async def chat_completions(body: Body, authorization: str = Header(None)):
         if not authorization or not authorization.startswith("Bearer "):
             raise HTTPException(status_code=401, detail="Unauthorized")

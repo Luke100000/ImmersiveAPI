@@ -1,12 +1,7 @@
+.*
 /prometheus/
-.env
-.idea
-temp
-/modules/converter/test/output/
-/modules/converter/test/results.json
-/temp_conversion/
-/hagrid.db
+/temp/
 /cache
 /data
-config.toml
 /notebooks/
+config.toml

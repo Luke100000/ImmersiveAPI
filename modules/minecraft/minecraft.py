@@ -11,7 +11,7 @@ HAGRID_SECRET = os.getenv("HAGRID_SECRET")
 # Open Database
 @cache
 def get_database():
-    return Database("sqlite:///hagrid.db")
+    return Database("sqlite:///cache/hagrid.db")
 
 
 async def setup():
@@ -37,7 +37,7 @@ def get_uuid(username: str):
     return data["id"] if "id" in data else None
 
 
-def initHagrid(app: FastAPI):
+def init(app: FastAPI):
     @app.on_event("startup")
     async def _startup():
         await get_database().connect()
@@ -53,7 +53,7 @@ def initHagrid(app: FastAPI):
             "roles": user["roles"],
         }
 
-    @app.get("/v1/minecraft/{guild}")
+    @app.get("/v1/minecraft/{guild}", tags=["minecraft"])
     async def get_all_users(guild: int):
         users = await get_database().fetch_all(
             "SELECT * FROM users WHERE guild = :guild",
@@ -61,7 +61,7 @@ def initHagrid(app: FastAPI):
         )
         return [pack(u) for u in users]
 
-    @app.get("/v1/minecraft/{guild}/{identifier}")
+    @app.get("/v1/minecraft/{guild}/{identifier}", tags=["minecraft"])
     async def get_user(guild: int, identifier: str):
         user = await get_database().fetch_one(
             "SELECT * FROM users WHERE guild = :guild AND (minecraft_username = :identifier OR minecraft_uuid = :identifier)",
@@ -75,7 +75,7 @@ def initHagrid(app: FastAPI):
         else:
             return pack(user)
 
-    @app.delete("/v1/minecraft/{guild}/{username}")
+    @app.delete("/v1/minecraft/{guild}/{username}", tags=["minecraft"])
     async def delete_user(guild: int, username: str):
         user = await get_database().execute(
             "DELETE FROM users WHERE guild = :guild AND (minecraft_username = :username OR discord_id = :username)",
@@ -89,7 +89,7 @@ def initHagrid(app: FastAPI):
         else:
             return {}
 
-    @app.post("/v1/minecraft/{guild}/{discord_id}")
+    @app.post("/v1/minecraft/{guild}/{discord_id}", tags=["minecraft"])
     async def post_user(
         guild: int,
         discord_id: int,
@@ -134,7 +134,7 @@ def initHagrid(app: FastAPI):
         )
         return {}
 
-    @app.put("/v1/minecraft/{guild}/{discord_id}")
+    @app.put("/v1/minecraft/{guild}/{discord_id}", tags=["minecraft"])
     async def put_user(
         guild: int,
         discord_id: int,

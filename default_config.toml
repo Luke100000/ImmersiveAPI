@@ -1,29 +1,29 @@
-[Converter]
+[converter]
 enable = false
 
-[Patreon]
+[patreons]
 enable = false
 
-[ItchIo]
+[itch]
 enable = false
 
-[Hagrid]
+[minecraft]
 enable = false
 
-[Phrasey]
+[phrasey]
 enable = false
 
-[Hugging]
+[hugging]
 enable = false
 
-[MCA]
+[mca]
 enable = false
 
-[Error]
+[error]
 enable = false
 
-[FusionSolar]
+[fusion_solar]
 enable = false
 
-[Torch]
-num_threads = 2
+[horde]
+enable = false

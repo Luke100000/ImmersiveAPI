@@ -1,19 +1,20 @@
-from typing import Callable
+import glob
+import importlib
+import os
+import shutil
+import time
 
 from dotenv import load_dotenv
 from dynaconf import Dynaconf
+from fastapi import FastAPI
+from prometheus_client import CollectorRegistry, multiprocess
+from prometheus_fastapi_instrumentator import Instrumentator
 from starlette.middleware.cors import CORSMiddleware
+from starlette.middleware.gzip import GZipMiddleware
 
-from modules.hugging.worker import get_primary_executor
+from common.worker import get_primary_executor
 
 load_dotenv()
-
-import time
-import os
-import shutil
-
-from prometheus_client import CollectorRegistry, multiprocess
-from starlette.middleware.gzip import GZipMiddleware
 
 # Setup prometheus for multiprocessing
 prom_dir = (
@@ -27,11 +28,10 @@ if prom_dir is not None:
     registry = CollectorRegistry()
     multiprocess.MultiProcessCollector(registry)
 
-from fastapi import FastAPI
-from prometheus_fastapi_instrumentator import Instrumentator
 
 app = FastAPI()
 
+# Enable GZip compression
 app.add_middleware(GZipMiddleware, minimum_size=1024, compresslevel=6)
 
 
@@ -47,67 +47,36 @@ app.add_middleware(
 # Prometheus integration
 instrumentator = Instrumentator().instrument(app)
 
+# Load config
 settings = Dynaconf(settings_files=["default_config.toml", "config.toml"])
 
 
-def benchmark(initializer: Callable, *args, **kwargs):
-    if settings[initializer.__name__[4:]].enable:
-        start = time.time()
-        initializer(*args, **kwargs)
-        end = time.time()
-        print(f"Initialized {initializer.__name__} in {end - start:.2f}s")
+def start_module(name: str):
+    start_import = time.time()
+    module = importlib.import_module(f"modules.{name}.{name}")
+    initializer = getattr(module, "init")
+
+    start_init = time.time()
+    kwargs = {"config": settings[name]}
+    filtered_kwargs = {key: value for key, value in kwargs.items() if key in initializer.__code__.co_varnames}
+    initializer(app, **filtered_kwargs)
+    end = time.time()
+    print(f"Initialized {name} in {end - start_import:.2f}s ({end - start_init:.2f}s initializing)")
 
 
-# Enable modules
-if settings.Converter.enable:
-    from modules.converter.converterModule import initConverter
-
-    benchmark(initConverter, app)
-
-if settings.Patreon.enable:
-    from modules.patreon.patreonModule import initPatreon
-
-    benchmark(initPatreon, app)
-
-if settings.ItchIo.enable:
-    from modules.itchio.itchio import initItchIo
-
-    benchmark(initItchIo, app)
-
-if settings.Hagrid.enable:
-    from modules.hagrid.hagrid import initHagrid
-
-    benchmark(initHagrid, app)
-
-if settings.Phrasey.enable:
-    from modules.phrasey.phrases import initPhrasey
-
-    benchmark(initPhrasey, app)
-
-if settings.Hugging.enable:
-    from modules.hugging.hugging import initHugging
-
-    benchmark(initHugging, app)
-
-if settings.MCA.enable:
-    from modules.mca.mca import initMCA
-
-    benchmark(initMCA, app)
-
-if settings.Error.enable:
-    from modules.error.error import initError
-
-    benchmark(initError, app)
-
-if settings.FusionSolar.enable:
-    from modules.fusion_solar.fusion_solar import initFusionSolar
-
-    benchmark(initFusionSolar, app)
+def start_all_modules():
+    for module in glob.glob("modules/*"):
+        name = module[8:]
+        if name in settings and settings[name].enable:
+            start_module(name)
+        else:
+            print("Skipping", name)
 
 
 @app.on_event("startup")
 async def startup():
     instrumentator.expose(app)
+    start_all_modules()
 
 
 @app.on_event("shutdown")

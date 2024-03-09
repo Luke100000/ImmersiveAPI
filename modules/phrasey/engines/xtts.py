@@ -1,7 +1,7 @@
 import os
 
 from modules.hugging.coqui import generate_speech
-from modules.hugging.worker import get_primary_executor
+from common.worker import get_primary_executor
 from modules.phrasey.tts import TTS
 from modules.phrasey.utils import convert_to_ogg
 

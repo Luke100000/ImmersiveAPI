@@ -11,7 +11,7 @@ translation = {
 }
 
 
-def initFusionSolar(app: FastAPI):
+def init(app: FastAPI):
     from fusion_solar_py.client import FusionSolarClient, BatteryStatus
 
     client = FusionSolarClient(
@@ -41,7 +41,7 @@ def initFusionSolar(app: FastAPI):
             current_charge_discharge_kw=safe_float(battery_stats[6]["realValue"]),
         )
 
-    @app.get("/fusion_solar/metrics")
+    @app.get("/fusion_solar/metrics", tags=["fusion_solar"])
     def get_fusion():
         metrics = []
         values = {}

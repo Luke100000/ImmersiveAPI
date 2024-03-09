@@ -1,7 +1,5 @@
 from PIL import Image
 
-from modules.converter.converter import add_converter
-
 
 async def pillow_converter(
     in_file: str, out_file: str, in_format: str, out_format: str
@@ -10,7 +8,7 @@ async def pillow_converter(
         img.save(out_file, format=out_format)
 
 
-def install_pillow():
+def install_pillow(add_converter):
     extensions = Image.registered_extensions()
     readable_formats = {ex for ex, f in extensions.items() if f in Image.OPEN}
     savable_formats = {ex for ex, f in extensions.items() if f in Image.SAVE}
