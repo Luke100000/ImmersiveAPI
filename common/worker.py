@@ -2,7 +2,6 @@ import asyncio
 import queue
 import threading
 from dataclasses import dataclass, field
-from functools import cache
 from typing import Any
 
 
@@ -60,6 +59,14 @@ class Executor:
             worker.stop()
 
 
-@cache
+_worker = None
+
+
+def set_primary_executor(executor: Executor):
+    global _worker
+    _worker = executor
+
+
 def get_primary_executor():
-    return Executor(1)
+    global _worker
+    return _worker

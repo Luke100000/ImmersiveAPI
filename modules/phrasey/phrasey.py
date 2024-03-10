@@ -324,7 +324,12 @@ def load_phraseys():
 def init(configurator: Configurator):
     configurator.register("Phrasey", "Generates phrases for situations.")
 
-    phraseys: dict[str, Phrasey] = load_phraseys()
+    # TODO phrasey would profit from multi-processing
+    # TODO a sqlite database would make more sense here anyways
+    configurator.set_non_thread_safe()
+
+    if configurator.is_single_process():
+        phraseys: dict[str, Phrasey] = load_phraseys()
 
     @configurator.get("/v1/phrasey/generate/{voice}")
     def get_hash(voice: str):

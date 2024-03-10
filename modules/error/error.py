@@ -64,14 +64,18 @@ class Issue(BaseModel):
 def init(configurator: Configurator):
     configurator.register("Error", "Error reporting and artifact uploading.")
 
-    auth = Auth.Token(os.getenv("GITHUB_TOKEN"))
-    g = Github(auth=auth)
+    # The issues index is not thread-safe
+    configurator.set_non_thread_safe()
 
-    repo_id = os.getenv("GITHUB_REPO")
-    branch = "issues"
+    if configurator.is_single_process():
+        auth = Auth.Token(os.getenv("GITHUB_TOKEN"))
+        g = Github(auth=auth)
 
-    repo = g.get_repo(repo_id)
-    issues = index_issues(repo)
+        repo_id = os.getenv("GITHUB_REPO")
+        branch = "issues"
+
+        repo = g.get_repo(repo_id)
+        issues = index_issues(repo)
 
     @configurator.post("/v1/error")
     def post_issue(body: Issue):

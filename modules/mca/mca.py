@@ -3,8 +3,17 @@ from multiprocessing.pool import ThreadPool
 
 from fastapi import HTTPException, Header
 from pydantic import BaseModel
-from pyrate_limiter import Duration, Limiter, Rate, BucketFullException, BucketFactory, RateItem, AbstractBucket, \
-    InMemoryBucket, TimeClock
+from pyrate_limiter import (
+    Duration,
+    Limiter,
+    Rate,
+    BucketFullException,
+    BucketFactory,
+    RateItem,
+    AbstractBucket,
+    InMemoryBucket,
+    TimeClock,
+)
 
 from main import Configurator
 from modules.mca.mistral_utils import get_chat_completion_mistral
@@ -40,6 +49,7 @@ class Body(BaseModel):
     model: str
     messages: list
 
+
 class MultiBucketFactory(BucketFactory):
     def __init__(self, rates):
         self.clock = TimeClock()
@@ -59,14 +69,22 @@ class MultiBucketFactory(BucketFactory):
 
 
 def init(configurator: Configurator):
-    configurator.register("MCA", "OpenAI compatible endpoint for MCA's chat completions.")
+    configurator.register(
+        "MCA", "OpenAI compatible endpoint for MCA's chat completions."
+    )
 
-    premium_manager = PremiumManager()
+    configurator.set_non_thread_safe()
 
-    # Limit requests per user and ip
-    limiter = Limiter(MultiBucketFactory([Rate(TOKENS_USER, Duration.HOUR)]))
-    limiter_premium = Limiter(MultiBucketFactory([Rate(TOKENS_PREMIUM, Duration.HOUR)]))
-    stats = defaultdict(int)
+    if configurator.is_single_process():
+        # Keeps track of premium status
+        premium_manager = PremiumManager()
+
+        # Limit requests per user and ip
+        limiter = Limiter(MultiBucketFactory([Rate(TOKENS_USER, Duration.HOUR)]))
+        limiter_premium = Limiter(
+            MultiBucketFactory([Rate(TOKENS_PREMIUM, Duration.HOUR)])
+        )
+        stats = defaultdict(int)
 
     @configurator.get("/v1/mca/verify")
     async def verify(email: str, player: str):

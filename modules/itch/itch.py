@@ -1,5 +1,4 @@
 import os
-from time import sleep
 
 import itchio
 from cachetools import TTLCache, cached

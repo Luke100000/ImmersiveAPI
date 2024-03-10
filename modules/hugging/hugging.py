@@ -48,7 +48,12 @@ class ImageRequest(BaseModel):
 
 
 def init(configurator: Configurator):
-    configurator.register("Hugging", "Endpoints mostly relying on HuggingFace or similar ML models.")
+    configurator.register(
+        "Hugging", "Endpoints mostly relying on HuggingFace or similar ML models."
+    )
+
+    # While thread safe itself, this module makes use of an executor anyway
+    configurator.set_non_thread_safe()
 
     @configurator.post("/v1/text/mistral")
     async def post_text_mistral(params: TextRequest):

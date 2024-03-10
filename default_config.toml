@@ -1,3 +1,6 @@
+[global]
+background_workers = 2
+
 [converter]
 enable = false
 
