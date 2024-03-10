@@ -4,10 +4,12 @@ import os
 import tempfile
 from typing import List, Any, Optional, Union
 
-from fastapi import FastAPI, UploadFile
+from fastapi import UploadFile
 from pydantic import BaseModel
 from starlette.responses import Response, StreamingResponse
 
+from common.worker import get_primary_executor
+from main import Configurator
 from modules.hugging.coqui import (
     generate_speech,
     get_languages,
@@ -15,7 +17,6 @@ from modules.hugging.coqui import (
     get_base_speakers,
 )
 from modules.hugging.mistral import generate_text
-from common.worker import get_primary_executor
 
 
 class Message(BaseModel):
@@ -46,8 +47,10 @@ class ImageRequest(BaseModel):
     num_inference_steps: int = 2
 
 
-def init(app: FastAPI):
-    @app.post("/v1/text/mistral", tags=["hugging"])
+def init(configurator: Configurator):
+    configurator.register("Hugging", "Endpoints mostly relying on HuggingFace or similar ML models.")
+
+    @configurator.post("/v1/text/mistral")
     async def post_text_mistral(params: TextRequest):
         text = await get_primary_executor().submit(
             0,
@@ -57,11 +60,11 @@ def init(app: FastAPI):
         )
         return StreamingResponse(text) if params.stream else Response(text)
 
-    @app.get("/v1/tts/xtts-v2/queue", tags=["hugging"])
+    @configurator.get("/v1/tts/xtts-v2/queue")
     async def get_tts_xtts_model():
         return get_primary_executor().queue.qsize()
 
-    @app.get("/v1/tts/xtts-v2/model", tags=["hugging"])
+    @configurator.get("/v1/tts/xtts-v2/model")
     async def get_tts_xtts_model():
         return await get_primary_executor().submit(
             0,
@@ -72,7 +75,7 @@ def init(app: FastAPI):
             },
         )
 
-    @app.post("/v1/tts/xtts-v2", tags=["hugging"])
+    @configurator.post("/v1/tts/xtts-v2")
     async def post_tts_xtts(
         text: str,
         language: str = "en",

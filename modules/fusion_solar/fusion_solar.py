@@ -1,7 +1,9 @@
 import os
 
-from fastapi import FastAPI
+from fusion_solar_py.client import FusionSolarClient, BatteryStatus
 from starlette.responses import Response
+
+from main import Configurator
 
 # noinspection SpellCheckingInspection
 translation = {
@@ -11,8 +13,8 @@ translation = {
 }
 
 
-def init(app: FastAPI):
-    from fusion_solar_py.client import FusionSolarClient, BatteryStatus
+def init(configurator: Configurator):
+    configurator.register("FusionSolar", "Metrics endpoint for Huawei FusionSolar.")
 
     client = FusionSolarClient(
         os.getenv("FUSION_SOLAR_USER"),
@@ -41,7 +43,7 @@ def init(app: FastAPI):
             current_charge_discharge_kw=safe_float(battery_stats[6]["realValue"]),
         )
 
-    @app.get("/fusion_solar/metrics", tags=["fusion_solar"])
+    @configurator.get("/fusion_solar/metrics")
     def get_fusion():
         metrics = []
         values = {}

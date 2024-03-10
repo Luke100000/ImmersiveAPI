@@ -5,11 +5,12 @@ import secrets
 from typing import List
 
 from dotenv import load_dotenv
-from fastapi import FastAPI
 from github import Github, Auth
 from github.Issue import Issue
 from github.Repository import Repository
 from pydantic import BaseModel
+
+from main import Configurator
 
 load_dotenv()
 
@@ -60,7 +61,9 @@ class Issue(BaseModel):
     files: List[IssueFile]
 
 
-def init(app: FastAPI):
+def init(configurator: Configurator):
+    configurator.register("Error", "Error reporting and artifact uploading.")
+
     auth = Auth.Token(os.getenv("GITHUB_TOKEN"))
     g = Github(auth=auth)
 
@@ -70,7 +73,7 @@ def init(app: FastAPI):
     repo = g.get_repo(repo_id)
     issues = index_issues(repo)
 
-    @app.post("/v1/error", tags=["error"])
+    @configurator.post("/v1/error")
     def post_issue(body: Issue):
         # Create issue
         issue = get_issue(repo, issues, body.stacktrace, body.project)

@@ -2,30 +2,33 @@ import os
 import shutil
 import uuid
 
-from fastapi import FastAPI, Request
+from fastapi import Request
 from starlette.responses import Response
 from starlette.templating import Jinja2Templates
 
 from common.utils import fetch_file
+from main import Configurator
 from modules.converter.registry import clean_format, conversions
 
-templates = Jinja2Templates(directory="modules/converter/templates")
 
-temp_dir = "temp_conversion"
+def init(configurator: Configurator):
+    configurator.register("Converter", "Converts between different formats.")
 
-shutil.rmtree(temp_dir, ignore_errors=True)
-os.makedirs(temp_dir, exist_ok=True)
+    templates = Jinja2Templates(directory="modules/converter/templates")
 
+    temp_dir = "temp/conversions"
 
-def init(app: FastAPI):
-    @app.get("/convert/{output_format}", tags=["converter"])
+    shutil.rmtree(temp_dir, ignore_errors=True)
+    os.makedirs(temp_dir, exist_ok=True)
+
+    @configurator.get("/convert/{output_format}")
     async def index(request: Request, output_format: str = "png"):
         return templates.TemplateResponse(
             "index.html", {"request": request, "id": id, "output_format": output_format}
         )
 
-    @app.get("/v1/convert/{to_format}", tags=["converter"])
-    @app.post("/v1/convert/{to_format}", tags=["converter"])
+    @configurator.get("/v1/convert/{to_format}")
+    @configurator.post("/v1/convert/{to_format}")
     async def convert(
         request: Request,
         to_format: str = None,

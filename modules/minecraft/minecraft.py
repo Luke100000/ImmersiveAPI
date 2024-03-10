@@ -3,7 +3,8 @@ from functools import cache
 
 import requests
 from databases import Database
-from fastapi import FastAPI
+
+from main import Configurator
 
 HAGRID_SECRET = os.getenv("HAGRID_SECRET")
 
@@ -37,8 +38,10 @@ def get_uuid(username: str):
     return data["id"] if "id" in data else None
 
 
-def init(app: FastAPI):
-    @app.on_event("startup")
+def init(configurator: Configurator):
+    configurator.register("Minecraft", "Server authentication using the ArchLink mod.")
+    
+    @configurator.app.on_event("startup")
     async def _startup():
         await get_database().connect()
         await setup()
@@ -53,7 +56,7 @@ def init(app: FastAPI):
             "roles": user["roles"],
         }
 
-    @app.get("/v1/minecraft/{guild}", tags=["minecraft"])
+    @configurator.get("/v1/minecraft/{guild}")
     async def get_all_users(guild: int):
         users = await get_database().fetch_all(
             "SELECT * FROM users WHERE guild = :guild",
@@ -61,7 +64,7 @@ def init(app: FastAPI):
         )
         return [pack(u) for u in users]
 
-    @app.get("/v1/minecraft/{guild}/{identifier}", tags=["minecraft"])
+    @configurator.get("/v1/minecraft/{guild}/{identifier}")
     async def get_user(guild: int, identifier: str):
         user = await get_database().fetch_one(
             "SELECT * FROM users WHERE guild = :guild AND (minecraft_username = :identifier OR minecraft_uuid = :identifier)",
@@ -75,7 +78,7 @@ def init(app: FastAPI):
         else:
             return pack(user)
 
-    @app.delete("/v1/minecraft/{guild}/{username}", tags=["minecraft"])
+    @configurator.delete("/v1/minecraft/{guild}/{username}")
     async def delete_user(guild: int, username: str):
         user = await get_database().execute(
             "DELETE FROM users WHERE guild = :guild AND (minecraft_username = :username OR discord_id = :username)",
@@ -89,7 +92,7 @@ def init(app: FastAPI):
         else:
             return {}
 
-    @app.post("/v1/minecraft/{guild}/{discord_id}", tags=["minecraft"])
+    @configurator.post("/v1/minecraft/{guild}/{discord_id}")
     async def post_user(
         guild: int,
         discord_id: int,
@@ -134,7 +137,7 @@ def init(app: FastAPI):
         )
         return {}
 
-    @app.put("/v1/minecraft/{guild}/{discord_id}", tags=["minecraft"])
+    @configurator.put("/v1/minecraft/{guild}/{discord_id}")
     async def put_user(
         guild: int,
         discord_id: int,

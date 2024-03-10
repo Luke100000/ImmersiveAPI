@@ -1,12 +1,12 @@
 from collections import defaultdict
 from multiprocessing.pool import ThreadPool
 
-from fastapi import FastAPI
 from fastapi import HTTPException, Header
 from pydantic import BaseModel
 from pyrate_limiter import Duration, Limiter, Rate, BucketFullException, BucketFactory, RateItem, AbstractBucket, \
     InMemoryBucket, TimeClock
 
+from main import Configurator
 from modules.mca.mistral_utils import get_chat_completion_mistral
 from modules.mca.openai_utils import get_chat_completion_openai
 from modules.mca.patreon_utils import verify_patron
@@ -58,7 +58,9 @@ class MultiBucketFactory(BucketFactory):
         return self.buckets[item.name]
 
 
-def init(app: FastAPI):
+def init(configurator: Configurator):
+    configurator.register("MCA", "OpenAI compatible endpoint for MCA's chat completions.")
+
     premium_manager = PremiumManager()
 
     # Limit requests per user and ip
@@ -66,18 +68,18 @@ def init(app: FastAPI):
     limiter_premium = Limiter(MultiBucketFactory([Rate(TOKENS_PREMIUM, Duration.HOUR)]))
     stats = defaultdict(int)
 
-    @app.get("/v1/mca/verify", tags=["mca"])
+    @configurator.get("/v1/mca/verify")
     async def verify(email: str, player: str):
         if await verify_patron(email):
             premium_manager.set_premium(player, 30)
             return {"answer": "success"}
         return {"answer": "failed"}
 
-    @app.get("/v1/mca/stats", tags=["mca"])
+    @configurator.get("/v1/mca/stats")
     def get_stats():
         return stats
 
-    @app.post("/v1/mca/chat", tags=["mca"])
+    @configurator.post("/v1/mca/chat")
     async def chat_completions(body: Body, authorization: str = Header(None)):
         if not authorization or not authorization.startswith("Bearer "):
             raise HTTPException(status_code=401, detail="Unauthorized")
