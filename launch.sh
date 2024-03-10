@@ -35,10 +35,10 @@ WORKER_COUNT=${WORKER_COUNT:-$WORKER_COUNT_DEFAULT}
 PRIMARY_PROCESS_WORKER_PORT=${PRIMARY_PROCESS_WORKER_PORT:-$PRIMARY_PROCESS_WORKER_PORT_DEFAULT}
 SINGLE_PROCESS_WORKER_PORT=${SINGLE_PROCESS_WORKER_PORT:-$SINGLE_PROCESS_WORKER_PORT_DEFAULT}
 
-# Launch primary process worker
-uvicorn main:app --port "$PRIMARY_PROCESS_WORKER_PORT" --workers "$WORKER_COUNT" &
-
 # Launch single process worker (if primary isn't already a single process worker)
 if [ "$WORKER_COUNT" -ne 1 ]; then
-    uvicorn main:app --port "$SINGLE_PROCESS_WORKER_PORT" --workers 1
+    uvicorn main:app --port "$SINGLE_PROCESS_WORKER_PORT" --workers 1 &
 fi
+
+# Launch primary process worker
+uvicorn main:app --port "$PRIMARY_PROCESS_WORKER_PORT" --workers "$WORKER_COUNT"
