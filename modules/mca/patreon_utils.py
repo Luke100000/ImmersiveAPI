@@ -20,6 +20,8 @@ def fetch_members(page_size: int = 100):
             + "%2C".join(
                 [
                     "pledge_relationship_start",
+                    "patron_status",
+                    "full_name",
                     "email",
                     "campaign_lifetime_support_cents",
                 ]
@@ -46,12 +48,14 @@ def fetch_members(page_size: int = 100):
             break
 
     for m in members:
-        if "pledge_relationship_start" in m:
+        if "pledge_relationship_start" in m and m["patron_status"] == "active_patron":
             date1 = datetime.strptime(
                 m["pledge_relationship_start"], "%Y-%m-%dT%H:%M:%S.%f%z"
             )
             date2 = datetime.now(date1.tzinfo)
-            m["days_left"] = 35 - (date2 - date1).days
+            m["days_left"] = max(0, 35 - (date2 - date1).days)
+        else:
+            m["days_left"] = 0
 
     return members
 
