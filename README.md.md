@@ -75,18 +75,11 @@ executor = Executor(1)
 
 If your code is not thread-safe, not state-less, or is memory intensive and shall not make use of multiprocessing, mark
 it as such.
-It will then redirect to a single-threaded executor.
 
 ```py
 from main import Configurator
 
 
 def init(configurator: Configurator):
-    # For the entire module
-    configurator.set_non_thread_safe()
-
-    # Or for specific endpoints only
-    @configurator.post("/v1/your_module/your_endpoint", thread_safe=False)
-    async def your_endpoint():
-        pass
+    configurator.assert_single_process()
 ```

@@ -1,8 +1,8 @@
+import fcntl
 import glob
 import importlib
 import os
 import shutil
-import sys
 import time
 
 from dotenv import load_dotenv
@@ -14,7 +14,6 @@ from prometheus_fastapi_instrumentator import Instrumentator
 from starlette.middleware.cors import CORSMiddleware
 from starlette.middleware.gzip import GZipMiddleware
 
-from common.redirect_middleware import PathRedirectMiddleware
 from common.worker import get_primary_executor, set_primary_executor, Executor
 
 load_dotenv()
@@ -57,19 +56,13 @@ settings = Dynaconf(settings_files=["default_config.toml", "config.toml"])
 # Metadata for OpenAPI
 tags_metadata = []
 
-# Check if this is a single process worker
-is_single_process = "--workers 1" in (" ".join(sys.argv))
-
-# If this is not a single process worker, we redirect non-thread-safe requests to the single process worker at port + 1
-non_thread_safe_paths = set()
-if not is_single_process:
-    app.add_middleware(
-        PathRedirectMiddleware,
-        paths=non_thread_safe_paths,
-        port=int(os.environ["SINGLE_PROCESS_WORKER_PORT"])
-        if "SINGLE_PROCESS_WORKER_PORT" in os.environ
-        else 8001,
-    )
+# Check if this is the primary worker
+lock = open("lock", "w")
+try:
+    fcntl.flock(lock, fcntl.LOCK_EX | fcntl.LOCK_NB)
+    is_single_process = True
+except (IOError, BlockingIOError):
+    is_single_process = False
 
 # Launch the background worker
 set_primary_executor(
@@ -83,42 +76,28 @@ class Configurator:
         self.app = app_
         self.config = config_
 
-        self.thread_safe = True
-        self.non_thread_safe = non_thread_safe_paths
-
-    def is_single_process(self):
-        return is_single_process
-
-    def set_non_thread_safe(self):
-        self.thread_safe = False
+    def assert_single_process(self):
+        assert is_single_process is True, "This module is not thread safe!"
 
     def register(self, name: str, description: str):
         self.tag = name
         tags_metadata.append({"name": name, "description": description})
 
-    def get(self, path, *args, thread_safe: bool = True, **kwargs):
+    def get(self, *args, **kwargs):
         kwargs["tags"] = [self.tag]
-        if not thread_safe or not self.thread_safe:
-            self.non_thread_safe.add(path)
-        return self.app.get(path, *args, **kwargs)
+        return self.app.get(*args, **kwargs)
 
-    def post(self, path, *args, thread_safe: bool = True, **kwargs):
+    def post(self, *args, **kwargs):
         kwargs["tags"] = [self.tag]
-        if not thread_safe or not self.thread_safe:
-            self.non_thread_safe.add(path)
-        return self.app.post(path, *args, **kwargs)
+        return self.app.post(*args, **kwargs)
 
-    def delete(self, path, *args, thread_safe: bool = True, **kwargs):
+    def delete(self, *args, **kwargs):
         kwargs["tags"] = [self.tag]
-        if not thread_safe or not self.thread_safe:
-            self.non_thread_safe.add(path)
-        return self.app.delete(path, *args, **kwargs)
+        return self.app.delete(*args, **kwargs)
 
-    def put(self, path, *args, thread_safe: bool = True, **kwargs):
+    def put(self, *args, **kwargs):
         kwargs["tags"] = [self.tag]
-        if not thread_safe or not self.thread_safe:
-            self.non_thread_safe.add(path)
-        return self.app.put(path, *args, **kwargs)
+        return self.app.put(*args, **kwargs)
 
 
 def start_module(name: str):

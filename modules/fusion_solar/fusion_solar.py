@@ -17,16 +17,15 @@ def init(configurator: Configurator):
     configurator.register("FusionSolar", "Metrics endpoint for Huawei FusionSolar.")
 
     # Multiple connections may trigger rate limiting / captchas
-    configurator.set_non_thread_safe()
+    configurator.assert_single_process()
 
-    if configurator.is_single_process():
-        client = FusionSolarClient(
-            os.getenv("FUSION_SOLAR_USER"),
-            os.getenv("FUSION_SOLAR_PASSWORD"),
-        )
+    client = FusionSolarClient(
+        os.getenv("FUSION_SOLAR_USER"),
+        os.getenv("FUSION_SOLAR_PASSWORD"),
+    )
 
-        plant_id = os.getenv("FUSION_SOLAR_PLANT_ID")
-        battery_id = os.getenv("FUSION_SOLAR_BATTERY_ID")
+    plant_id = os.getenv("FUSION_SOLAR_PLANT_ID")
+    battery_id = os.getenv("FUSION_SOLAR_BATTERY_ID")
 
     def safe_float(value: str) -> float:
         try:

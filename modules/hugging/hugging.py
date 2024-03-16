@@ -53,7 +53,7 @@ def init(configurator: Configurator):
     )
 
     # While thread safe itself, this module makes use of an executor anyway
-    configurator.set_non_thread_safe()
+    configurator.assert_single_process()
 
     @configurator.post("/v1/text/mistral")
     async def post_text_mistral(params: TextRequest):

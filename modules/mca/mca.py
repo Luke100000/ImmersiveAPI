@@ -73,18 +73,15 @@ def init(configurator: Configurator):
         "MCA", "OpenAI compatible endpoint for MCA's chat completions."
     )
 
-    configurator.set_non_thread_safe()
+    configurator.assert_single_process()
 
-    if configurator.is_single_process():
-        # Keeps track of premium status
-        premium_manager = PremiumManager()
+    # Keeps track of premium status
+    premium_manager = PremiumManager()
 
-        # Limit requests per user and ip
-        limiter = Limiter(MultiBucketFactory([Rate(TOKENS_USER, Duration.HOUR)]))
-        limiter_premium = Limiter(
-            MultiBucketFactory([Rate(TOKENS_PREMIUM, Duration.HOUR)])
-        )
-        stats = defaultdict(int)
+    # Limit requests per user and ip
+    limiter = Limiter(MultiBucketFactory([Rate(TOKENS_USER, Duration.HOUR)]))
+    limiter_premium = Limiter(MultiBucketFactory([Rate(TOKENS_PREMIUM, Duration.HOUR)]))
+    stats = defaultdict(int)
 
     @configurator.get("/v1/mca/verify")
     async def verify(email: str, player: str):
