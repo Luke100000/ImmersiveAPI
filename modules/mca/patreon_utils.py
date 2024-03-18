@@ -19,7 +19,7 @@ def fetch_members(page_size: int = 100):
             f"fields[member]="
             + "%2C".join(
                 [
-                    "pledge_relationship_start",
+                    "last_charge_date",
                     "patron_status",
                     "full_name",
                     "email",
@@ -27,7 +27,7 @@ def fetch_members(page_size: int = 100):
                 ]
             ),
             f"filter[campaign_id]={campaign_id}",
-            f"sort=pledge_relationship_start",
+            f"sort=last_charge_date",
             (f"page[cursor]=" + cursor) if cursor else "",
             f"page[count]={page_size}",
         ]
@@ -48,10 +48,8 @@ def fetch_members(page_size: int = 100):
             break
 
     for m in members:
-        if "pledge_relationship_start" in m and m["patron_status"] == "active_patron":
-            date1 = datetime.strptime(
-                m["pledge_relationship_start"], "%Y-%m-%dT%H:%M:%S.%f%z"
-            )
+        if "last_charge_date" in m and m["patron_status"] == "active_patron":
+            date1 = datetime.strptime(m["last_charge_date"], "%Y-%m-%dT%H:%M:%S.%f%z")
             date2 = datetime.now(date1.tzinfo)
             m["days_left"] = max(0, 35 - (date2 - date1).days)
         else:
