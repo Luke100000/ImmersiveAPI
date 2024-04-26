@@ -1,6 +1,6 @@
-import fcntl
 import glob
 import importlib
+import logging
 import os
 import shutil
 import time
@@ -17,6 +17,9 @@ from starlette.middleware.gzip import GZipMiddleware
 from common.worker import get_primary_executor, set_primary_executor, Executor
 
 load_dotenv()
+
+logging.basicConfig()
+logging.getLogger().setLevel(os.getenv("LOG_LEVEL", "INFO"))
 
 # Setup prometheus for multiprocessing
 prom_dir = (
@@ -56,18 +59,8 @@ settings = Dynaconf(settings_files=["default_config.toml", "config.toml"])
 # Metadata for OpenAPI
 tags_metadata = []
 
-# Check if this is the primary worker
-lock = open("lock", "w")
-try:
-    fcntl.flock(lock, fcntl.LOCK_EX | fcntl.LOCK_NB)
-    is_single_process = True
-except (IOError, BlockingIOError):
-    is_single_process = False
-
 # Launch the background worker
-set_primary_executor(
-    Executor(settings["global"]["background_workers"] if is_single_process else 1)
-)
+set_primary_executor(Executor(settings["global"]["background_workers"]))
 
 
 class Configurator:
@@ -77,7 +70,7 @@ class Configurator:
         self.config = config_
 
     def assert_single_process(self):
-        assert is_single_process is True, "This module is not thread safe!"
+        pass
 
     def register(self, name: str, description: str):
         self.tag = name

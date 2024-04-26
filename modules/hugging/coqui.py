@@ -2,6 +2,7 @@ import io
 import os.path
 from functools import cache
 from random import randint
+from typing import Union
 
 import numpy as np
 import torch
@@ -29,6 +30,65 @@ def get_speakers():
 
 def get_languages():
     return get_model().synthesizer.tts_model.language_manager.language_names
+
+
+def generate_speech(
+    text: str,
+    language: str = "en",
+    speaker: str = None,
+    speaker_wav: str = None,
+    file_format: str = "wav",
+    file_path: str = None,
+    overwrite: bytes = True,
+) -> Union[str, bytes]:
+    # Load from file
+    if file_path is not None and not overwrite and os.path.exists(file_path):
+        with open(file_path, "rb") as f:
+            return f.read()
+
+    # We use fewer cores because we go for model-level parallelism
+    num_threads = torch.get_num_threads()
+    torch.set_num_threads(xtts_num_threads)
+    tts = get_model()
+
+    # Fetch embeddings
+    if speaker_wav is not None:
+        gpt_cond_latent, speaker_embedding = get_embedding(speaker_wav)
+    else:
+        speakers = tts.synthesizer.tts_model.speaker_manager.speakers
+        if speaker is None:
+            speaker = list(speakers.keys())[randint(0, len(speakers) - 1)]
+        gpt_cond_latent, speaker_embedding = speakers[speaker].values()
+
+    # Generate speech
+    wav = tts.synthesizer.tts_model.inference(
+        text, language, gpt_cond_latent, speaker_embedding
+    )["wav"]
+
+    torch.set_num_threads(num_threads)
+
+    # Convert to 16 bit PCM
+    pcm_data = (np.array(wav) * 32767).astype(np.int16)
+
+    # Encode
+    buffer = io.BytesIO()
+    audio = AudioSegment(
+        pcm_data.tobytes(),
+        sample_width=2,
+        frame_rate=tts.synthesizer.output_sample_rate,
+        channels=1,
+    )
+    audio.export(buffer, format=file_format)
+
+    audio = buffer.getvalue()
+
+    # Write to file
+    if file_path is not None:
+        with open(file_path, "wb") as f:
+            f.write(audio)
+        return file_path
+
+    return audio
 
 
 # noinspection SpellCheckingInspection
@@ -98,62 +158,3 @@ def get_base_speakers():
         "male_23": "Luis Moray",
         "male_24": "Marcos Rudaski",
     }
-
-
-def generate_speech(
-    text: str,
-    language: str = "en",
-    speaker: str = None,
-    speaker_wav: str = None,
-    file_format: str = "wav",
-    file_path: str = None,
-    overwrite: bytes = True,
-) -> bytes:
-    # Load from file
-    if file_path is not None and not overwrite and os.path.exists(file_path):
-        with open(file_path, "rb") as f:
-            return f.read()
-
-    # We use fewer cores because we go for model-level parallelism
-    num_threads = torch.get_num_threads()
-    torch.set_num_threads(xtts_num_threads)
-    tts = get_model()
-
-    # Fetch embeddings
-    if speaker_wav is not None:
-        gpt_cond_latent, speaker_embedding = get_embedding(speaker_wav)
-    else:
-        speakers = tts.synthesizer.tts_model.speaker_manager.speakers
-        if speaker is None:
-            speaker = list(speakers.keys())[randint(0, len(speakers) - 1)]
-        gpt_cond_latent, speaker_embedding = speakers[speaker].values()
-
-    # Generate speech
-    wav = tts.synthesizer.tts_model.inference(
-        text, language, gpt_cond_latent, speaker_embedding
-    )["wav"]
-
-    torch.set_num_threads(num_threads)
-
-    # Convert to 16 bit PCM
-    pcm_data = (np.array(wav) * 32767).astype(np.int16)
-
-    # Encode
-    buffer = io.BytesIO()
-    audio = AudioSegment(
-        pcm_data.tobytes(),
-        sample_width=2,
-        frame_rate=tts.synthesizer.output_sample_rate,
-        channels=1,
-    )
-    audio.export(buffer, format=file_format)
-
-    audio = buffer.getvalue()
-
-    # Write to file
-    if file_path is not None:
-        with open(file_path, "wb") as f:
-            f.write(audio)
-        return file_path
-
-    return audio

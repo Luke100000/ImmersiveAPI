@@ -6,3 +6,6 @@
 /notebooks/
 config.toml
 /lock
+chroma.log
+chroma_data
+poetry.lock

@@ -16,7 +16,6 @@ from modules.hugging.coqui import (
     get_speakers,
     get_base_speakers,
 )
-from modules.hugging.mistral import generate_text
 
 
 class Message(BaseModel):
@@ -54,16 +53,6 @@ def init(configurator: Configurator):
 
     # While thread safe itself, this module makes use of an executor anyway
     configurator.assert_single_process()
-
-    @configurator.post("/v1/text/mistral")
-    async def post_text_mistral(params: TextRequest):
-        text = await get_primary_executor().submit(
-            0,
-            generate_text,
-            params.messages,
-            **params.model_dump(exclude={"messages"}),
-        )
-        return StreamingResponse(text) if params.stream else Response(text)
 
     @configurator.get("/v1/tts/xtts-v2/queue")
     async def get_tts_xtts_model():

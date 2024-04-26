@@ -3,16 +3,6 @@
 A diverse set of API endpoints for various projects to avoid overhead introduced by creating new repos, deployments,
 etc.
 
-## Launch
-
-Use the launcher, which will start n workers and an additional worker for non-thread-safe endpoints.
-
-If workers is one it will only launch a single worker.
-
-```sh
-launch.sh --workers 4 --port 8000 --secondary-port 8001
-```
-
 ## Structure
 
 * `modules` - Each directory represents a module and contains at least a `.py` with the same name, containing the
@@ -71,15 +61,6 @@ from common.worker import Executor
 executor = Executor(1)
 ```
 
-## Not thread-safe
+## Not process-safe
 
-If your code is not thread-safe, not state-less, or is memory intensive and shall not make use of multiprocessing, mark
-it as such.
-
-```py
-from main import Configurator
-
-
-def init(configurator: Configurator):
-    configurator.assert_single_process()
-```
+Do not launch with multiple workers, not all operations are process-safe, and especialyl the ML endpoints would blow up in memory. Use (background) workers instead.

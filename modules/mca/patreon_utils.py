@@ -68,3 +68,13 @@ async def verify_patron(email: str) -> bool:
     }
 
     return email_to_user[email]["days_left"] if email in email_to_user else 0
+
+
+def test():
+    for m in fetch_members():
+        if m["days_left"] > 0:
+            print(m)
+
+
+if __name__ == "__main__":
+    test()
