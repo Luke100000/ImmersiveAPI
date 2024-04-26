@@ -13,6 +13,14 @@ def get_client():
     return AsyncOpenAI()
 
 
+@cache
+def get_conczin_client():
+    return AsyncOpenAI(
+        base_url="https://llm.conczin.net/v1",
+        api_key="58b73i4c66643dsf",
+    )
+
+
 async def get_chat(model: str, messages: List, player: str):
     return await get_client().chat.completions.create(
         model=model,
@@ -21,6 +29,16 @@ async def get_chat(model: str, messages: List, player: str):
         max_tokens=150,
         stop=[f"{player}:"],
         user=hashlib.sha256(player.encode("UTF-8")).hexdigest(),
+    )
+
+
+async def get_phi_chat(messages: List, player: str):
+    return await get_conczin_client().chat.completions.create(
+        model="default",
+        messages=messages,
+        temperature=0.9,
+        max_tokens=150,
+        stop=[f"{player}:", "<|", "\n"],
     )
 
 

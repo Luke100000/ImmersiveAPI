@@ -17,7 +17,7 @@ from pyrate_limiter import (
 
 from main import Configurator
 from modules.mca.mistral_utils import get_chat_completion_mistral
-from modules.mca.openai_utils import get_chat_completion_openai
+from modules.mca.openai_utils import get_chat_completion_openai, get_phi_chat
 from modules.mca.patreon_utils import verify_patron
 from modules.mca.premium import PremiumManager
 
@@ -39,9 +39,15 @@ Answer one or two sentences while sounding human. You are no assistant! You can 
 
 
 pricing = {
+    "conczin": 0.1,
     "gpt-3.5-turbo": 0.47 * 0.8 + 1.4 * 0.2,
-    "mistral-tiny": 0.2,
-    "mistral-small": 0.65,
+    "open-mistral-7b": 0.2,
+    "open-mixtral-8x7b": 0.65,
+}
+
+legacy = {
+    "mistral-tiny": "open-mistral-7b",
+    "mistral-small": "open-mixtral-8x7b",
 }
 
 
@@ -103,7 +109,11 @@ def init(configurator: Configurator):
         player = authorization.split("Bearer ")[-1]
         premium = premium_manager.is_premium(player)
 
-        if body.model not in pricing:
+        model = body.model
+        if model in legacy:
+            model = legacy[model]
+
+        if model not in pricing:
             return {"error": "invalid_model"}
 
         try:
@@ -114,8 +124,7 @@ def init(configurator: Configurator):
 
             # Calculate the cost of this request
             weight = int(
-                sum([len(m["content"]) for m in body.messages]) * pricing[body.model]
-                + 1
+                sum([len(m["content"]) for m in body.messages]) * pricing[model] + 1
             )
 
             # Fetch premium status
@@ -127,15 +136,15 @@ def init(configurator: Configurator):
             # Logging
             stats[player] += weight
             stats["premium" if premium else "non_premium"] += weight
-            stats[body.model] += weight
+            stats[model] += weight
 
             # Process
-            if body.model == "gpt-3.5-turbo":
-                message = await get_chat_completion_openai(
-                    body.model, body.messages, player
-                )
+            if model == "conczin":
+                message = await get_phi_chat(body.messages, player)
+            elif model == "gpt-3.5-turbo":
+                message = await get_chat_completion_openai(model, body.messages, player)
             else:
-                message = await get_chat_completion_mistral(body.model, body.messages)
+                message = await get_chat_completion_mistral(model, body.messages)
 
             return message
         except BucketFullException:
