@@ -30,3 +30,6 @@ enable = false
 
 [horde]
 enable = false
+
+[ff_vote]
+enable = false
