@@ -58,6 +58,14 @@ def fetch_members(page_size: int = 100):
     return members
 
 
+def get_member_list():
+    members = [m for m in fetch_members() if m["campaign_lifetime_support_cents"] > 0]
+    sorted_members = sorted(
+        members, key=lambda m: m["campaign_lifetime_support_cents"], reverse=True
+    )
+    return [m["full_name"] for m in sorted_members]
+
+
 async def verify_patron(email: str) -> bool:
     email = email.lower().strip()
 
@@ -71,6 +79,8 @@ async def verify_patron(email: str) -> bool:
 
 
 def test():
+    print(get_member_list())
+
     for m in fetch_members():
         if m["days_left"] > 0:
             print(m)

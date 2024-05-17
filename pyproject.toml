@@ -43,6 +43,7 @@ transformers = "^4.40.1"
 python-multipart = "^0.0.9"
 accelerate = "^0.29.3"
 openai-whisper = "^20231117"
+aiosqlite = "^0.20.0"
 
 
 [build-system]

@@ -5,6 +5,7 @@ import patreon as patreon
 from cachetools import cached, TTLCache
 
 from main import Configurator
+from modules.mca.patreon_utils import get_member_list
 
 creator_access_token = os.getenv("PATREON_API_KEY")
 
@@ -13,6 +14,11 @@ api_client = patreon.API(creator_access_token)
 
 def init(configurator: Configurator):
     configurator.register("Patreon", "Proxy for the Patreon API to list patrons.")
+
+    @configurator.get("/v1/patron_names")
+    @cached(TTLCache(maxsize=1, ttl=1800))
+    def get_patron_names():
+        return get_member_list()
 
     @configurator.get("/v1/patrons")
     @cached(TTLCache(maxsize=1, ttl=1800))
