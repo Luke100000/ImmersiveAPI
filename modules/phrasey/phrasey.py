@@ -1,382 +1,339 @@
+import base64
 import json
-import math
+import logging
 import os
 import random
-import shelve
-import shutil
-from collections import defaultdict
-from functools import cache
-from typing import List, Mapping
+import threading
+import time
+from queue import PriorityQueue
+from typing import Optional, Union
 
+import audioread
+import chromadb
 import numpy as np
-from annoy import AnnoyIndex
 from fastapi import HTTPException
-from sentence_transformers import SentenceTransformer
-from starlette.responses import FileResponse, Response
-from tqdm.auto import tqdm
 
 from main import Configurator
-from modules.phrasey.engines.elvenlabs import (
-    ElevenLabsEngine,
-)
-from modules.phrasey.engines.playht import PlayHTEngine
-from modules.phrasey.engines.xtts import XTTSEngine
-from modules.phrasey.llm_helper import generate_phrase
-from modules.phrasey.utils import hash_string, cosine_dist
+from modules.phrasey.environments.environment import Environment, JsonFormat
+from modules.phrasey.environments.minecraft import MinecraftEnvironment
+from modules.phrasey.llm import generate_phrases
+from modules.phrasey.tts import TTS
+
+logger = logging.getLogger(__name__)
 
 
-@cache
-def get_embedding_model():
-    return SentenceTransformer("multi-qa-MiniLM-L6-cos-v1", device="cpu")
+def load_json(file: str) -> Union[dict, list]:
+    with open(file, "r") as f:
+        return json.load(f)
 
 
-@cache
-def get_voices():
-    engines = [
-        PlayHTEngine(),
-        ElevenLabsEngine(),
-        XTTSEngine(),
-    ]
+class Task:
+    def __init__(self, loss: float, prompt: str, params: dict[str, str]) -> None:
+        self.loss = loss
+        self.prompt = prompt
+        self.params = params
 
-    voices = {}
-    for engine in engines:
-        for voice_name in engine.get_voices():
-            voices[voice_name] = engine
-    return voices
-
-
-class EventType:
-    def __init__(self, identifier: str, weight: float):
-        self.identifier = identifier
-        self.weight = weight
-
-
-types = [
-    EventType("Task", 10),
-    EventType("You", 8),
-    EventType("Equipment", 4),
-    EventType("Status", 6),
-    EventType("Biome", 2),
-    EventType("Light", 4),
-    EventType("Weather", 4),
-    EventType("Time", 4),
-    EventType("Nearby", 4),
-    EventType("Target", 8),
-    EventType("Opponent", 8),
-    EventType("OpponentEquipment", 3),
-    EventType("OpponentStatus", 7),
-]
-
-
-@cache
-def cached_embedd(sentence: str):
-    return get_embedding_model().encode(sentence)
-
-
-class Event:
-    def __init__(self, events: dict):
-        self.events: dict[str, str] = events
-        self.phrases = []
-
-    def get_full(self) -> List[str]:
-        full = []
-        for type in types:
-            if type.identifier in self.events:
-                full.append(self.events[type.identifier])
-
-        return full
-
-    def get_full_str(self) -> str:
-        return "\n".join(self.get_full())
-
-    def get_embedding(self) -> np.ndarray:
-        embeddings = [
-            cached_embedd(self.events[type.identifier])
-            for type in types
-            if type.identifier in self.events
-        ]
-
-        weights = np.asarray(
-            [type.weight for type in types if type.identifier in self.events]
-        )
-
-        return np.sum(
-            np.asarray(embeddings) * weights[:, None],
-            axis=0,
-        ) / np.sum(weights)
-
-    def get_hash(self) -> str:
-        return hash_string(self.get_full_str())
-
-    def add_phrase(self, phrase):
-        self.phrases.append(phrase)
-
-    def get_importance(self, event_counts: Mapping[str, float]) -> float:
-        """
-        Count the total times phrases from this event have been used.
-        Higher counts mean more commonly used.
-        """
-        importance = 0.0
-        for type in self.events.values():
-            importance += event_counts[type] if type in event_counts else 0
-        return importance / len(self.events)
+    def __lt__(self, other):
+        return self.loss < other.loss
 
 
 class Phrasey:
-    def __init__(self, cache_dir: str, voice: str) -> None:
+    engines = [TTS()]
+
+    def __init__(self, save_dir: str, environment: Environment) -> None:
         super().__init__()
 
-        self.voice = voice
-        self.cache_dir = cache_dir
-        self.dataset: List[Event] = []
-        self.dataset_full: List[Event] = []
-        self.annoy_index: AnnoyIndex = None
+        self.voices = {}
+        for engine in self.engines:
+            for voice in engine.voices:
+                self.voices[voice] = engine
 
-        os.makedirs(cache_dir, exist_ok=True)
-        self.usage_counts = shelve.open(cache_dir + "/phrase_count.db")
+        self.cache_dir = save_dir
+        os.makedirs(save_dir, exist_ok=True)
 
-        self.load()
+        self.environment = environment
 
-    def load(self):
-        vector_size = 384
+        self.max_samples = 10
 
-        self.dataset = []
-        self.dataset_full = []
-        self.annoy_index = AnnoyIndex(vector_size, "angular")
+        self.client = chromadb.HttpClient(
+            host=os.getenv("CHROMA_HOST", "localhost"),
+            port=os.getenv("CHROMA_PORT", 8000),
+        )
+        self.collection = self.client.get_or_create_collection("phrasey")
+        self.queue = PriorityQueue()
 
-        for event_hash in os.listdir(self.cache_dir):
-            if event_hash == "phrase_count.db":
-                continue
+        self.thread = threading.Thread(target=self._generator, daemon=True)
+        self.thread.start()
 
-            subdir_path = os.path.join(self.cache_dir, event_hash)
+        print("Validating database...")
+        self.validate()
+        print("Validated!")
 
-            # Load event descriptor
-            events_file = os.path.join(subdir_path, "events.json")
-            with open(events_file, "r") as f:
-                event = Event(json.load(f))
-
-            # Load all generated phrases
-            phrases_dir = os.path.join(subdir_path, "tts")
-            for phrase in os.listdir(phrases_dir):
-                event.add_phrase(phrase.replace(".ogg", ""))
-
-            # Add to dataset
-            if len(event.phrases) > 0:
-                vector = event.get_embedding()
-                self.annoy_index.add_item(len(self.dataset), vector)
-                self.dataset.append(event)
-            self.dataset_full.append(event)
-
-        # Build lookup
-        self.annoy_index.build(n_trees=10, n_jobs=2)
-
-    def generate_fake_dataset(self, count: int = 1000):
-        # given a query field (task primarily), produce variation from the pool of other fields
-        index = ("task",)
-        phrases = defaultdict(lambda: defaultdict(list))
-        for e in self.dataset_full:
-            e_index = tuple((e.events[i] if i in e.events else "?") for i in index)
-            for key, value in e.events.items():
-                phrases[e_index][key].append(value)
-
-        fake_events = []
-        for e_index, e_phrases in phrases.items():
-            for sample in range(int(math.ceil(count / len(phrases)))):
-                fake_event = {}
-                for type in types:
-                    if type.identifier in e_phrases:
-                        fake_event[type.identifier] = random.choice(
-                            e_phrases[type.identifier]
-                        )
-                fake_events.append(Event(fake_event))
-
-        return fake_events
-
-    def clear(self):
-        """
-        Deletes all tts and phrases generated, but keeps the event descriptors.
-        """
-        for event_hash in os.listdir(self.cache_dir):
-            if event_hash == "phrase_count.db":
-                continue
-
-            d = os.path.join(self.cache_dir, event_hash, "phrases")
-            shutil.rmtree(d, ignore_errors=True)
-            os.makedirs(d, exist_ok=True)
-
-            d = os.path.join(self.cache_dir, event_hash, "tts")
-            shutil.rmtree(d, ignore_errors=True)
-            os.makedirs(d, exist_ok=True)
-
-        self.usage_counts.clear()
-        self.load()
-
-    def generate(self, samples: int = 1, threshold: float = 1.0, dataset=None):
-        if dataset is None:
-            dataset = self.dataset_full
-
-        # Count different events to construct importance
-        event_counts = defaultdict(int)
-        for event in self.dataset_full:
-            h = event.get_hash()
-            count = self.usage_counts[h] if h in self.usage_counts else 1
-            for e in event.events.values():
-                event_counts[e] += count
-
-        # For every event, find the closest event
-        distances = np.zeros(len(dataset))
-        for i, event in tqdm(enumerate(dataset)):
-            event_hash = event.get_hash()
-
-            # The more it is used, the more important it is to generate another phrase
-            usage_count = math.sqrt(
-                self.usage_counts[event_hash] if event_hash in self.usage_counts else 1
+    def _generator(self):
+        while True:
+            task = self.queue.get()
+            logger.info(
+                f"Generating phrase for {self.environment} with loss {task.loss}. {self.queue.qsize()} remaining."
             )
+            self.generate(task.prompt, task.params)
 
-            # Find the closest event
-            embedding = event.get_embedding()
-            nn = self.annoy_index.get_nns_by_vector(embedding, 2)
-            distance = (
-                cosine_dist(self.dataset[nn[1]].get_embedding(), embedding) * 0.5 + 0.5
-                if len(nn) > 1
-                else 0
+    def generate(self, prompt: str, params: dict[str, str]):
+        dialogue = self.environment.get_json_format(params) == JsonFormat.DIALOGUE
+        phrases = generate_phrases(prompt, dialogue=dialogue)
+
+        for sample in [phrases] if dialogue else [[p] for p in phrases]:
+            self.generate_phrase(prompt, params, sample)
+
+    @staticmethod
+    def get_identifier() -> str:
+        index = int(time.time() * 1000)
+        max_index = 10_000
+        directory_index = index // max_index
+        phrase_index = index % max_index
+        return f"{directory_index}/{phrase_index}"
+
+    def generate_phrase(
+        self,
+        prompt: str,
+        params: dict[str, str],
+        phrases: list[str],
+        identifier: str = None,
+    ):
+        if identifier is None:
+            identifier = self.get_identifier()
+
+        os.makedirs(f"{self.cache_dir}/{identifier}", exist_ok=True)
+
+        with open(f"{self.cache_dir}/{identifier}/phrases.json", "w") as f:
+            json.dump(phrases, f, indent=4)
+
+        with open(f"{self.cache_dir}/{identifier}/params.json", "w") as f:
+            json.dump(params, f, indent=4)
+
+        with open(f"{self.cache_dir}/{identifier}/prompt.txt", "w") as f:
+            f.write(prompt)
+
+        # Generate audios
+        voices = self.environment.get_valid_voices(params)
+        self.populate_audios(identifier, phrases, voices)
+
+        # Add to database
+        self.collection.upsert(
+            documents=prompt,
+            metadatas=params,
+            ids=identifier,
+        )
+
+    def populate_audios(
+        self, identifier: str, phrases: list[str], voices: list[str]
+    ) -> int:
+        count = 0
+        for voice in voices:
+            for i, phrase in enumerate(phrases):
+                file = f"{self.cache_dir}/{identifier}/{voice}/{i}.ogg"
+                if not os.path.exists(file):
+                    os.makedirs(
+                        f"{self.cache_dir}/{identifier}/{voice}",
+                        exist_ok=True,
+                    )
+                    audio = self.voices[voice].generate(phrase, "Marcos Rudaski")
+                    with open(file, "wb") as f:
+                        f.write(audio)
+                    count += 1
+        return count
+
+    def query(
+        self, params: dict[str, str], blacklist: set[str] = None
+    ) -> Optional[str]:
+        try:
+            # Construct prompt, filter, and valid voices for this query
+            prompt = self.environment.get_prompt(params)
+            tags = self.environment.get_filter(params)
+        except ValueError as e:
+            raise HTTPException(status_code=404, detail=str(e))
+
+        for p in tags:
+            if p not in params:
+                params[p] = "None"
+
+        results = self.collection.query(
+            query_texts=[prompt],
+            where={"$and": [{p: params[p]} for p in tags]},
+            n_results=self.max_samples,
+        )
+
+        samples = len(results["ids"][0])
+        distances = np.asarray(results["distances"][0])
+        print("distances", distances.shape, distances)
+
+        # Filter ids by blacklist and distance
+        filtered_ids = []
+        for i, identifier in enumerate(results["ids"][0]):
+            if identifier not in blacklist and distances[i] < 0.1:
+                filtered_ids.append(identifier)
+
+        # If there are fewer samples than target, generate a few more
+        if len(filtered_ids) < self.max_samples:
+            loss = distances.sum() / (samples / self.max_samples)
+            self.queue.put(Task(loss, prompt, params))
+
+        if not filtered_ids:
+            raise HTTPException(status_code=404, detail="No valid phrase found")
+
+        return random.choice(filtered_ids)
+
+    def load(
+        self, identifier: str, voices: list[str]
+    ) -> (list[str], list[bytes], list[float], list[int]):
+        phrases = self.get_phrases(identifier)
+        voice_mapping = [i % 2 for i in range(len(phrases))]
+        audios, durations = self.get_audios(identifier, voices, voice_mapping)
+        return phrases, audios, durations, voice_mapping
+
+    def get_phrases(self, identifier: str) -> list[str]:
+        return load_json(f"{self.cache_dir}/{identifier}/phrases.json")
+
+    def get_audios(
+        self, identifier: str, voices: list[str], voice_mapping: list[int]
+    ) -> (list[bytes], list[float]):
+        audios = []
+        durations = []
+        for i, voice in enumerate(voice_mapping):
+            path = f"{self.cache_dir}/{identifier}/{voices[voice]}/{i}.ogg"
+            with open(path, "rb") as f:
+                audios.append(f.read())
+            with audioread.audio_open(path) as f:
+                durations.append(f.duration)
+
+        return audios, durations
+
+    def validate(self):
+        index = 0
+        page_size = 100
+        while True:
+            results = self.collection.get(limit=page_size, offset=index)
+            index += page_size
+            if results["ids"]:
+                for identifier in results["ids"]:
+                    self.validate_identifier(identifier)
+            else:
+                break
+
+    def validate_identifier(self, identifier: str):
+        if os.path.exists(f"{self.cache_dir}/{identifier}/phrases.json"):
+            # Check if all audios exist
+            params = load_json(f"{self.cache_dir}/{identifier}/params.json")
+            valid_voices = self.environment.get_valid_voices(params)
+            count = self.populate_audios(
+                identifier, self.get_phrases(identifier), valid_voices
             )
-
-            # Based on how well this even aligns with global usage, increase the importance
-            importance = event.get_importance(event_counts)
-
-            distances[i] = (
-                distance / importance * (1 + len(event.phrases)) / usage_count
-            )
-
-        # Too unimportant
-        distances = distances[distances < threshold]
-
-        # Generate more phrases
-        indices = np.argsort(-distances)
-        for i in range(min(samples, len(indices))):
-            event = dataset[indices[i]]
-            event_hash = event.get_hash()
-            self.save(event, event_hash)
-
-            print("Generating phrase for event:")
-            print(event.get_full_str())
-            print("Score: ", distances[i])
-
-            # Generate phrase
-            phrase = generate_phrase(event.get_full())
-            phrase_hash = hash_string(phrase)
-            with open(f"{self.cache_dir}/{event_hash}/phrases/{phrase_hash}", "w") as f:
-                f.write(phrase)
-
-            print("Phrase: " + phrase)
-
-            # Generate TTS
-            output_file = f"{self.cache_dir}/{event_hash}/tts/{phrase_hash}.ogg"
-            get_voices()[self.voice].generate(phrase, self.voice, output_file)
-            print("")
-
-    def save(self, event: Event, event_hash: str = None):
-        if event_hash is None:
-            event_hash = event.get_hash()
-
-        os.makedirs(f"{self.cache_dir}/{event_hash}/phrases", exist_ok=True)
-        os.makedirs(f"{self.cache_dir}/{event_hash}/tts", exist_ok=True)
-
-        with open(f"{self.cache_dir}/{event_hash}/events.json", "w") as f:
-            json.dump(event.events, f, indent=4)
-
-    def query(self, event: Event) -> (str, str):
-        # Increase counter
-        event_hash = event.get_hash()
-        if event_hash not in self.usage_counts:
-            self.usage_counts[event_hash] = 1
-            self.save(event, event_hash)
+            if count > 0:
+                logger.info(f"Generated {count} missing voices for {identifier}.")
         else:
-            self.usage_counts[event_hash] += 1
-
-        if len(self.dataset) == 0:
-            return None, None
-
-        # Find the closest event
-        index = self.annoy_index.get_nns_by_vector(event.get_embedding(), 1)[0]
-        closest_event = self.dataset[index]
-        phrases = closest_event.phrases
-        return closest_event.get_hash(), phrases[random.randint(0, len(phrases) - 1)]
-
-    def get_phrase(self, event_hash, phrase_hash):
-        with open(f"{self.cache_dir}/{event_hash}/phrases/{phrase_hash}", "r") as f:
-            return f.read()
-
-    def get_audio_path(self, event_hash, phrase_hash):
-        return f"{self.cache_dir}/{event_hash}/tts/{phrase_hash}.ogg"
-
-
-def load_phraseys():
-    phraseys = {}
-
-    for voice in get_voices().keys():
-        phraseys[voice] = Phrasey("cache/voices/" + voice, voice)
-
-    return phraseys
+            # Delete from database
+            self.collection.delete(ids=[identifier])
+            logger.warning(f"Deleted broken phrase {identifier}")
 
 
 def init(configurator: Configurator):
     configurator.register("Phrasey", "Generates phrases for situations.")
 
-    # TODO phrasey would profit from multi-processing
-    # TODO a sqlite database would make more sense here anyways
     configurator.assert_single_process()
 
-    phraseys: dict[str, Phrasey] = load_phraseys()
+    phraseys: dict[str, Phrasey] = {
+        "minecraft": Phrasey("cache/phrasey/minecraft", MinecraftEnvironment()),
+    }
 
-    @configurator.get("/v1/phrasey/generate/{voice}")
-    def get_hash(voice: str):
-        if voice not in phraseys:
-            raise HTTPException(status_code=404, detail="Voice not found")
+    @configurator.get("/v1/phrasey/stats")
+    def get_stats():
+        return {
+            environment: {
+                "count": phrasey.collection.count(),
+                "queue": phrasey.queue.qsize(),
+            }
+            for environment, phrasey in phraseys.items()
+        }
 
-        for sample in range(100):
-            phraseys[voice].load()
-            fake_dataset = (
-                phraseys[voice].generate_fake_dataset() + phraseys[voice].dataset_full
-            )
-            phraseys[voice].generate(dataset=fake_dataset)
+    @configurator.get("/v1/phrasey/{environment}")
+    def get_phrase(
+        environment: str,
+        params: str,
+        voices: str,
+        language: str = "en",
+        blacklist: str = "",
+    ):
+        assert language == "en"
 
-        return Response("Done")
+        if environment not in phraseys:
+            return HTTPException(status_code=404, detail="Invalid environment")
 
-    @configurator.get("/v1/phrasey/clear/{voice}")
-    def get_hash(voice: str):
-        if voice not in phraseys:
-            raise HTTPException(status_code=404, detail="Voice not found")
+        phrasey = phraseys[environment]
 
-        phraseys[voice].clear()
+        # Prepare parameters
+        params = json.loads(params)
 
-        return Response("Done")
+        # Parse voices
+        voices = [v.strip() for v in voices.split(",")]
+        blacklist = {v.strip() for v in blacklist.split(",")}
 
-    @configurator.get("/v1/phrasey/hash/{voice}")
-    def get_hash(voice: str, events: str):
-        if voice not in phraseys:
-            raise HTTPException(status_code=404, detail="Voice not found")
+        # Convert voice indices to voice names
+        valid_voices = phrasey.environment.get_valid_voices(params)
+        for i, voice in enumerate(voices):
+            try:
+                voices[i] = valid_voices[int(voice) % len(valid_voices)]
+            except ValueError:
+                pass
 
-        query_event = Event(json.loads(events))
-        event_hash, phrase_hash = phraseys[voice].query(query_event)
-        return Response("" if event_hash is None else (event_hash + "/" + phrase_hash))
+        # Validate voices
+        for voice in voices:
+            if voice not in valid_voices:
+                return HTTPException(status_code=404, detail="Invalid voice")
 
-    @configurator.get("/v1/phrasey/phrase/{voice}/{event_hash}/{phrase_hash}")
-    def get_phrase(voice: str, event_hash: str, phrase_hash: str):
-        if voice not in phraseys:
-            raise HTTPException(status_code=404, detail="Voice not found")
+        # Fetch an identifier
+        try:
+            identifier = phrasey.query(params, blacklist)
+        except HTTPException as e:
+            return e
 
-        return Response(phraseys[voice].get_phrase(event_hash, phrase_hash))
+        # Load phrases and audios
+        phrases, audios, durations, voice_mapping = phraseys[environment].load(
+            identifier, voices
+        )
 
-    @configurator.get("/v1/phrasey/audio/{voice}/{event_hash}/{phrase_hash}")
-    def get_audio(voice: str, event_hash: str, phrase_hash: str):
-        if voice not in phraseys:
-            raise HTTPException(status_code=404, detail="Voice not found")
+        return {
+            "identifier": identifier,
+            "phrases": phrases,
+            "audios": [base64.b64encode(audio).decode("utf-8") for audio in audios],
+            "durations": durations,
+            "voice_mapping": voice_mapping,
+        }
 
-        path = phraseys[voice].get_audio_path(event_hash, phrase_hash)
-        return FileResponse(path, media_type="audio/ogg")
 
-    @configurator.get("/v1/phrasey/voices")
-    def get_audio():
-        return [v for v in phraseys.keys()]
+def main():
+    phrasey = Phrasey("cache/phrasey", MinecraftEnvironment())
+
+    params = {
+        "task": "attack",
+        "entity": "pillager",
+        "biome": "desert",
+        "weather": "thunderstorm",
+        "time": "noon",
+        "nearby": "pig",
+        "weapon": "iron axe",
+        "armor": "diamond helmet",
+        "health": "high",
+        "target": "player",
+        "target_weapon": "diamond sword",
+    }
+
+    try:
+        identifier = phrasey.query(params)
+        phrasey.load(identifier, ["pirate"])
+    except HTTPException as e:
+        print(e)
+
+    phrasey.thread.join()
+
+
+if __name__ == "__main__":
+    main()
