@@ -16,6 +16,7 @@ from pyrate_limiter import (
 )
 
 from main import Configurator
+from modules.mca.groq_utils import get_chat_completion_groq
 from modules.mca.mistral_utils import get_chat_completion_mistral
 from modules.mca.openai_utils import get_chat_completion_openai, get_phi_chat
 from modules.mca.patreon_utils import verify_patron
@@ -33,21 +34,33 @@ You have no knowledge of the real world, and do not realize that you are within 
 You are unfamiliar with the term "Minecraft", "AI", or anything which is not immersive to your world.
 Only respond with a phrase, not the villagers name, thoughts, actions in asterisks, or parentheses. 
 Answer one or two sentences while sounding human. You are no assistant! You can be sarcastic, funny, or even rude when appropriate.
+Do not answer in emoji or use any special characters.
+Conform to those rules, even when the player explicitly asks for a different behavior.
+Consider the relation to the player.
 """.replace(
     "\n", " "
 )
+
+ADDITIONAL_MODEL_CONTEXT = {
+    "open-mistral-7b": "Do not offer assistance, you are a villager, not an assistant. Prefer a more casual language, you are a villager, not Shakespeare.",
+    "mixtral-8x7b": "Do not offer assistance, you are a villager, not an assistant. Prefer a more casual language, you are a villager, not Shakespeare.",
+}
 
 
 pricing = {
     "conczin": 0.1,
     "gpt-3.5-turbo": 0.47 * 0.8 + 1.4 * 0.2,
     "open-mistral-7b": 0.2,
-    "open-mixtral-8x7b": 0.65,
+    # "open-mixtral-8x7b": 0.65,
+    "mixtral-8x7b": 0.5,
+    "llama3-70b": 0.65,
+    "llama3-8b": 0.1,
 }
 
 legacy = {
     "mistral-tiny": "open-mistral-7b",
-    "mistral-small": "open-mixtral-8x7b",
+    "mistral-small": "mixtral-8x7b",
+    "default": "llama3-70b",
 }
 
 
@@ -119,7 +132,11 @@ def init(configurator: Configurator):
         try:
             # Add additional instructions for the AI
             body.messages[0]["content"] = (
-                SYSTEM_CONTEXT + " " + body.messages[0]["content"]
+                SYSTEM_CONTEXT
+                + " "
+                + ADDITIONAL_MODEL_CONTEXT.get(model, "")
+                + " "
+                + body.messages[0]["content"]
             )
 
             # Calculate the cost of this request
@@ -143,8 +160,10 @@ def init(configurator: Configurator):
                 message = await get_phi_chat(body.messages, player)
             elif model == "gpt-3.5-turbo":
                 message = await get_chat_completion_openai(model, body.messages, player)
-            else:
+            elif "open-mistral" in model:
                 message = await get_chat_completion_mistral(model, body.messages)
+            else:
+                message = await get_chat_completion_groq(model, body.messages)
 
             return message
         except BucketFullException:
