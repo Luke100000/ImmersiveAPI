@@ -69,7 +69,9 @@ def get_member_list():
 async def verify_patron(email: str) -> bool:
     email = email.lower().strip()
 
-    email_to_user = {m["email"].lower().strip(): m for m in fetch_members()}
+    email_to_user = {
+        m["email"].lower().strip(): m for m in fetch_members() if m["email"] is not None
+    }
 
     return email_to_user[email]["days_left"] if email in email_to_user else 0
 
