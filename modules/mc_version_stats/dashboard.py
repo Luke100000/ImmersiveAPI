@@ -12,6 +12,7 @@ from packaging.version import parse, Version
 from plotly.subplots import make_subplots
 
 from modules.mc_version_stats.data import get_cached_mods
+from modules.mc_version_stats.mod import Mod
 
 dbc_css = "https://cdn.jsdelivr.net/gh/AnnMarieW/dash-bootstrap-templates/dbc.min.css"
 load_figure_template("darkly")
@@ -72,6 +73,12 @@ def aggregate_others(df, threshold):
     return sort_df(df)
 
 
+def filter_must_haves(mod: Mod):
+    categories = set(mod.categories)
+    categories = categories.difference({"optimization", "library", "utility"})
+    return len(categories) > 0
+
+
 def get_app(route: str = None):
     app = Dash(
         __name__,
@@ -115,6 +122,19 @@ def get_app(route: str = None):
                                 {"label": "Minor Version", "value": "major"},
                             ],
                             value="patch",
+                            style={"display": "inline-block", "width": "200px"},
+                        ),
+                        dbc.Select(
+                            id="filter-dropdown",
+                            options=[
+                                {"label": "Count all Mods", "value": "all"},
+                                {"label": "Ignore Libraries", "value": "no_libraries"},
+                                {
+                                    "label": "Ignore Must-Have Mods",
+                                    "value": "no_basics",
+                                },
+                            ],
+                            value="no_libraries",
                             style={"display": "inline-block", "width": "200px"},
                         ),
                     ],
@@ -173,10 +193,16 @@ def get_app(route: str = None):
         Input("timeSpan-dropdown", "value"),
         Input("threshold-dropdown", "value"),
         Input("index-dropdown", "value"),
+        Input("filter-dropdown", "value"),
     )
-    def update_output(span: int, threshold: float, index_name: str):
+    def update_output(span: int, threshold: float, index_name: str, filter_name: str):
         span = int(span)
         mods = get_cached_mods()
+
+        if filter_name == "no_libraries":
+            mods = [mod for mod in mods if "library" not in mod.categories]
+        elif filter_name == "no_basics":
+            mods = [mod for mod in mods if filter_must_haves(mod)]
 
         mod_loaders = set()
         websites = set()
