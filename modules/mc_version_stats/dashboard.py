@@ -99,10 +99,11 @@ def get_app(route: str = None):
                             options=[
                                 {"label": "Week", "value": 7},
                                 {"label": "Month", "value": 30},
+                                {"label": "Quarter", "value": 90},
                                 {"label": "Year", "value": 365},
-                                {"label": "All Time", "value": 365 * 20},
+                                {"label": "All Time", "value": 365 * 10},
                             ],
-                            value=365,
+                            value=90,
                             style={"display": "inline-block", "width": "200px"},
                         ),
                         dbc.Select(
@@ -221,7 +222,7 @@ def get_app(route: str = None):
             for category in mod.categories:
                 categories[mod.website][category] += 1
 
-            unique_versions = len({v.game_version for v in mod.versions})
+            unique_versions = len(mod.unique_versions)
 
             duplicates = set()
             for version in mod.versions:

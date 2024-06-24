@@ -67,6 +67,10 @@ class Mod:
             self._age = age_in_days(self.date)
         return self._age
 
+    @property
+    def unique_versions(self):
+        return {v.game_version for v in self.versions}
+
     def post_process(self):
         self.versions = sorted(self.versions, key=lambda v: v.age)
         updates = set()
