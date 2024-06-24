@@ -24,18 +24,20 @@ def init(configurator: Configurator):
         "Minecraft Version Stats", "Metrics endpoint for analysing version popularity."
     )
 
-    def updater(sleep_time: int = 10):
+    def updater(sleep_time: int = 4):
+        first_run = True
         while True:
             for provider in [get_modrinth_mods]:  # get_cf_mods
                 db = get_db()
-                mods = provider(db)
+                mods = provider(db if first_run else None)
                 try:
                     for mod in mods:
                         db[mod.id] = mod
                         db.sync()
-                        time.sleep(sleep_time)
+                        time.sleep(sleep_time * (1 if first_run else 5))
                 except Exception as e:
                     print(f"Failed to update {provider.__name__}: {e}")
+            first_run = False
 
     Thread(target=updater, daemon=False).start()
 
