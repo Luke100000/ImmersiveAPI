@@ -22,10 +22,13 @@ class Version:
     downloads: int
     date: str
     newest: bool = False
+    _age: int = -1
 
     @property
     def age(self):
-        return age_in_days(self.date)
+        if self._age == -1:
+            self._age = age_in_days(self.date)
+        return self._age
 
     def get_discounted_downloads(
         self, time_span: int, extrapolate: bool = False, interpolate: bool = False
@@ -56,10 +59,13 @@ class Mod:
     date: str
     website: str
     versions: list[Version] = field(default_factory=list)
+    _age: int = -1
 
     @property
     def age(self):
-        return age_in_days(self.date)
+        if self._age == -1:
+            self._age = age_in_days(self.date)
+        return self._age
 
     def post_process(self):
         self.versions = sorted(self.versions, key=lambda v: v.age)

@@ -1,6 +1,7 @@
 import time
-from datetime import datetime
+from datetime import datetime, timezone
 
+import ciso8601
 import requests
 
 
@@ -25,24 +26,12 @@ def request_get(*args, default_wait_time: int = 5, max_retries: int = 5, **kwarg
 def age_in_days(date_str: str) -> int:
     """
     Converts a date string to a datetime object and calculates the age of the file in days.
-
-    Parameters:
-    - date_str (str): The date string in ISO 8601 format.
-
-    Returns:
-    - int: The age of the file in days.
     """
     # Convert the string to a datetime object
-    try:
-        file_date = datetime.strptime(date_str, "%Y-%m-%dT%H:%M:%S.%fZ")
-    except ValueError:
-        try:
-            file_date = datetime.strptime(date_str, "%Y-%m-%dT%H:%M:%SZ")
-        except ValueError:
-            file_date = datetime.fromisoformat(date_str.rstrip("Z"))
+    file_date = ciso8601.parse_datetime(date_str)
 
     # Get the current datetime
-    current_date = datetime.utcnow()
+    current_date = datetime.now(timezone.utc)
 
     # Calculate the difference in days
     return max(1, (current_date - file_date).days + 1)

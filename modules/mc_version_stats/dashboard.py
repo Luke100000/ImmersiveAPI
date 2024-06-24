@@ -5,6 +5,7 @@ import dash_bootstrap_components as dbc
 import numpy as np
 import pandas as pd
 import plotly.express
+from cachetools import cached, TTLCache
 from dash import Dash, html, dcc, Output, Input
 from dash_bootstrap_templates import load_figure_template
 from packaging.version import parse, Version
@@ -35,6 +36,42 @@ def sort_df(df: pd.DataFrame):
     return df
 
 
+@cached(
+    cache=TTLCache(maxsize=8, ttl=3600),
+    key=lambda mods, span, version_list, sampling: hash(
+        (len(mods), span, sampling, *version_list)
+    ),
+)
+def get_heatmap(mods: list, span: int, version_list: list, sampling: int):
+    heatmap = np.zeros(dtype=int, shape=(len(version_list), span // sampling + 1))
+    version_to_index = {version: i for i, version in enumerate(version_list)}
+    for mod in mods:
+        cached_versions = set()
+        for version in mod.versions:
+            if (
+                version.game_version not in cached_versions
+                and version.game_version in version_to_index
+                and version.age < span
+            ):
+                cached_versions.add(version.game_version)
+                index = version_to_index[version.game_version]
+                heatmap[index, version.age // sampling] += 1
+    return heatmap
+
+
+def aggregate_others(df, threshold):
+    threshold = df["Downloads"].max() * float(threshold)
+    agg = df.loc[df["Extrapolated Downloads"] < threshold].sum().to_frame().T
+    agg["Version"] = "Other"
+    df = pd.concat(
+        [
+            agg,
+            df.loc[df["Extrapolated Downloads"] >= threshold],
+        ]
+    )
+    return sort_df(df)
+
+
 def get_app(route: str = None):
     app = Dash(
         __name__,
@@ -59,6 +96,25 @@ def get_app(route: str = None):
                                 {"label": "All Time", "value": 365 * 20},
                             ],
                             value=365,
+                            style={"display": "inline-block", "width": "200px"},
+                        ),
+                        dbc.Select(
+                            id="threshold-dropdown",
+                            options=[
+                                {"label": "1%", "value": 0.01},
+                                {"label": "0.1%", "value": 0.001},
+                                {"label": "0.01%", "value": 0.0001},
+                            ],
+                            value=0.05,
+                            style={"display": "inline-block", "width": "200px"},
+                        ),
+                        dbc.Select(
+                            id="index-dropdown",
+                            options=[
+                                {"label": "Patch Version", "value": "patch"},
+                                {"label": "Minor Version", "value": "major"},
+                            ],
+                            value="patch",
                             style={"display": "inline-block", "width": "200px"},
                         ),
                     ],
@@ -115,8 +171,10 @@ def get_app(route: str = None):
         Output("website-graph", "figure"),
         Output("category-graph", "figure"),
         Input("timeSpan-dropdown", "value"),
+        Input("threshold-dropdown", "value"),
+        Input("index-dropdown", "value"),
     )
-    def update_output(span: int):
+    def update_output(span: int, threshold: float, index_name: str):
         span = int(span)
         mods = get_cached_mods()
 
@@ -142,7 +200,11 @@ def get_app(route: str = None):
             duplicates = set()
             for version in mod.versions:
                 if is_version(version.game_version):
-                    index = version.game_version
+                    index = (
+                        version.game_version
+                        if index_name == "patch"
+                        else ".".join(version.game_version.split(".")[:2])
+                    )
                     buckets_downloads_estimated[index] += (
                         version.get_discounted_downloads(
                             int(span), extrapolate=False, interpolate=True
@@ -230,19 +292,7 @@ def get_app(route: str = None):
             ]
         )
 
-        total_downloads = df["Downloads"].max()
-        threshold = total_downloads * 0.05
-
-        agg = df.loc[df["Extrapolated Downloads"] < threshold].sum().to_frame().T
-        agg["Version"] = "Other"
-        df = pd.concat(
-            [
-                agg,
-                df.loc[df["Extrapolated Downloads"] >= threshold],
-            ]
-        )
-
-        df = sort_df(df)
+        df = aggregate_others(df, threshold)
 
         f_downloads = make_subplots(rows=1, cols=1)
         f_downloads.update_layout(barmode="stack")
@@ -264,24 +314,10 @@ def get_app(route: str = None):
         f_downloads.update_layout(barmode="stack")
 
         # Visualize updates using a heatmap
+        heatmap_sub_samping = 1 + span // 256
         version_list = list(df["Version"])
         version_list.remove("Other")
-        heatmap_sub_samping = 1 + span // 1024
-        heatmap = np.zeros(
-            dtype=int, shape=(len(version_list), span // heatmap_sub_samping + 1)
-        )
-        version_to_index = {version: i for i, version in enumerate(version_list)}
-        for mod in mods:
-            cached = set()
-            for version in mod.versions:
-                if (
-                    version.game_version not in cached
-                    and version.game_version in version_to_index
-                    and version.age < span
-                ):
-                    cached.add(version.game_version)
-                    index = version_to_index[version.game_version]
-                    heatmap[index, version.age // heatmap_sub_samping] += 1
+        heatmap = get_heatmap(mods, span, version_list, heatmap_sub_samping)
         f_heatmap = plotly.express.imshow(
             heatmap,
             y=list(version_list),
