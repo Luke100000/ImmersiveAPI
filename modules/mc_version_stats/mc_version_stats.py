@@ -24,8 +24,7 @@ def init(configurator: Configurator):
         "Minecraft Version Stats", "Metrics endpoint for analysing version popularity."
     )
 
-    def updater():
-        sleep_time = 10
+    def updater(sleep_time: int = 10):
         while True:
             for provider in [get_modrinth_mods]:  # get_cf_mods
                 db = get_db()

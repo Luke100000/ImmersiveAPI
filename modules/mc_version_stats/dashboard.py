@@ -267,7 +267,6 @@ def get_app(route: str = None):
         version_list = list(df["Version"])
         version_list.remove("Other")
         heatmap_sub_samping = 1 + span // 1024
-        print(heatmap_sub_samping)
         heatmap = np.zeros(
             dtype=int, shape=(len(version_list), span // heatmap_sub_samping + 1)
         )
@@ -289,6 +288,7 @@ def get_app(route: str = None):
             x=list(range(0, span + 1, heatmap_sub_samping)),
             title="Mod Updates over age in days",
             aspect="auto",
+            color_continuous_scale="hot",
             template="darkly",
         )
         f_heatmap.update_xaxes(autorange="reversed")
