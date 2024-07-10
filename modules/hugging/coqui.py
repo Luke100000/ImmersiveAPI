@@ -1,4 +1,5 @@
 import io
+import os
 import os.path
 from functools import cache
 from random import randint
@@ -9,6 +10,8 @@ import torch
 from pydub import AudioSegment
 
 xtts_num_threads = 2
+
+os.environ["COQUI_TOS_AGREED"] = "1"
 
 
 @cache
