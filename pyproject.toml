@@ -55,6 +55,7 @@ a2wsgi = "^1.10.4"
 dash-bootstrap-components = "^1.6.0"
 dash-bootstrap-templates = "1.1.0"
 ciso8601 = "^2.3.1"
+langchain-openai = "^0.1.15"
 
 
 [build-system]
