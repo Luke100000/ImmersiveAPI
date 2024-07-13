@@ -13,7 +13,7 @@ from langchain_openai import ChatOpenAI
 
 from common.langchain.glossary_manager import GlossaryManager
 from common.langchain.memory import MemoryManager, clean_conversation
-from common.langchain.types import Message, Model, Character
+from common.langchain.types import Message, Model, Character, GlossarySearch
 from common.langchain.vector_compressor import VectorCompressor
 from common.rag.git_document_manager import GitDocumentManager
 
@@ -102,9 +102,24 @@ def get_template(prompt: dict[str, str]):
     return ChatPromptTemplate.from_template(template)
 
 
+def get_glossary_entry(query: str, glossary: GlossarySearch) -> str:
+    return get_glossary_manager().invoke(
+        {
+            "query": query,
+            "k": glossary.k,
+            "filter": list(glossary.tags),
+            "lambda_mult": glossary.lambda_mult,
+        }
+    )
+
+
 async def get_chat_completion(
-    model: Model, character: Character, messages: list[Message], auth_token: str
-) -> str:
+    model: Model,
+    character: Character,
+    messages: list[Message],
+    tools: list[dict],
+    auth_token: str,
+) -> AIMessage:
     kwargs = dict(
         temperature=0.85,
         max_tokens=150,
@@ -129,7 +144,6 @@ async def get_chat_completion(
     # todo if it supports tools (llama70b and openai)
     tooled_llm = llm
     if model.tools:
-        tools = []
         for index, glossary in enumerate(character.glossary):
             if glossary.confirm:
                 tools.append(
@@ -185,15 +199,12 @@ async def get_chat_completion(
                 "k": 5,
             }
         ),
-        "glossary": ""
-        if True
-        else get_glossary_manager().invoke(
-            {
-                "query": query,
-                "k": 5,
-                "filter": ["mca_wiki"],
-                "lambda_mult": 0.5,
-            }
+        "glossary": "\n".join(
+            [
+                get_glossary_entry(query, glossary)
+                for glossary in character.glossary
+                if not glossary.confirm
+            ]
         ),
         "memory": get_memory_manager(
             characters_per_level=character.memory_characters_per_level,
@@ -212,24 +223,43 @@ async def get_chat_completion(
     chain = get_template(prompt) | tooled_llm
     response = chain.invoke(prompt)
 
+    # If the response contains glossary calls, enrich the prompt with the glossary entries
     if isinstance(response, AIMessage) and response.tool_calls:
+        glossaries = []
         for tool in response.tool_calls:
             if tool["name"].startswith("glossary_"):
                 index = int(tool["name"].replace("glossary_", ""))
                 glossary = character.glossary[index]
-                prompt["glossary"] = get_glossary_manager().invoke(
-                    {
-                        "query": query,
-                        "k": glossary.k,
-                        "filter": list(glossary.tags),
-                        "lambda_mult": glossary.lambda_mult,
-                    }
-                )
-                # todo multi tool support?
-                break
+                glossaries.append(get_glossary_entry(query, glossary))
 
         # Call again, with glossary enriched prompt
-        chain = get_template(prompt) | llm
-        response = chain.invoke(prompt)
+        if glossaries:
+            prompt["glossary"] = "\n".join(glossaries)
+            chain = get_template(prompt) | llm
+            response = chain.invoke(prompt)
 
-    return str(response.content)
+    return response
+
+
+def message_to_dict(message: AIMessage):
+    return {
+        "choices": [
+            {
+                "message": {
+                    "content": message.content,
+                    "role": "assistant",
+                    "tool_calls": [
+                        {
+                            "id": tool["id"],
+                            "type": "function",
+                            "function": {
+                                "name": tool["name"],
+                                "arguments": tool["args"],
+                            },
+                        }
+                        for tool in message.tool_calls
+                    ],
+                }
+            }
+        ]
+    }

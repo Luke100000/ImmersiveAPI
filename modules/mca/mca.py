@@ -11,7 +11,7 @@ from pyrate_limiter import (
 
 from common.langchain.types import Body, Model, GlossarySearch, Character
 from main import Configurator
-from modules.mca.chain import get_chat_completion
+from modules.mca.chain import get_chat_completion, message_to_dict
 from modules.mca.multi_bucket_factory import MultiBucketFactory
 from modules.mca.openai_utils import check_prompt_openai
 from modules.mca.patreon_utils import verify_patron
@@ -216,8 +216,10 @@ def init(configurator: Configurator):
                 }
 
             # Process
-            message = await get_chat_completion(model, character, body.messages, player)
+            message = await get_chat_completion(
+                model, character, body.messages, body.tools, player
+            )
 
-            return {"choices": [{"message": {"content": message}}]}
+            return message_to_dict(message)
         except BucketFullException:
             return {"error": "limit_premium" if premium else "limit"}

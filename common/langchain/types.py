@@ -18,6 +18,7 @@ class Message(BaseModel):
 class Body(BaseModel):
     model: str
     messages: list[Message]
+    tools: list[dict] = []
     glossary: list = []
 
 
