@@ -94,6 +94,7 @@ class MemoryManager(Runnable):
         db_file: str = "cache/memory.db",
         characters_per_level: int = 700,
         sentences_per_summary: int = 3,
+        model: str = "llama3-70b-8192",
     ):
         self.conn = sqlite3.connect(db_file)
         self.create_table()
@@ -101,7 +102,7 @@ class MemoryManager(Runnable):
         self.characters_per_level = characters_per_level
         self.sentences_per_summary = sentences_per_summary
 
-        self.chain = _get_compression_chain(model="llama3-8b-8192")
+        self.chain = _get_compression_chain(model=model)
 
     @traceable(run_type="tool", name="Memorize")
     def invoke(self, input_dict: dict, config: Optional[RunnableConfig] = None) -> str:
@@ -164,12 +165,12 @@ class MemoryManager(Runnable):
 
     def _compress_buffer(self, count: int, buffer: list[Memory]) -> list[Memory]:
         # Threshold reached, summarize
-        if count > self.characters_per_level * 1.5:
-            to_be_summarized, to_recent = self._split_buffer(buffer)
+        if count > self.characters_per_level * 1.5 and len(buffer) >= 3:
+            to_be_summarized, too_recent = self._split_buffer(buffer)
             summarized_memory = self._summarize(to_be_summarized)
             self.remove_memories(to_be_summarized)
             self.add_memory(summarized_memory)
-            return [summarized_memory] + to_recent
+            return [summarized_memory] + too_recent
         else:
             return buffer
 
@@ -184,18 +185,18 @@ class MemoryManager(Runnable):
         last_level = 0
         to_be_summarized = []
         for memory in memories:
-            if memory.level != last_level:
+            if memory.level < last_level:
                 compressed_memories.extend(
                     self._compress_buffer(count, to_be_summarized)
                 )
 
                 # Reset and start next compression level
                 count = 0
-                last_level = memory.level
                 to_be_summarized = []
 
             count += len(memory.content)
             to_be_summarized.append(memory)
+            last_level = memory.level
 
         compressed_memories.extend(self._compress_buffer(count, to_be_summarized))
 
@@ -243,6 +244,7 @@ class MemoryManager(Runnable):
 
         # find first tracked message
         index = -1
+        any_matched = False
         for index, message in enumerate(conversation[::-1]):
             if any(
                 memory.level == 0
@@ -250,8 +252,11 @@ class MemoryManager(Runnable):
                 and memory.content == message.content
                 for memory in memories
             ):
+                any_matched = True
                 break
-        conversation = [] if index == 0 else conversation[-index:]
+
+        if any_matched:
+            conversation = [] if index == 0 else conversation[-index:]
 
         # add memories
         for message in conversation:

@@ -16,15 +16,24 @@ class GitDocumentManager(DocumentManager):
         os.system(f"git clone {url} {path}")
         os.system(f"cd {path} && git pull")
 
+        # reconstruct a human-readable base path
+        base_path = url
+        if base_path.endswith(".wiki.git"):
+            base_path = base_path[:-9] + "/wiki"
+        if base_path.endswith(".git"):
+            base_path = base_path[:-4]
+
         self.documents = []
         for file in glob.glob(f"{path}/*.md"):
             filename = os.path.basename(file)
+            if filename.endswith(".md"):
+                filename = filename[:-3]
             if not filename.startswith("_") and not filename.startswith("."):
                 with open(file, "r") as f:
                     try:
                         self.documents.append(
                             InformationPage.from_content(
-                                f"{identifier}/{filename}",
+                                f"{base_path}/{filename}",
                                 f.read(),
                                 simplify=False,
                                 quality=quality_preset,

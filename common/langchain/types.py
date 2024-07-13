@@ -19,7 +19,6 @@ class Body(BaseModel):
     model: str
     messages: list[Message]
     tools: list[dict] = []
-    glossary: list = []
 
 
 class Model(BaseModel):
@@ -52,3 +51,6 @@ class Character(BaseModel):
     fallback_memory_characters: int = 3000
     memory_characters_per_level: int = 1000
     memory_sentences_per_summary: int = 3
+    memory_model: str = "llama3-8b-8192"
+    langsmith_project: str = None
+    stop: list[str] = ["\n"]

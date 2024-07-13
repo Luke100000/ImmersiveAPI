@@ -32,13 +32,14 @@ class GlossaryManager(Runnable):
             separators=["\n\n", "\n", ".", " ", ""], chunk_size=1000, chunk_overlap=100
         )
 
-    def add_documents(self, source: str, documents: list[InformationPage]):
+    def add_documents(self, tag: str, documents: list[InformationPage]):
         docs = [
             Document(
                 id=doc.source,
                 page_content=doc.content,
                 metadata={
-                    "source": source,
+                    "tag": tag,
+                    "source": doc.source,
                     "title": doc.title,
                     "summary": doc.summary,
                 },
@@ -58,10 +59,10 @@ class GlossaryManager(Runnable):
         filter_expression = None
         if "filter" in input_dict:
             if len(input_dict["filter"]) == 1:
-                filter_expression = {"source": input_dict["filter"][0]}
+                filter_expression = {"tag": input_dict["filter"][0]}
             else:
                 filter_expression = {
-                    "$or": [{"source": value} for value in input_dict["filter"]]
+                    "$or": [{"tag": value} for value in input_dict["filter"]]
                 }
 
         # Search
@@ -77,16 +78,19 @@ class GlossaryManager(Runnable):
         # List all titles first to merge summaries
         titles = []
         summaries = []
+        sources = []
         for result in results:
             if result.metadata["title"] not in titles:
                 titles.append(result.metadata["title"])
                 summaries.append(result.metadata["summary"])
+                sources.append(result.metadata["source"])
 
         # Stringify results
         data = []
-        for title, summary in zip(titles, summaries):
+        for title, summary, source in zip(titles, summaries, sources):
             data.append("# " + title)
             data.append("*" + summary + "*")
+            data.append("source: " + source)
             for result in results:
                 if result.metadata["title"] == title:
                     data.append(result.page_content)

@@ -14,6 +14,7 @@ from prometheus_fastapi_instrumentator import Instrumentator
 from starlette.middleware.cors import CORSMiddleware
 from starlette.middleware.gzip import GZipMiddleware
 
+from common.config import settings
 from common.worker import get_primary_executor, set_primary_executor, Executor
 
 load_dotenv()
@@ -53,8 +54,6 @@ app.add_middleware(
 # Prometheus integration
 instrumentator = Instrumentator().instrument(app)
 
-# Load config
-settings = Dynaconf(settings_files=["default_config.toml", "config.toml"])
 
 # Metadata for OpenAPI
 tags_metadata = []

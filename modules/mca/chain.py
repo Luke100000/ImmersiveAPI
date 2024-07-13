@@ -13,6 +13,7 @@ from langchain_mistralai import ChatMistralAI
 from langchain_openai import ChatOpenAI
 from langsmith import trace, traceable
 
+from common.config import settings
 from common.langchain.glossary_manager import GlossaryManager
 from common.langchain.information_extractor import InformationExtractor
 from common.langchain.memory import MemoryManager, clean_conversation
@@ -49,13 +50,21 @@ def get_information_extractor():
 @cache
 def get_glossary_manager():
     manager = GlossaryManager()
-    # manager.add_documents("minecraft_wiki", WikiDocumentManager().get_documents())
-    manager.add_documents(
-        "mca_wiki",
-        GitDocumentManager(
-            "https://github.com/Luke100000/minecraft-comes-alive.wiki.git"
-        ).get_documents(),
-    )
+    for glossary in settings["global"]["glossaries"]:
+        if glossary["type"] == "wiki":
+            manager.add_documents(
+                glossary["name"],
+                WikiDocumentManager(glossary["index_url"]).get_documents(),
+            )
+        elif glossary["type"] == "git":
+            manager.add_documents(
+                glossary["name"],
+                GitDocumentManager(
+                    glossary["repository"],
+                ).get_documents(),
+            )
+        else:
+            raise ValueError(f"Unknown glossary type: {glossary['type']}")
     return manager
 
 
@@ -68,12 +77,15 @@ def get_villager(text: str):
 
 
 def get_conversation(messages: list[Message], max_characters: int = 1024 * 256):
+    i = 0
     for i, message in enumerate(messages[::-1]):
+        max_characters -= len(message.content)
         if max_characters < 0:
             break
-        max_characters -= len(message.content)
 
-    return "\n".join([f"{message.name}: {message.content}" for message in messages])
+    return "\n".join(
+        [f"{message.name}: {message.content}" for message in messages[-i - 1 :]]
+    )
 
 
 def get_system_flags(system: str):
@@ -149,7 +161,6 @@ async def get_chat_completion(
 
     # Preload
     get_glossary_manager()
-    get_information_extractor()
     get_vector_compressor()
 
     with trace(
@@ -163,7 +174,7 @@ async def get_chat_completion(
             temperature=0.85,
             max_tokens=150,
             user=hashlib.sha256(auth_token.encode("UTF-8")).hexdigest(),
-            stop=["\n"],
+            stop=character.stop,
         )
         if model.provider == "conczin":
             llm = ChatOpenAI(
@@ -200,7 +211,8 @@ async def get_chat_completion(
                         }
                     )
                     # todo add a "stop conversation" to hagrid and deprecate hallo hagrid
-            tooled_llm = llm.bind_tools(tools)
+            if len(tools) > 0:
+                tooled_llm = llm.bind_tools(tools)
 
         # Process system prompt
         static_system = character.system + "\n" + model.system
@@ -222,12 +234,12 @@ async def get_chat_completion(
         session_id = (
             None
             if character_id is None
-            else ((world_id if shared_memory else player_id) + character_id)
+            else f"{world_id if shared_memory else player_id}_{character_id}"
         )
 
         # Clean the remaining messages and construct a query for RAG
         messages = clean_conversation(messages, player_id)
-        query = get_conversation(messages, 500)
+        query = get_conversation(messages, 400)
 
         prompt = {
             "static_system": static_system,
@@ -250,6 +262,7 @@ async def get_chat_completion(
             "memory": get_memory_manager(
                 characters_per_level=character.memory_characters_per_level,
                 sentences_per_summary=character.memory_sentences_per_summary,
+                model=character.memory_model,
             ).invoke(
                 {
                     "session_id": session_id,
@@ -268,16 +281,21 @@ async def get_chat_completion(
         # If the response contains glossary calls, enrich the prompt with the glossary entries
         if isinstance(response, AIMessage) and response.tool_calls:
             glossaries = []
+            already_called = set()
             for tool in response.tool_calls:
                 tool: ToolCall = tool
-                if tool["name"].startswith("glossary_"):
+                if (
+                    tool["name"].startswith("glossary_")
+                    and tool["name"] not in already_called
+                ):
+                    already_called.add(tool["name"])
                     index = int(tool["name"].replace("glossary_", ""))
                     glossary = character.glossary[index]
                     glossaries.append(get_glossary_entry(query, glossary))
 
             # Call again, with glossary enriched prompt
             if glossaries:
-                prompt["glossary"] = "\n".join(glossaries)
+                prompt["glossary"] = "\n".join([g for g in glossaries if len(g) > 8])
                 chain = get_template(prompt) | llm
                 chain.name = "Chat with glossary"
                 response = chain.invoke(prompt)

@@ -3,6 +3,8 @@ from functools import cache
 from dotenv import load_dotenv
 from openai import AsyncOpenAI
 
+from common.langchain.types import Message, Role
+
 load_dotenv()
 
 
@@ -11,9 +13,9 @@ def get_client():
     return AsyncOpenAI()
 
 
-async def check_prompt_openai(prompt: list):
+async def check_prompt_openai(prompt: list[Message]):
     # Check if content is a TOS violation
-    user_prompt = "\n".join([m["content"] for m in prompt if m["role"] == "user"])
+    user_prompt = "\n".join([m.content for m in prompt if m.role == Role.user])
     flags = (
         (await get_client().moderations.create(input=user_prompt)).results[0].categories
     )

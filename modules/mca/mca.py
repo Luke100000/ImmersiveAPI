@@ -51,7 +51,7 @@ MODELS: dict[str, Model] = {
         tools=True,
     ),
     "gpt-4o": Model(
-        price=0.65,
+        price=0,
         model="gpt-4o",
         provider="openai",
         tools=True,
@@ -86,24 +86,27 @@ MODELS: dict[str, Model] = {
 CHARACTERS = {
     HAGRID_SECRET: Character(
         name="Rubeus Hagrid",
-        system="This is a conversation between a user and the loyal, friendly, and softhearted Rubeus Hagrid with a thick west country accent. Prefer short answers.",
-        memory_characters_per_level=1500,
+        system="This is a conversation between users and the loyal, friendly, and softhearted Rubeus Hagrid with a thick west country accent. Make use of information and tools, and generate a short respond in his thick west country accent!",
+        memory_characters_per_level=1200,
         memory_sentences_per_summary=3,
+        memory_model="llama3-70b-8192",
+        langsmith_project="hagrid",
+        stop=[],
         glossary=[
             GlossarySearch(
                 tags={"mca_wiki"},
                 description="Fetch technical information about modding, MCA, configuration, documentation, common questions, ...",
                 k=5,
                 lambda_mult=0.7,
-                confirm=True,
+                confirm=False,
             ),
-            GlossarySearch(
-                tags={"minecraft_wiki"},
-                description="Fetch information about vanilla Minecraft, its items, mobs, and mechanics.",
-                k=5,
-                lambda_mult=0.7,
-                confirm=True,
-            ),
+            # GlossarySearch(
+            #    tags={"minecraft_wiki"},
+            #    description="Fetch information about vanilla Minecraft, its items, mobs, and mechanics.",
+            #    k=5,
+            #    lambda_mult=0.7,
+            #    confirm=True,
+            # ),
         ],
     )
 }
@@ -222,7 +225,12 @@ def init(configurator: Configurator):
 
             # Process
             message = await get_chat_completion(
-                model, character, body.messages, body.tools, player
+                model,
+                character,
+                body.messages,
+                body.tools,
+                player,
+                langsmith_project=character.langsmith_project,
             )
 
             return message_to_dict(message)

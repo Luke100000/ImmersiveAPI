@@ -2,7 +2,15 @@
 background_workers = 2
 
 [global.embedding]
-model = "gpt2"
+model = "text-embedding-3-small"
+
+[global.information_extractor]
+model = "llama3-8b-8192"
+
+[[global.glossaries]]
+type = "git"
+name = "mca_wiki"
+repository = "https://github.com/Luke100000/minecraft-comes-alive.wiki.git"
 
 [converter]
 enable = false

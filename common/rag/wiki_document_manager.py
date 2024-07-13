@@ -116,9 +116,7 @@ def _process_location(data):
 
 
 class WikiDocumentManager(DocumentManager):
-    def __init__(
-        self, index_url: str = "https://minecraft.wiki/images/sitemaps/index.xml"
-    ):
+    def __init__(self, index_url: str):
         self.documents = [
             doc
             for doc in [

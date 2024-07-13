@@ -12,8 +12,8 @@ logging.basicConfig(level=logging.INFO)
 def main():
     response = asyncio.run(
         get_chat_completion(
-            MODELS["gpt-4o"],
-            # MODELS["llama3-70b"],
+            # MODELS["gpt-4o"],
+            MODELS["llama3-70b"],
             CHARACTERS[HAGRID_SECRET],
             [
                 Message(

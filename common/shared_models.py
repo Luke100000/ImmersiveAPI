@@ -5,6 +5,8 @@ from langchain_core.embeddings import Embeddings
 from langchain_huggingface import HuggingFaceEmbeddings
 from langchain_openai import OpenAIEmbeddings
 
+from common.config import settings
+
 ADDITIONAL_QUERY_PROMPTS = {
     "mixedbread-ai/mxbai-embed-large-v1": "Represent this sentence for searching relevant passages: ",
 }
@@ -30,7 +32,7 @@ class NamedHuggingFaceEmbeddings(NamedEmbedding, HuggingFaceEmbeddings):
 
 @cache
 def get_sentence_embeddings(
-    model_name: str = "text-embedding-3-small",
+    model_name: str = settings["global"]["embedding"]["model"],
 ) -> NamedEmbedding:
     if model_name.startswith("text-embedding-3"):
         return NamedOpenAIEmbeddings(

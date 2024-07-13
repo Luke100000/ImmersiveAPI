@@ -339,9 +339,16 @@ class InformationPage:
 
         # And summarize it
         logging.info(f"Summarizing {self.source}")
-        summary = get_summary_chain(self.quality.summarization_model).invoke(
-            {"content": self.simplified[:max_size]}
-        )
+        # noinspection PyBroadException
+        try:
+            summary = get_summary_chain(self.quality.summarization_model).invoke(
+                {"content": self.simplified[:max_size]}
+            )
+        except Exception:
+            logging.exception("Error summarizing content")
+            summary = get_summary_chain("gpt-3.5-turbo").invoke(
+                {"content": self.simplified[:max_size]}
+            )
 
         self.title = summary["title"]
         self.summary = summary["summary"]
