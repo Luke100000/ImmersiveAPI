@@ -35,8 +35,6 @@ def get_sentence_embeddings(
     if model_name.startswith("text-embedding-3"):
         return NamedOpenAIEmbeddings(
             model=model_name,
-            dimensions=1024,
-            show_progress_bar=True,
         )
     else:
         return NamedHuggingFaceEmbeddings(

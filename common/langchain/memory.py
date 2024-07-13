@@ -7,6 +7,7 @@ from typing import Optional
 from langchain_core.prompts import ChatPromptTemplate
 from langchain_core.runnables import Runnable, RunnableConfig
 from langchain_groq import ChatGroq
+from langsmith import traceable
 
 from common.langchain.types import Message, Role
 
@@ -102,6 +103,7 @@ class MemoryManager(Runnable):
 
         self.chain = _get_compression_chain(model="llama3-8b-8192")
 
+    @traceable(run_type="tool", name="Memorize")
     def invoke(self, input_dict: dict, config: Optional[RunnableConfig] = None) -> str:
         assert isinstance(input_dict, dict), "Input must be a dictionary."
         assert "session_id" in input_dict, "Session ID not found in input dict."

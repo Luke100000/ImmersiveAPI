@@ -1,6 +1,9 @@
 [global]
 background_workers = 2
 
+[global.embedding]
+model = "gpt2"
+
 [converter]
 enable = false
 

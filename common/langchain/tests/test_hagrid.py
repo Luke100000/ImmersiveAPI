@@ -12,22 +12,26 @@ logging.basicConfig(level=logging.INFO)
 def main():
     response = asyncio.run(
         get_chat_completion(
-            # MODELS["gpt-4o"],
-            MODELS["llama3-70b"],
+            MODELS["gpt-4o"],
+            # MODELS["llama3-70b"],
             CHARACTERS[HAGRID_SECRET],
             [
                 Message(
+                    role="system",
+                    content="[shared_memory:true][world_id:default][character_id:hagrid]",
+                ),
+                Message(
                     role="user",
-                    content="Hey how can I disable the screen at the beginning?",
+                    content="How to get amethysts?",
                     name="Conczin",
-                )
+                ),
             ],
             [
                 {
                     "type": "function",
                     "function": {
                         "name": "paint",
-                        "description": "Paint a beautiful picture based on the users request.",
+                        "description": "Paint a beautiful picture based on the users request, if the user asks for a drawing.",
                         "parameters": {
                             "type": "object",
                             "properties": {
@@ -42,6 +46,7 @@ def main():
                 }
             ],
             HAGRID_SECRET,
+            langsmith_project="hagrid",
         )
     )
 

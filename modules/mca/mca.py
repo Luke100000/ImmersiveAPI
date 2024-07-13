@@ -52,10 +52,10 @@ MODELS: dict[str, Model] = {
     ),
     "gpt-4o": Model(
         price=0.65,
-        model="gpt-3.5-turbo",
+        model="gpt-4o",
         provider="openai",
         tools=True,
-        whitelist={"hagrid"},
+        whitelist={HAGRID_SECRET},
     ),
     "open-mistral-7b": Model(
         price=0.2,
@@ -86,20 +86,22 @@ MODELS: dict[str, Model] = {
 CHARACTERS = {
     HAGRID_SECRET: Character(
         name="Rubeus Hagrid",
-        system="This is a conversation between a user and the loyal, friendly, and softhearted Rubeus Hagrid with a thick west country accent.",
+        system="This is a conversation between a user and the loyal, friendly, and softhearted Rubeus Hagrid with a thick west country accent. Prefer short answers.",
         memory_characters_per_level=1500,
         memory_sentences_per_summary=3,
         glossary=[
             GlossarySearch(
                 tags={"mca_wiki"},
-                description="Fetch technical information about modding, MCA, configuration, documentation, ...",
+                description="Fetch technical information about modding, MCA, configuration, documentation, common questions, ...",
                 k=5,
+                lambda_mult=0.7,
                 confirm=True,
             ),
             GlossarySearch(
                 tags={"minecraft_wiki"},
                 description="Fetch information about vanilla Minecraft, its items, mobs, and mechanics.",
                 k=5,
+                lambda_mult=0.7,
                 confirm=True,
             ),
         ],
@@ -181,6 +183,9 @@ def init(configurator: Configurator):
         if model not in MODELS:
             return {"error": "invalid_model"}
         model = MODELS[model]
+
+        if model.whitelist is not None and player not in model.whitelist:
+            return {"error": "not_whitelisted"}
 
         # Sanity check
         if len(body.messages[0].content) > 1024 * 256:
