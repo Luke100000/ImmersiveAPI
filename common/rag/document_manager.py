@@ -99,7 +99,7 @@ RATE_LIMITS = {
 
 RATE_LIMIT_REQUESTS = {
     "llama3-8b-8192": 30,
-    "llama3-70b-8192": 6,
+    "llama3-70b-8192": 30,
     "gpt-3.5-turbo": -1,
 }
 
@@ -276,7 +276,10 @@ class InformationPage:
         return doc
 
     @property
-    def simplified(self):
+    def simplified(self) -> str:
+        """
+        :return: The simplified content if available, otherwise the original content.
+        """
         return self.simplified_content if self.simplified_content else self.content
 
     def populate(self, simplify: bool = True) -> bool:

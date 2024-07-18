@@ -1,6 +1,7 @@
 import asyncio
 import json
 import logging
+import time
 
 from common.langchain.types import Message
 from modules.mca.chain import get_chat_completion, message_to_dict
@@ -18,7 +19,7 @@ def main():
             [
                 Message(
                     role="system",
-                    content="[shared_memory:true][world_id:default][character_id:hagrid]",
+                    content="[shared_memory:true][world_id:default][character_id:hagrid][glossaries:minecraft_wiki]",
                 ),
                 Message(
                     role="user",
@@ -26,31 +27,15 @@ def main():
                     name="Conczin",
                 ),
             ],
-            [
-                {
-                    "type": "function",
-                    "function": {
-                        "name": "paint",
-                        "description": "Paint a beautiful picture based on the users request, if the user asks for a drawing.",
-                        "parameters": {
-                            "type": "object",
-                            "properties": {
-                                "prompt": {
-                                    "type": "string",
-                                    "description": "The prompt to generate the image from.",
-                                },
-                            },
-                            "required": ["prompt"],
-                        },
-                    },
-                }
-            ],
+            [],
             HAGRID_SECRET,
             langsmith_project="hagrid",
         )
     )
 
     print(json.dumps(message_to_dict(response), indent=2))
+
+    time.sleep(100000)
 
 
 if __name__ == "__main__":

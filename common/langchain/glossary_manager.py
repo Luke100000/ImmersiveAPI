@@ -36,7 +36,7 @@ class GlossaryManager(Runnable):
         docs = [
             Document(
                 id=doc.source,
-                page_content=doc.content,
+                page_content=doc.simplified,
                 metadata={
                     "tag": tag,
                     "source": doc.source,

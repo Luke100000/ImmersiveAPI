@@ -21,7 +21,7 @@ class NamedEmbedding(Embeddings, ABC):
 class NamedOpenAIEmbeddings(NamedEmbedding, OpenAIEmbeddings):
     @property
     def name(self) -> str:
-        return "openai/" + self.model
+        return f"openai/{self.model}/{self.dimensions}/"
 
 
 class NamedHuggingFaceEmbeddings(NamedEmbedding, HuggingFaceEmbeddings):
@@ -33,10 +33,12 @@ class NamedHuggingFaceEmbeddings(NamedEmbedding, HuggingFaceEmbeddings):
 @cache
 def get_sentence_embeddings(
     model_name: str = settings["global"]["embedding"]["model"],
+    dimensions: int = settings["global"]["embedding"]["dimensions"],
 ) -> NamedEmbedding:
     if model_name.startswith("text-embedding-3"):
         return NamedOpenAIEmbeddings(
             model=model_name,
+            dimensions=None if dimensions <= 0 else dimensions,
         )
     else:
         return NamedHuggingFaceEmbeddings(

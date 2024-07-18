@@ -6,8 +6,6 @@ from langchain_core.runnables import Runnable, RunnableConfig
 from langchain_groq import ChatGroq
 from langsmith import traceable
 
-from common.config import settings
-
 compression_system_prompt = """
 Given a document retrieved from a RAG system, extract the relevant parts of that document given that query.
 If nothing is relevant, return a single asterisks. Only return information relevant to the query.
@@ -24,9 +22,7 @@ Extracted Information:
 
 
 @cache
-def _get_compression_chain(
-    model: str = settings["global"]["information_extractor"]["model"],
-):
+def _get_compression_chain(model: str):
     return (
         ChatPromptTemplate.from_template(compression_system_prompt)
         | ChatGroq(model=model, temperature=0, max_tokens=300)
@@ -39,8 +35,8 @@ class InformationExtractor(Runnable):
     Given a document and query, retrieve the relevant parts of the document.
     """
 
-    def __init__(self):
-        self.chain = _get_compression_chain()
+    def __init__(self, model: str = "llama3-70b-8192"):
+        self.chain = _get_compression_chain(model)
 
     @traceable(run_type="tool", name="Information Extractor")
     def invoke(self, input_dict: dict, config: Optional[RunnableConfig] = None) -> str:

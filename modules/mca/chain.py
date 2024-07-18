@@ -6,7 +6,7 @@ from functools import cache
 
 from dotenv import load_dotenv
 from groq import Groq
-from langchain_core.messages import AIMessage, ToolCall
+from langchain_core.messages import AIMessage
 from langchain_core.prompts import ChatPromptTemplate
 from langchain_groq import ChatGroq
 from langchain_mistralai import ChatMistralAI
@@ -43,8 +43,8 @@ def get_vector_compressor():
 
 
 @cache
-def get_information_extractor():
-    return InformationExtractor()
+def get_information_extractor(model: str):
+    return InformationExtractor(model)
 
 
 @cache
@@ -134,11 +134,15 @@ def get_glossary_entry(query: str, glossary: GlossarySearch) -> str:
             "lambda_mult": glossary.lambda_mult,
         }
     )
-    return get_information_extractor().invoke(
-        {
-            "query": query,
-            "document": document,
-        }
+    return (
+        get_information_extractor(glossary.compression_model).invoke(
+            {
+                "query": query,
+                "document": document,
+            }
+        )
+        if glossary.compression and document
+        else document
     )
 
 
@@ -170,6 +174,7 @@ async def get_chat_completion(
         inputs={"messages": messages, "tools": tools},
         tags=[model.model, character.name],
     ) if langsmith_project else dummy_context_manager():
+        # Instantiate model
         kwargs = dict(
             temperature=0.85,
             max_tokens=150,
@@ -193,26 +198,8 @@ async def get_chat_completion(
 
         # Enable tools and add glossary functions if requested
         tooled_llm = llm
-        if model.tools:
-            for index, glossary in enumerate(character.glossary):
-                if glossary.confirm:
-                    tools.append(
-                        {
-                            "type": "function",
-                            "function": {
-                                "name": f"glossary_{index}",
-                                "description": glossary.description,
-                                "parameters": {
-                                    "type": "object",
-                                    "properties": {},
-                                    "required": [],
-                                },
-                            },
-                        }
-                    )
-                    # todo add a "stop conversation" to hagrid and deprecate hallo hagrid
-            if len(tools) > 0:
-                tooled_llm = llm.bind_tools(tools)
+        if model.tools and len(tools) > 0:
+            tooled_llm = llm.bind_tools(tools)
 
         # Process system prompt
         static_system = character.system + "\n" + model.system
@@ -236,6 +223,7 @@ async def get_chat_completion(
             if character_id is None
             else f"{world_id if shared_memory else player_id}_{character_id}"
         )
+        enabled_glossaries = {g.strip() for g in flags.get("glossaries", "").split(",")}
 
         # Clean the remaining messages and construct a query for RAG
         messages = clean_conversation(messages, player_id)
@@ -255,8 +243,8 @@ async def get_chat_completion(
             "glossary": "\n".join(
                 [
                     get_glossary_entry(query, glossary)
-                    for glossary in character.glossary
-                    if not glossary.confirm
+                    for key, glossary in character.glossary.items()
+                    if glossary.always or key in enabled_glossaries
                 ]
             ),
             "memory": get_memory_manager(
@@ -275,36 +263,18 @@ async def get_chat_completion(
 
         # Launch
         chain = get_template(prompt) | tooled_llm
-        chain.name = "Chat"
         response = chain.invoke(prompt)
 
-        # If the response contains glossary calls, enrich the prompt with the glossary entries
-        if isinstance(response, AIMessage) and response.tool_calls:
-            glossaries = []
-            already_called = set()
-            for tool in response.tool_calls:
-                tool: ToolCall = tool
-                if (
-                    tool["name"].startswith("glossary_")
-                    and tool["name"] not in already_called
-                ):
-                    already_called.add(tool["name"])
-                    index = int(tool["name"].replace("glossary_", ""))
-                    glossary = character.glossary[index]
-                    glossaries.append(get_glossary_entry(query, glossary))
-
-            # Call again, with glossary enriched prompt
-            if glossaries:
-                prompt["glossary"] = "\n".join([g for g in glossaries if len(g) > 8])
-                chain = get_template(prompt) | llm
-                chain.name = "Chat with glossary"
-                response = chain.invoke(prompt)
-
         os.environ["LANGCHAIN_TRACING_V2"] = "false"
+
+        # noinspection PyTypeChecker
         return response
 
 
-def message_to_dict(message: AIMessage):
+def message_to_dict(message: AIMessage) -> dict:
+    """
+    Convert an AIMessage to an OpenAI API response object.
+    """
     return {
         "choices": [
             {

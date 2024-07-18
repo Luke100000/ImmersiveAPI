@@ -3,9 +3,7 @@ background_workers = 2
 
 [global.embedding]
 model = "text-embedding-3-small"
-
-[global.information_extractor]
-model = "llama3-8b-8192"
+dimensions = 1024
 
 [[global.glossaries]]
 type = "git"

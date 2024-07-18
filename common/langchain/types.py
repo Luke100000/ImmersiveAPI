@@ -35,7 +35,9 @@ class GlossarySearch(BaseModel):
     description: str
     k: int
     lambda_mult: float = 0.5
-    confirm: bool = False
+    always: bool = True
+    compression_model: str = "llama3-70b-8192"
+    compression: bool = True
 
 
 class Character(BaseModel):
@@ -46,7 +48,7 @@ class Character(BaseModel):
     name: str
     system: str
     dynamic_k: int = 4
-    glossary: list[GlossarySearch] = []
+    glossary: dict[str, GlossarySearch] = []
     default_model: str = "default"
     fallback_memory_characters: int = 3000
     memory_characters_per_level: int = 1000

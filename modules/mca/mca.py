@@ -92,22 +92,22 @@ CHARACTERS = {
         memory_model="llama3-70b-8192",
         langsmith_project="hagrid",
         stop=[],
-        glossary=[
-            GlossarySearch(
+        glossary={
+            "mca_wiki": GlossarySearch(
                 tags={"mca_wiki"},
                 description="Fetch technical information about modding, MCA, configuration, documentation, common questions, ...",
                 k=5,
                 lambda_mult=0.7,
-                confirm=False,
+                always=False,
             ),
-            # GlossarySearch(
-            #    tags={"minecraft_wiki"},
-            #    description="Fetch information about vanilla Minecraft, its items, mobs, and mechanics.",
-            #    k=5,
-            #    lambda_mult=0.7,
-            #    confirm=True,
-            # ),
-        ],
+            "minecraft_wiki": GlossarySearch(
+                tags={"minecraft_wiki"},
+                description="Fetch information about vanilla Minecraft, its items, mobs, and mechanics.",
+                k=5,
+                lambda_mult=0.7,
+                always=False,
+            ),
+        },
     )
 }
 
@@ -137,6 +137,16 @@ LEGACY = {
 
 
 def init(configurator: Configurator):
+    """
+    The system prompt encodes additional flags for session management and glossary usage.
+    `[key:value][key:value]...Rest of the system prompt`
+    * `world_id`: The world id for the session, e.g. the guild id or world UUID.
+    * `player_id`: The player id
+    * `character_id`: The character id, e.g. the villager UUID.
+    * `use_memory`: Whether to use memory for this session, otherwise use classic in-context memory.
+    * `shared_memory`: Whether to share memory across the world, otherwise separate memory per player.
+    """
+
     configurator.register(
         "MCA", "OpenAI compatible endpoint for MCA's chat completions."
     )

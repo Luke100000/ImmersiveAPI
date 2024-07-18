@@ -108,7 +108,7 @@ def _process_location(data):
     try:
         cleaned_content = _get_cached_cleaned_content(loc, content)
         return InformationPage.from_content(
-            loc, cleaned_content, simplify=False, quality=QualityPreset.LOW
+            loc, cleaned_content, simplify=True, quality=QualityPreset.LOW
         )
     except Exception as e:
         print(f"Error processing {loc}: {e}")
