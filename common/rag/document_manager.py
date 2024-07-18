@@ -47,7 +47,7 @@ Do not return an empty result!
 
 Start of the content:
 {content}
-"""
+""".strip()
     model = get_model(model, 500)
 
     prompt = ChatPromptTemplate.from_template(template)
@@ -71,7 +71,7 @@ Output valid markdown!
 Only respond with the markdown reformatted content, do not prepend or append anything.
 
 {content}
-    """
+    """.strip()
 
     model = get_model(model, 4096)
 

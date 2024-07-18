@@ -18,7 +18,7 @@ Query:
 {query}
 
 Extracted Information:
-"""
+""".strip()
 
 
 @cache

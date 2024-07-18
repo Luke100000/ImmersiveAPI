@@ -40,7 +40,7 @@ Output:
 Carl praises a sci-fi show's new episode featuring a time-traveling character.
 
 Answer ONLY with the summary, in a single line.
-"""
+""".strip()
 
 
 @cache
