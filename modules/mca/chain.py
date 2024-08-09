@@ -154,13 +154,17 @@ async def get_chat_completion(
     get_glossary_manager()
     get_vector_compressor()
 
-    with trace(
-        "Chat",
-        "chain",
-        project_name=langsmith_project,
-        inputs={"messages": messages, "tools": tools},
-        tags=[model.model, character.name],
-    ) if langsmith_project else dummy_context_manager():
+    with (
+        trace(
+            "Chat",
+            "chain",
+            project_name=langsmith_project,
+            inputs={"messages": messages, "tools": tools},
+            tags=[model.model, character.name],
+        )
+        if langsmith_project
+        else dummy_context_manager()
+    ):
         # Instantiate model
         kwargs = dict(
             temperature=0.85,
