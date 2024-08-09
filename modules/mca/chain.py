@@ -146,7 +146,6 @@ async def get_chat_completion(
     auth_token: str,
     langsmith_project: str = None,
 ) -> AIMessage:
-    langsmith_project = "mca"
     if langsmith_project:
         os.environ["LANGCHAIN_TRACING_V2"] = "true"
         os.environ["LANGSMITH_PROJECT"] = langsmith_project
