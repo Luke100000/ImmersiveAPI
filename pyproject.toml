@@ -8,6 +8,7 @@ readme = "README.md"
 [tool.poetry.group.dev.dependencies]
 jupyter = "^1.0.0"
 poetry = "^1.8.2"
+black = "^24.8.0"
 
 [tool.poetry.dependencies]
 python = ">=3.9,<3.12"
@@ -58,6 +59,7 @@ ciso8601 = "^2.3.1"
 langchain-openai = "^0.1.15"
 markdownify = "^0.13.1"
 diskcache = "^5.6.3"
+faiss-cpu = "^1.8.0.post1"
 
 
 [build-system]

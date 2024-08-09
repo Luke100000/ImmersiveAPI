@@ -1,8 +1,10 @@
 from typing import Optional
 
+import faiss
 from langchain.embeddings import CacheBackedEmbeddings
 from langchain.storage import LocalFileStore
-from langchain_chroma import Chroma
+from langchain_community.docstore import InMemoryDocstore
+from langchain_community.vectorstores import FAISS
 from langchain_core.documents import Document
 from langchain_core.runnables import Runnable, RunnableConfig
 from langchain_text_splitters import (
@@ -27,7 +29,13 @@ class GlossaryManager(Runnable):
             namespace=self.embedding.name,
         )
 
-        self.db = Chroma(embedding_function=self.cached_embedding)
+        index = faiss.IndexFlatL2(len(self.cached_embedding.embed_query("hello world")))
+        self.db = FAISS(
+            embedding_function=self.cached_embedding,
+            index=index,
+            docstore=InMemoryDocstore(),
+            index_to_docstore_id={},
+        )
         self.text_splitter = RecursiveCharacterTextSplitter(
             separators=["\n\n", "\n", ".", " ", ""], chunk_size=1000, chunk_overlap=100
         )
