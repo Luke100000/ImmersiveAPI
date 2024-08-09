@@ -4,6 +4,7 @@ from datetime import datetime
 from functools import cache
 from typing import Optional
 
+from langchain_core.messages import AIMessage, HumanMessage, BaseMessage
 from langchain_core.prompts import ChatPromptTemplate
 from langchain_core.runnables import Runnable, RunnableConfig
 from langchain_groq import ChatGroq
@@ -57,11 +58,19 @@ def _get_compression_chain(model: str = "llama3-70b-8192"):
     )
 
 
-def _to_conversation(memories: list[Memory]) -> str:
+def _to_conversation(memories: list[Memory]) -> list[BaseMessage]:
     """
     Convert memories to a conversation.
     """
-    return "\n".join([f"{memory.name}: {memory.content}" for memory in memories])
+    # return "\n".join([f"{memory.name}: {memory.content}" for memory in memories])
+    return [
+        (
+            AIMessage
+            if (memory.name == "memory" or memory.name == "You")
+            else HumanMessage
+        )(content=memory.content, name=memory.name)
+        for memory in memories
+    ]
 
 
 def _populate_names(conversation: list, default_name: str) -> list:
@@ -102,10 +111,12 @@ class MemoryManager(Runnable):
         self.characters_per_level = characters_per_level
         self.sentences_per_summary = sentences_per_summary
 
-        self.chain = _get_compression_chain(model=model)
+        self.chain = _get_compression_chain(model)
 
     @traceable(run_type="tool", name="Memorize")
-    def invoke(self, input_dict: dict, config: Optional[RunnableConfig] = None) -> str:
+    def invoke(
+        self, input_dict: dict, config: Optional[RunnableConfig] = None
+    ) -> list[BaseMessage]:
         assert isinstance(input_dict, dict), "Input must be a dictionary."
         assert "session_id" in input_dict, "Session ID not found in input dict."
         assert "conversation" in input_dict, "Conversation not found in input dict."
@@ -236,7 +247,9 @@ class MemoryManager(Runnable):
             memories[0].level + 1,
         )
 
-    def add_fetch_compress(self, session_id: str, conversation: list[Message]) -> str:
+    def add_fetch_compress(
+        self, session_id: str, conversation: list[Message]
+    ) -> list[BaseMessage]:
         self._verify_conversation(conversation)
 
         # fetch memories

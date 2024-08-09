@@ -50,12 +50,11 @@ MODELS: dict[str, Model] = {
         provider="openai",
         tools=True,
     ),
-    "gpt-4o": Model(
-        price=0,
-        model="gpt-4o",
+    "gpt-4o-mini": Model(
+        price=0.3,
+        model="gpt-4o-mini",
         provider="openai",
         tools=True,
-        whitelist={HAGRID_SECRET},
     ),
     "open-mistral-7b": Model(
         price=0.2,
@@ -86,17 +85,24 @@ MODELS: dict[str, Model] = {
 CHARACTERS = {
     HAGRID_SECRET: Character(
         name="Rubeus Hagrid",
-        system="This is a conversation between users and the loyal, friendly, and softhearted Rubeus Hagrid with a thick west country accent. Make use of information and tools, and generate a short respond in his thick west country accent!",
+        system="This is a conversation between users and the loyal, friendly, and softhearted Rubeus Hagrid with a thick west country accent. Generate a short discord-message-respond in his thick west country accent!",
         memory_characters_per_level=1200,
         memory_sentences_per_summary=3,
         memory_model="llama3-70b-8192",
         langsmith_project="hagrid",
         stop=[],
         glossary={
+            "mca_wiki_fast": GlossarySearch(
+                tags={"mca_wiki"},
+                description="Fetch technical information about modding, MCA, configuration, documentation, common questions, ...",
+                k=3,
+                lambda_mult=0.8,
+                always=False,
+            ),
             "mca_wiki": GlossarySearch(
                 tags={"mca_wiki"},
                 description="Fetch technical information about modding, MCA, configuration, documentation, common questions, ...",
-                k=5,
+                k=7,
                 lambda_mult=0.7,
                 always=False,
             ),
@@ -132,7 +138,7 @@ CHARACTERS["villager"] = Character(name="Villager", system=system_prompt)
 LEGACY = {
     "mistral-tiny": "open-mistral-7b",
     "mistral-small": "mixtral-8x7b",
-    "default": "llama3-70b",
+    "default": "gpt-4o-mini",
 }
 
 
@@ -206,7 +212,7 @@ def init(configurator: Configurator):
 
         try:
             # Add additional instructions for the AI
-            character = CHARACTERS.get(player, "villager")
+            character = CHARACTERS.get(player, CHARACTERS.get("villager"))
 
             # Calculate the cost of this request
             weight = int(sum([len(m.content) for m in body.messages]) * model.price + 1)

@@ -10,24 +10,42 @@ from common.langchain.lru_in_memory_store import LRUInMemoryStore
 from common.shared_models import get_sentence_embeddings, ADDITIONAL_QUERY_PROMPTS
 
 
+def recursive_split(text: str, max_length: int, separators: list[str]) -> list[str]:
+    texts = [text]
+    for seperator in separators:
+        new_texts = []
+        for text in texts:
+            if len(text) > max_length:
+                splits = text.split(seperator)
+                for s in splits[:-1]:
+                    new_texts.append(s + seperator)
+                new_texts.append(splits[-1])
+            else:
+                new_texts.append(text)
+        texts = new_texts
+    return texts
+
+
 def split_text(text: str, max_length: int) -> list[Document]:
     docs: list[Document] = []
     buffer = ""
-    for line in text.split("\n"):
-        if len(buffer) > 0 and len(buffer) + len(line) > max_length:
-            docs.append(Document.from_data(buffer))
+    for fragment in recursive_split(
+        text, max_length // 2, ["\n", ".", "!", "?", " ", ""]
+    ):
+        if len(buffer) > 0 and len(buffer) + len(fragment) > max_length:
+            docs.append(Document(page_content=buffer))
             buffer = ""
-        buffer += line + "\n"
+        buffer += fragment
     if len(buffer) > 0:
-        docs.append(Document.from_data(buffer))
+        docs[-1].page_content += buffer
     return docs
 
 
 def split_by_indices(
     objects: list[any], indices: list[any]
 ) -> tuple[list[any], list[any]]:
-    indices = set(indices)
-    included = [objects[i] for i in indices]
+    indices = set([len(objects) + i if i < 0 else i for i in indices])
+    included = [objects[i] for i in indices if 0 <= i < len(objects)]
     excluded = [obj for i, obj in enumerate(objects) if i not in indices]
     return included, excluded
 
@@ -37,13 +55,13 @@ class VectorCompressor(Runnable):
     A tool to compress a large string of text using a vector store and query.
     """
 
-    def __init__(self, document_size: int = 300, static_docs: list[int] = None):
+    def __init__(self, document_size: int = 400, static_docs: list[int] = None):
         """
         :param document_size: The size of each document to split the input into.
         :param static_docs: A list of indices of documents to keep static, by default the first and last doc.
         """
         if static_docs is None:
-            static_docs = [0, -1]
+            static_docs = [-1, 0]
 
         self.document_size = document_size
         self.static_doc_indices = static_docs
@@ -63,7 +81,9 @@ class VectorCompressor(Runnable):
         assert "k" in input_dict, "K not found in input dict."
 
         # Skip small context
-        if len(input_dict["input"]) < self.document_size * input_dict["k"]:
+        if len(input_dict["input"]) < self.document_size * (
+            input_dict["k"] + len(self.static_doc_indices)
+        ):
             return input_dict["input"]
 
         # Construct a document store
@@ -76,7 +96,7 @@ class VectorCompressor(Runnable):
             query=ADDITIONAL_QUERY_PROMPTS.get(self.embedding.name, "")
             + input_dict["query"],
             k=input_dict["k"],
-            fetch_k=input_dict["k"] * 5,
+            fetch_k=input_dict["k"] * 4,
         )
 
         return "\n".join([doc.page_content for doc in retrieved_docs])

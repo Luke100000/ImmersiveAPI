@@ -6,8 +6,7 @@ from functools import cache
 
 from dotenv import load_dotenv
 from groq import Groq
-from langchain_core.messages import AIMessage
-from langchain_core.prompts import ChatPromptTemplate
+from langchain_core.messages import AIMessage, SystemMessage
 from langchain_groq import ChatGroq
 from langchain_mistralai import ChatMistralAI
 from langchain_openai import ChatOpenAI
@@ -69,6 +68,9 @@ def get_glossary_manager():
 
 
 def get_villager(text: str):
+    """
+    Backwards compatibility for missing character IDs.
+    """
     match = re.search(r"Minecraft villager named (.+?) and the Player named", text)
     if match:
         return match.group(1)
@@ -76,16 +78,19 @@ def get_villager(text: str):
         return None
 
 
-def get_conversation(messages: list[Message], max_characters: int = 1024 * 256):
+def crop_conversation(
+    messages: list[Message], max_characters: int = 1024 * 256
+) -> list[Message]:
     i = 0
     for i, message in enumerate(messages[::-1]):
         max_characters -= len(message.content)
         if max_characters < 0:
             break
+    return messages[-i - 1 :]
 
-    return "\n".join(
-        [f"{message.name}: {message.content}" for message in messages[-i - 1 :]]
-    )
+
+def to_conversation(messages: list[Message]):
+    return "\n".join([f"{message.name}: {message.content}" for message in messages])
 
 
 def get_system_flags(system: str):
@@ -104,24 +109,6 @@ def get_system_flags(system: str):
 
 def get_boolean(flags: dict, key: str, default: bool = False):
     return flags[key].lower() == "true" if key in flags else default
-
-
-def get_template(prompt: dict[str, str]):
-    descriptions = {
-        "static_system": "System prompt:",
-        "dynamic_system": "Context specific system prompt:",
-        "glossary": "Retrieved content from knowledge base:",
-        "memory": "Memory and current conversation:",
-    }
-
-    template = "\n--------\n\n".join(
-        [
-            f"{descriptions.get(key, key)}\n{{{key}}}"
-            for key in prompt.keys()
-            if prompt[key]
-        ]
-    )
-    return ChatPromptTemplate.from_template(template)
 
 
 @traceable(run_type="chain", name="Process Glossary")
@@ -159,6 +146,7 @@ async def get_chat_completion(
     auth_token: str,
     langsmith_project: str = None,
 ) -> AIMessage:
+    langsmith_project = "mca"
     if langsmith_project:
         os.environ["LANGCHAIN_TRACING_V2"] = "true"
         os.environ["LANGSMITH_PROJECT"] = langsmith_project
@@ -190,16 +178,15 @@ async def get_chat_completion(
         elif model.provider == "mistral":
             llm = ChatMistralAI(model=model.model, **kwargs)
         elif model.provider == "groq":
-            llm = ChatGroq(model=model.model, **kwargs)
+            llm = ChatGroq(model=model.model, max_retries=5, **kwargs)
         elif model.provider == "openai":
             llm = ChatOpenAI(model=model.model, **kwargs)
         else:
             raise ValueError(f"Unknown provider: {model.provider}")
 
         # Enable tools and add glossary functions if requested
-        tooled_llm = llm
         if model.tools and len(tools) > 0:
-            tooled_llm = llm.bind_tools(tools)
+            llm = llm.bind_tools(tools)
 
         # Process system prompt
         static_system = character.system + "\n" + model.system
@@ -216,7 +203,7 @@ async def get_chat_completion(
             if "character_id" in flags
             else get_villager(messages[0].content)
         )
-        use_memory = get_boolean(flags, "use_memory", True)
+        use_memory = get_boolean(flags, "use_memory", False)
         shared_memory = get_boolean(flags, "shared_memory", False)
         session_id = (
             None
@@ -227,43 +214,55 @@ async def get_chat_completion(
 
         # Clean the remaining messages and construct a query for RAG
         messages = clean_conversation(messages, player_id)
-        query = get_conversation(messages, 400)
+        query = to_conversation(crop_conversation(messages, 400))
 
-        prompt = {
-            "static_system": static_system,
-            "dynamic_system": get_vector_compressor().invoke(
+        # If the system is too large, compress it using a RAG
+        dynamic_system = (
+            get_vector_compressor().invoke(
                 {
                     "input": dynamic_system,
                     "query": query,
-                    "k": 5,
+                    "k": 3,
                 }
             )
             if dynamic_system
-            else "",
-            "glossary": "\n".join(
-                [
-                    get_glossary_entry(query, glossary)
-                    for key, glossary in character.glossary.items()
-                    if glossary.always or key in enabled_glossaries
+            else ""
+        )
+
+        # Construct the prompt
+        prompt = (
+            [SystemMessage(f"{static_system}\n{dynamic_system}")]
+            + [
+                AIMessage(
+                    content=get_glossary_entry(query, glossary),
+                    name="Glossary",
+                )
+                for key, glossary in character.glossary.items()
+                if glossary.always or key in enabled_glossaries
+            ]
+            + (
+                get_memory_manager(
+                    characters_per_level=character.memory_characters_per_level,
+                    sentences_per_summary=character.memory_sentences_per_summary,
+                    model=character.memory_model,
+                ).invoke(
+                    {
+                        "session_id": session_id,
+                        "conversation": messages,
+                    }
+                )
+                if use_memory and session_id is not None
+                else [
+                    m.as_langchain()
+                    for m in crop_conversation(
+                        messages, character.fallback_memory_characters
+                    )
                 ]
-            ),
-            "memory": get_memory_manager(
-                characters_per_level=character.memory_characters_per_level,
-                sentences_per_summary=character.memory_sentences_per_summary,
-                model=character.memory_model,
-            ).invoke(
-                {
-                    "session_id": session_id,
-                    "conversation": messages,
-                }
             )
-            if use_memory and session_id is not None
-            else get_conversation(messages, character.fallback_memory_characters),
-        }
+        )
 
         # Launch
-        chain = get_template(prompt) | tooled_llm
-        response = chain.invoke(prompt)
+        response = llm.invoke(prompt)
 
         os.environ["LANGCHAIN_TRACING_V2"] = "false"
 

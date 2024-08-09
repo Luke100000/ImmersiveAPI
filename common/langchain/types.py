@@ -1,5 +1,6 @@
 from enum import Enum
 
+from langchain_core.messages import SystemMessage, AIMessage, HumanMessage
 from pydantic import BaseModel
 
 
@@ -13,6 +14,14 @@ class Message(BaseModel):
     role: Role = Role.user
     content: str
     name: str = None
+
+    def as_langchain(self):
+        if self.role == Role.system:
+            return SystemMessage(content=self.content)
+        elif self.role == Role.user:
+            return HumanMessage(content=self.content, name=self.name)
+        elif self.role == Role.assistant:
+            return AIMessage(content=self.content, name=self.name)
 
 
 class Body(BaseModel):
@@ -48,7 +57,7 @@ class Character(BaseModel):
     name: str
     system: str
     dynamic_k: int = 4
-    glossary: dict[str, GlossarySearch] = []
+    glossary: dict[str, GlossarySearch] = {}
     default_model: str = "default"
     fallback_memory_characters: int = 3000
     memory_characters_per_level: int = 1000
