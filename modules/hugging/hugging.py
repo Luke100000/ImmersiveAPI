@@ -1,12 +1,13 @@
 import asyncio
 import hashlib
-import os
 import tempfile
 from typing import List, Any, Optional, Union
 
+import aiofiles
+import aiofiles.os
 from fastapi import UploadFile
 from pydantic import BaseModel
-from starlette.responses import Response, StreamingResponse
+from starlette.responses import Response
 
 from common.worker import get_primary_executor
 from main import Configurator
@@ -55,7 +56,7 @@ def init(configurator: Configurator):
     configurator.assert_single_process()
 
     @configurator.get("/v1/tts/xtts-v2/queue")
-    async def get_tts_xtts_model():
+    def get_tts_xtts_queue():
         return get_primary_executor().queue.qsize()
 
     @configurator.get("/v1/tts/xtts-v2/model")
@@ -93,13 +94,13 @@ def init(configurator: Configurator):
                 cache_key = (
                     f"cache/tts/{scan_language}-{speaker}/{text_hash}.{file_format}"
                 )
-                os.makedirs(os.path.dirname(cache_key), exist_ok=True)
+                await aiofiles.os.makedirs("tmp", exist_ok=True)
 
                 # If a cached file is found, return it
-                if os.path.exists(cache_key):
-                    with open(cache_key, "rb") as f:
+                if await aiofiles.os.path.exists(cache_key):
+                    async with aiofiles.open(cache_key, "rb") as f:
                         return Response(
-                            content=f.read(), media_type=f"audio/{file_format}"
+                            content=await f.read(), media_type=f"audio/{file_format}"
                         )
 
             # If an uncached file is found, load all other speakers as well

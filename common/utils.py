@@ -1,4 +1,4 @@
-import aiofile
+import aiofiles
 import aiohttp
 
 
@@ -8,5 +8,5 @@ async def fetch_file(url, target):
             assert resp.status == 200
             data = await resp.read()
 
-        async with aiofile.async_open(target, "wb") as outfile:
+        async with aiofiles.open(target, "wb") as outfile:
             await outfile.write(data)

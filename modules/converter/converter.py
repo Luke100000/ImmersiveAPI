@@ -1,7 +1,9 @@
 import os
 import shutil
 import uuid
+from typing import Optional
 
+import aiofiles
 from fastapi import Request
 from starlette.responses import Response
 from starlette.templating import Jinja2Templates
@@ -31,9 +33,9 @@ def init(configurator: Configurator):
     @configurator.post("/v1/convert/{to_format}")
     async def convert(
         request: Request,
-        to_format: str = None,
-        from_format: str = None,
-        url: str = None,
+        to_format: Optional[str] = None,
+        from_format: Optional[str] = None,
+        url: Optional[str] = None,
     ):
         from_format = clean_format(str(from_format))
         to_format = clean_format(to_format)
@@ -44,8 +46,8 @@ def init(configurator: Configurator):
 
         try:
             if url is None:
-                with open(in_file, "wb") as file:
-                    file.write(await request.body())
+                async with aiofiles.open(in_file, "wb") as file:
+                    await file.write(await request.body())
             else:
                 await fetch_file(url, in_file)
 

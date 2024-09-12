@@ -1,5 +1,6 @@
 [global]
 background_workers = 2
+asyncio_debug = false
 
 [global.embedding]
 model = "text-embedding-3-small"

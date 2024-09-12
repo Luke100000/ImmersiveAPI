@@ -1,3 +1,4 @@
+import asyncio
 import glob
 import importlib
 import logging
@@ -140,6 +141,10 @@ app.openapi = custom_openapi
 async def startup():
     instrumentator.expose(app)
     start_all_modules()
+
+    # Enable asyncio debugging
+    if settings["global"]["asyncio_debug"]:
+        asyncio.get_event_loop().set_debug(True)
 
 
 @app.on_event("shutdown")

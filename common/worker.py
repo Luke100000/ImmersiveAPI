@@ -2,7 +2,7 @@ import asyncio
 import queue
 import threading
 from dataclasses import dataclass, field
-from typing import Any
+from typing import Any, Optional
 
 
 class Worker:
@@ -38,11 +38,11 @@ class PrioritizedItem:
 
 
 class Executor:
-    def __init__(self, max_workers: int):
+    def __init__(self, max_workers: int) -> None:
         self.queue = queue.PriorityQueue()
         self.workers = [Worker(self.queue) for _ in range(max_workers)]
 
-    def submit(self, priority: int, func, *args, **kwargs):
+    def submit(self, priority: int, func, *args, **kwargs) -> asyncio.Future:
         future = asyncio.get_running_loop().create_future()
 
         def task():
@@ -54,12 +54,12 @@ class Executor:
         self.queue.put(PrioritizedItem(priority, task))
         return future
 
-    def shutdown(self):
+    def shutdown(self) -> None:
         for worker in self.workers:
             worker.stop()
 
 
-_worker = None
+_worker: Optional[Executor] = None
 
 
 def set_primary_executor(executor: Executor):
@@ -67,6 +67,8 @@ def set_primary_executor(executor: Executor):
     _worker = executor
 
 
-def get_primary_executor():
+def get_primary_executor() -> Executor:
     global _worker
+    if _worker is None:
+        raise ValueError("Primary executor not set")
     return _worker
