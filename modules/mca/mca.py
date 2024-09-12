@@ -1,3 +1,4 @@
+import asyncio
 import os
 from collections import defaultdict
 
@@ -182,8 +183,21 @@ def init(configurator: Configurator):
     def get_stats():
         return stats
 
+    def _sync_chat_completions(*args, **kwargs):
+        return asyncio.run(_chat_completions(*args, **kwargs))
+
     @configurator.post("/v1/mca/chat")
     async def chat_completions(
+        body: Body, request: Request, authorization: str = Header(None)
+    ):
+        # Since the code got quite bulky and not fully async, lets just wrap it here.
+        loop = asyncio.get_running_loop()
+        result = await loop.run_in_executor(
+            None, _sync_chat_completions, body, request, authorization
+        )
+        return {"response": result}
+
+    async def _chat_completions(
         body: Body, request: Request, authorization: str = Header(None)
     ):
         if not authorization or not authorization.startswith("Bearer "):
