@@ -4,7 +4,7 @@ import time
 from dataclasses import dataclass, field
 from enum import Enum
 from functools import cache
-from typing import List
+from typing import List, Optional
 
 from langchain_core.messages import AIMessage
 from langchain_core.prompts import ChatPromptTemplate
@@ -21,10 +21,10 @@ class Summary(BaseModel):
     tags: str
 
 
-def get_model(model: str, max_tokens: int = None):
+def get_model(model: str, max_tokens: Optional[int] = None):
     if model == "gpt-3.5-turbo":
         return ChatOpenAI(model=model, temperature=0, max_tokens=max_tokens)
-    return ChatGroq(model=model, temperature=0, max_tokens=max_tokens)
+    return ChatGroq(model=model, temperature=0, max_tokens=max_tokens)  # pyright: ignore [reportCallIssue]
 
 
 @cache
@@ -48,11 +48,11 @@ Do not return an empty result!
 Start of the content:
 {content}
 """.strip()
-    model = get_model(model, 500)
+    llm = get_model(model, 500)
 
     prompt = ChatPromptTemplate.from_template(template)
 
-    return prompt | model.with_structured_output(Summary, method="json_mode")
+    return prompt | llm.with_structured_output(Summary, method="json_mode")  # pyright: ignore [reportArgumentType]
 
 
 # todo make this modifying, e.g. java files needs a different treatment than html
@@ -73,7 +73,7 @@ Only respond with the markdown reformatted content, do not prepend or append any
 {content}
     """.strip()
 
-    model = get_model(model, 4096)
+    llm = get_model(model, 4096)
 
     prompt = ChatPromptTemplate.from_messages(
         [
@@ -88,7 +88,7 @@ Only respond with the markdown reformatted content, do not prepend or append any
     def postprocess(content: AIMessage):
         return content.content
 
-    return prompt | model | postprocess
+    return prompt | llm | postprocess
 
 
 RATE_LIMITS = {
@@ -133,7 +133,7 @@ def _rate_limit(
 
 @cache
 def _get_connection():
-    conn = sqlite3.connect("cache/documents.db")
+    conn = sqlite3.connect("cache/documents.db", check_same_thread=False)
     conn.execute(
         """
         CREATE TABLE IF NOT EXISTS documents (
@@ -298,7 +298,7 @@ class InformationPage:
 
         return changes
 
-    def _simplify(self, chunksize: int = None):
+    def _simplify(self, chunksize: Optional[int] = None):
         logging.info(f"Simplifying {self.source} ({len(self.content)} characters)")
 
         if chunksize is None:
@@ -344,12 +344,16 @@ class InformationPage:
         logging.info(f"Summarizing {self.source}")
         # noinspection PyBroadException
         try:
-            summary = get_summary_chain(self.quality.summarization_model).invoke(
+            summary: Summary = get_summary_chain(
+                self.quality.summarization_model
+            ).invoke(  # pyright: ignore [reportAssignmentType]
                 {"content": self.simplified[:max_size]}
             )
         except Exception:
             logging.exception("Error summarizing content")
-            summary = get_summary_chain("gpt-3.5-turbo").invoke(
+            summary: Summary = get_summary_chain(
+                "gpt-3.5-turbo"
+            ).invoke(  # pyright: ignore [reportAssignmentType]
                 {"content": self.simplified[:max_size]}
             )
 

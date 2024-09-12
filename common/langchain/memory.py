@@ -1,4 +1,5 @@
 import sqlite3
+import threading
 from dataclasses import dataclass
 from datetime import datetime
 from functools import cache
@@ -53,7 +54,7 @@ def _get_compression_chain(model: str = "llama3-70b-8192"):
                 ("human", "{messages}"),
             ]
         )
-        | ChatGroq(model=model, temperature=0, max_tokens=200, stop=["\n"])
+        | ChatGroq(model=model, temperature=0, max_tokens=200, stop_sequences=["\n"])
         | (lambda x: x.content)
     )
 
@@ -62,7 +63,6 @@ def _to_conversation(memories: list[Memory]) -> list[BaseMessage]:
     """
     Convert memories to a conversation.
     """
-    # return "\n".join([f"{memory.name}: {memory.content}" for memory in memories])
     return [
         (
             AIMessage
@@ -93,6 +93,14 @@ def clean_conversation(conversation: list[Message], default_name: str) -> list[M
     return _populate_names(_strip_system(conversation), default_name)
 
 
+def _verify_conversation(conversation: list[Message]):
+    for message in conversation:
+        if message.role == Role.system:
+            raise ValueError("System messages are not allowed in the conversation.")
+        if message.name is None:
+            raise ValueError("All messages must have a name.")
+
+
 class MemoryManager(Runnable):
     """
     A manager class that stores conversations in an SQLite database.
@@ -105,7 +113,9 @@ class MemoryManager(Runnable):
         sentences_per_summary: int = 3,
         model: str = "llama3-70b-8192",
     ):
-        self.conn = sqlite3.connect(db_file)
+        self.conn = sqlite3.connect(db_file, check_same_thread=False)
+        self.lock = threading.Lock()
+
         self.create_table()
 
         self.characters_per_level = characters_per_level
@@ -114,7 +124,7 @@ class MemoryManager(Runnable):
         self.chain = _get_compression_chain(model)
 
     @traceable(run_type="tool", name="Memorize")
-    def invoke(
+    def invoke(  # pyright: ignore [reportIncompatibleMethodOverride]
         self, input_dict: dict, config: Optional[RunnableConfig] = None
     ) -> list[BaseMessage]:
         assert isinstance(input_dict, dict), "Input must be a dictionary."
@@ -129,38 +139,40 @@ class MemoryManager(Runnable):
         """
         Create the memory table if it doesn't exist.
         """
-        query = """
-        CREATE TABLE IF NOT EXISTS memory (
-            id INTEGER PRIMARY KEY AUTOINCREMENT,
-            session_id TEXT NOT NULL,
-            name TEXT NOT NULL,
-            time INTEGER NOT NULL,
-            content TEXT NOT NULL,
-            level INTEGER DEFAULT 0
-        )
-        """
-        self.conn.execute(query)
-        self.conn.commit()
+        with self.lock:
+            query = """
+            CREATE TABLE IF NOT EXISTS memory (
+                id INTEGER PRIMARY KEY AUTOINCREMENT,
+                session_id TEXT NOT NULL,
+                name TEXT NOT NULL,
+                time INTEGER NOT NULL,
+                content TEXT NOT NULL,
+                level INTEGER DEFAULT 0
+            )
+            """
+            self.conn.execute(query)
+            self.conn.commit()
 
     def add_memory(self, memory: Memory):
         """
         Add a memory to the database.
         """
-        query = """
-        INSERT INTO memory (session_id, name, time, content, level)
-        VALUES (?, ?, ?, ?, ?)
-        """
-        self.conn.execute(
-            query,
-            (
-                memory.session_id,
-                memory.name,
-                memory.time,
-                memory.content,
-                memory.level,
-            ),
-        )
-        self.conn.commit()
+        with self.lock:
+            query = """
+            INSERT INTO memory (session_id, name, time, content, level)
+            VALUES (?, ?, ?, ?, ?)
+            """
+            self.conn.execute(
+                query,
+                (
+                    memory.session_id,
+                    memory.name,
+                    memory.time,
+                    memory.content,
+                    memory.level,
+                ),
+            )
+            self.conn.commit()
 
     def _split_buffer(self, buffer: list[Memory]) -> tuple[list[Memory], list[Memory]]:
         """
@@ -250,7 +262,7 @@ class MemoryManager(Runnable):
     def add_fetch_compress(
         self, session_id: str, conversation: list[Message]
     ) -> list[BaseMessage]:
-        self._verify_conversation(conversation)
+        _verify_conversation(conversation)
 
         # fetch memories
         memories = self.fetch_memories(session_id)
@@ -276,7 +288,7 @@ class MemoryManager(Runnable):
             memory = Memory(
                 id=-1,
                 session_id=session_id,
-                name=message.name,
+                name=str(message.name),
                 time=int(datetime.now().timestamp() * 1000),
                 content=message.content,
                 level=0,
@@ -293,9 +305,10 @@ class MemoryManager(Runnable):
         """
         Prune conversations older than a year.
         """
-        query = "DELETE FROM memory WHERE 1"
-        self.conn.execute(query)
-        self.conn.commit()
+        with self.lock:
+            query = "DELETE FROM memory WHERE 1"
+            self.conn.execute(query)
+            self.conn.commit()
 
     def close(self):
         """
@@ -307,14 +320,8 @@ class MemoryManager(Runnable):
         """
         Remove memories from the database.
         """
-        ids = [memory.id for memory in memories if memory.id >= 0]
-        query = f"DELETE FROM memory WHERE id IN ({', '.join(map(str, ids))})"
-        self.conn.execute(query)
-        self.conn.commit()
-
-    def _verify_conversation(self, conversation: list[Message]):
-        for message in conversation:
-            if message.role == Role.system:
-                raise ValueError("System messages are not allowed in the conversation.")
-            if message.name is None:
-                raise ValueError("All messages must have a name.")
+        with self.lock:
+            ids = [memory.id for memory in memories if memory.id >= 0]
+            query = f"DELETE FROM memory WHERE id IN ({', '.join(map(str, ids))})"
+            self.conn.execute(query)
+            self.conn.commit()
