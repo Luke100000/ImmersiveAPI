@@ -169,6 +169,7 @@ async def get_chat_completion(
         if model.provider == "mistral":
             llm = ChatMistralAI(
                 model_name=model.model,
+                max_retries=5,
                 temperature=0.85,
                 max_tokens=150,
             )
@@ -183,6 +184,7 @@ async def get_chat_completion(
         elif model.provider == "openai":
             llm = ChatOpenAI(
                 model=model.model,
+                max_retries=5,
                 temperature=0.85,
                 max_tokens=150,
                 stop_sequences=character.stop,

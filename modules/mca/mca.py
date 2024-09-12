@@ -192,10 +192,9 @@ def init(configurator: Configurator):
     ):
         # Since the code got quite bulky and not fully async, lets just wrap it here.
         loop = asyncio.get_running_loop()
-        result = await loop.run_in_executor(
+        return await loop.run_in_executor(
             None, _sync_chat_completions, body, request, authorization
         )
-        return {"response": result}
 
     async def _chat_completions(
         body: Body, request: Request, authorization: str = Header(None)
