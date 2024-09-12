@@ -2,6 +2,7 @@ import os
 from datetime import datetime
 
 import requests
+from cachetools import cached, TTLCache
 from dotenv import load_dotenv
 from patreon.utils import user_agent_string
 
@@ -11,12 +12,13 @@ access_token = os.getenv("PATREON_API_KEY")
 campaign_id = os.getenv("PATREON_CAMPAIGN_ID")
 
 
+@cached(TTLCache(maxsize=8, ttl=30))
 def fetch_members(page_size: int = 100):
     members = []
     cursor = None
     while True:
         params = [
-            f"fields[member]="
+            "fields[member]="
             + "%2C".join(
                 [
                     "last_charge_date",
@@ -27,8 +29,8 @@ def fetch_members(page_size: int = 100):
                 ]
             ),
             f"filter[campaign_id]={campaign_id}",
-            f"sort=last_charge_date",
-            (f"page[cursor]=" + cursor) if cursor else "",
+            "sort=last_charge_date",
+            ("page[cursor]=" + cursor) if cursor else "",
             f"page[count]={page_size}",
         ]
 
@@ -66,14 +68,14 @@ def get_member_list():
     return [m["full_name"] for m in sorted_members]
 
 
-async def verify_patron(email: str) -> bool:
+def verify_patron(email: str) -> bool:
     email = email.lower().strip()
 
     email_to_user = {
         m["email"].lower().strip(): m for m in fetch_members() if m["email"] is not None
     }
 
-    return email_to_user[email]["days_left"] if email in email_to_user else 0
+    return email_to_user[email]["days_left"] if email in email_to_user else False
 
 
 def test():

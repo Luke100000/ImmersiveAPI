@@ -1,5 +1,3 @@
-from multiprocessing.pool import ThreadPool
-
 from pyrate_limiter import (
     BucketFactory,
     RateItem,
@@ -14,7 +12,6 @@ class MultiBucketFactory(BucketFactory):
         self.clock = TimeClock()
         self.rates = rates
         self.buckets = {}
-        self.thread_pool = ThreadPool(2)
 
     def wrap_item(self, name: str, weight: int = 1) -> RateItem:
         return RateItem(name, self.clock.now(), weight=weight)

@@ -1,6 +1,7 @@
 from enum import Enum
+from typing import Optional
 
-from langchain_core.messages import SystemMessage, AIMessage, HumanMessage
+from langchain_core.messages import SystemMessage, AIMessage, HumanMessage, BaseMessage
 from pydantic import BaseModel
 
 
@@ -13,15 +14,17 @@ class Role(Enum):
 class Message(BaseModel):
     role: Role = Role.user
     content: str
-    name: str = None
+    name: Optional[str] = None
 
-    def as_langchain(self):
+    def as_langchain(self) -> BaseMessage:
         if self.role == Role.system:
             return SystemMessage(content=self.content)
         elif self.role == Role.user:
             return HumanMessage(content=self.content, name=self.name)
         elif self.role == Role.assistant:
             return AIMessage(content=self.content, name=self.name)
+        else:
+            raise ValueError(f"Invalid role: {self.role}")
 
 
 class Body(BaseModel):
@@ -35,7 +38,7 @@ class Model(BaseModel):
     model: str
     provider: str
     system: str = ""
-    whitelist: set = None
+    whitelist: Optional[set] = None
     tools: bool = False
 
 
@@ -63,5 +66,5 @@ class Character(BaseModel):
     memory_characters_per_level: int = 1000
     memory_sentences_per_summary: int = 3
     memory_model: str = "llama3-8b-8192"
-    langsmith_project: str = None
+    langsmith_project: Optional[str] = None
     stop: list[str] = ["\n"]

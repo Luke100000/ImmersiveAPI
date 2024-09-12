@@ -38,7 +38,7 @@ def download_video(url: str):
     return path
 
 
-def video_as_frames(cap: cv2.VideoCapture, resolution: float = None):
+def video_as_frames(cap: cv2.VideoCapture, resolution: float | None = None):
     fps = cap.get(cv2.CAP_PROP_FPS)
     frame_count = 0
 
@@ -61,22 +61,22 @@ def video_as_frames(cap: cv2.VideoCapture, resolution: float = None):
 @lru_cache(1)
 def get_model(model: str):
     processor = AutoProcessor.from_pretrained(model)
-    model = CLIPModel.from_pretrained(model)
-    return model, processor
+    clip_model = CLIPModel.from_pretrained(model)
+    return clip_model, processor
 
 
 @lru_cache(64)
 def get_features(labels: tuple, model: str):
-    model, processor = get_model(model)
+    clip_model, processor = get_model(model)
     label_inputs = processor(text=labels, return_tensors="pt", padding=True)
     with torch.no_grad():
-        text_features = model.get_text_features(**label_inputs)
+        text_features = clip_model.get_text_features(**label_inputs)
     prompt_vectors = text_features.cpu().numpy()
     # return np.mean(prompt_vectors, axis=0)
     return prompt_vectors
 
 
-def cosine_similarity(vec: np.array, mat: np.array):
+def cosine_similarity(vec: np.ndarray, mat: np.ndarray):
     if len(vec.shape) == 1:
         p1 = vec.dot(mat)
         p2 = np.linalg.norm(mat, axis=0) * np.linalg.norm(vec)
@@ -86,11 +86,11 @@ def cosine_similarity(vec: np.array, mat: np.array):
         return np.percentile(similarities, axis=0, q=90)
 
 
-def embedd_frames(images: list[Image], model: str):
-    model, processor = get_model(model)
+def embedd_frames(images: list[Image.Image], model: str):
+    clip_model, processor = get_model(model)
     with torch.no_grad():
         inputs = processor(images=images, return_tensors="pt")
-        image_features = model.get_image_features(**inputs)
+        image_features = clip_model.get_image_features(**inputs)
     return image_features.cpu().numpy().T
 
 
@@ -145,7 +145,7 @@ def embedd_video(
     return np.load(path)["features"]
 
 
-def extract_frames(url: str, times: np.array) -> list[Image]:
+def extract_frames(url: str, times: np.ndarray) -> list[Image.Image]:
     video_path = download_video(url)
     cap = cv2.VideoCapture(video_path)
     fps = cap.get(cv2.CAP_PROP_FPS)
@@ -159,7 +159,7 @@ def extract_frames(url: str, times: np.array) -> list[Image]:
     return frames
 
 
-def adjust_local_maxima(similarity: np.array, best: np.array):
+def adjust_local_maxima(similarity: np.ndarray, best: np.ndarray):
     """
     Given the approximate local maxima, find the true maxima
     """
@@ -170,9 +170,11 @@ def adjust_local_maxima(similarity: np.array, best: np.array):
         r = np.array(
             range(
                 0 if index == 0 else (sorted_best[index - 1] + frame) // 2,
-                len(similarity)
-                if index == len(sorted_best) - 1
-                else (sorted_best[index + 1] + frame) // 2,
+                (
+                    len(similarity)
+                    if index == len(sorted_best) - 1
+                    else (sorted_best[index + 1] + frame) // 2
+                ),
             )
         )
         best_index = r[np.argmax(similarity[r])]
@@ -183,8 +185,8 @@ def adjust_local_maxima(similarity: np.array, best: np.array):
 
 
 def extract_maxima(
-    similarity: np.array, resolution: float, maxima_count: int
-) -> np.array:
+    similarity: np.ndarray, resolution: float, maxima_count: int
+) -> np.ndarray:
     """
     Returns a sorted list of local maxima, in seconds
     """
@@ -192,7 +194,7 @@ def extract_maxima(
     high_blur = len(similarity)
     low_blur = 0
     blur = (high_blur + low_blur) / 2
-    for attempt in range(16):
+    for _ in range(16):
         blurred = gaussian_filter1d(similarity, blur)
         local_maxima = argrelextrema(blurred, np.greater)[0]
         capped_local_maxima = local_maxima[
@@ -211,16 +213,16 @@ def extract_maxima(
 
         blur = (high_blur + low_blur) / 2
 
-    return adjust_local_maxima(similarity, best) / resolution
+    return adjust_local_maxima(similarity, np.asarray(best)) / resolution
 
 
 def enhance_local_maxima(
-    times: np.array,
+    times: np.ndarray,
     cap: cv2.VideoCapture,
     resolution: float,
     model: str,
-    positive_vector: np.array,
-    negative_vector: np.array,
+    positive_vector: np.ndarray,
+    negative_vector: np.ndarray,
     report_progress: Callable = lambda x: None,
 ):
     """

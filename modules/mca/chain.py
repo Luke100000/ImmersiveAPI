@@ -1,12 +1,12 @@
-import hashlib
 import os
 import re
 from contextlib import contextmanager
 from functools import cache
+from typing import Optional
 
 from dotenv import load_dotenv
 from groq import Groq
-from langchain_core.messages import AIMessage, SystemMessage
+from langchain_core.messages import AIMessage, SystemMessage, BaseMessage
 from langchain_groq import ChatGroq
 from langchain_mistralai import ChatMistralAI
 from langchain_openai import ChatOpenAI
@@ -144,7 +144,7 @@ async def get_chat_completion(
     messages: list[Message],
     tools: list[dict],
     auth_token: str,
-    langsmith_project: str = None,
+    langsmith_project: Optional[str] = None,
 ) -> AIMessage:
     if langsmith_project:
         os.environ["LANGCHAIN_TRACING_V2"] = "true"
@@ -166,24 +166,27 @@ async def get_chat_completion(
         else dummy_context_manager()
     ):
         # Instantiate model
-        kwargs = dict(
-            temperature=0.85,
-            max_tokens=150,
-            user=hashlib.sha256(auth_token.encode("UTF-8")).hexdigest(),
-            stop=character.stop,
-        )
-        if model.provider == "conczin":
+        if model.provider == "mistral":
+            llm = ChatMistralAI(
+                model_name=model.model,
+                temperature=0.85,
+                max_tokens=150,
+            )
+        elif model.provider == "groq":
+            llm = ChatGroq(
+                model=model.model,
+                max_retries=5,
+                temperature=0.85,
+                max_tokens=150,
+                stop_sequences=character.stop,
+            )
+        elif model.provider == "openai":
             llm = ChatOpenAI(
                 model=model.model,
-                openai_api_base="https://llm.conczin.net/v1",
-                **kwargs,
+                temperature=0.85,
+                max_tokens=150,
+                stop_sequences=character.stop,
             )
-        elif model.provider == "mistral":
-            llm = ChatMistralAI(model=model.model, **kwargs)
-        elif model.provider == "groq":
-            llm = ChatGroq(model=model.model, max_retries=5, **kwargs)
-        elif model.provider == "openai":
-            llm = ChatOpenAI(model=model.model, **kwargs)
         else:
             raise ValueError(f"Unknown provider: {model.provider}")
 
@@ -233,7 +236,7 @@ async def get_chat_completion(
         )
 
         # Construct the prompt
-        prompt = (
+        prompt: list[BaseMessage] = (
             [SystemMessage(f"{static_system}\n{dynamic_system}")]
             + [
                 AIMessage(
@@ -270,7 +273,7 @@ async def get_chat_completion(
         os.environ["LANGCHAIN_TRACING_V2"] = "false"
 
         # noinspection PyTypeChecker
-        return response
+        return response  # pyright: ignore [reportReturnType]
 
 
 def message_to_dict(message: AIMessage) -> dict:
@@ -281,7 +284,7 @@ def message_to_dict(message: AIMessage) -> dict:
         "choices": [
             {
                 "message": {
-                    "content": message.content.strip('"').strip(),
+                    "content": str(message.content).strip('"').strip(),
                     "role": "assistant",
                     "tool_calls": [
                         {

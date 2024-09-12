@@ -37,7 +37,6 @@ Prefer a single sentence as response.
 """
 )
 
-
 MODELS: dict[str, Model] = {
     "conczin": Model(
         price=0.1,
@@ -172,8 +171,8 @@ def init(configurator: Configurator):
     stats = defaultdict(int)
 
     @configurator.get("/v1/mca/verify")
-    async def verify(email: str, player: str):
-        days_left = await verify_patron(email)
+    def verify(email: str, player: str):
+        days_left = verify_patron(email)
         if days_left > 0:
             premium_manager.set_premium(player, days_left)
             return {"answer": "success"}
@@ -212,7 +211,7 @@ def init(configurator: Configurator):
 
         try:
             # Add additional instructions for the AI
-            character = CHARACTERS.get(player, CHARACTERS.get("villager"))
+            character = CHARACTERS.get(player, CHARACTERS["villager"])
 
             # Calculate the cost of this request
             weight = int(sum([len(m.content) for m in body.messages]) * model.price + 1)
@@ -225,7 +224,10 @@ def init(configurator: Configurator):
             # Rate limit per ip
             lim = limiter_ip_premium if premium else limiter_ip
             # noinspection PyAsyncCall
-            lim.try_acquire(name=str(request.client.host), weight=weight)
+            lim.try_acquire(
+                name=str(request.client.host),  # pyright: ignore [reportOptionalMemberAccess]
+                weight=weight,
+            )  # pyright: ignore [reportOptionalMemberAccess]
 
             # Logging
             stats["premium" if premium else "non_premium"] += weight
@@ -252,3 +254,5 @@ def init(configurator: Configurator):
             return message_to_dict(message)
         except BucketFullException:
             return {"error": "limit_premium" if premium else "limit"}
+
+    assert [init, verify, get_stats, chat_completions]
