@@ -5,7 +5,8 @@ from dotenv import load_dotenv
 
 load_dotenv()
 
-from litellm import completion
+# TODO replace with langchain
+from litellm import completion  # noqa: E402
 
 system = """
 You a phrase generator for a video game, producing a single immersive sentence a virtual entity would say after a given sequence of events and instructions.

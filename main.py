@@ -9,11 +9,11 @@ import time
 from dotenv import load_dotenv
 from dynaconf import Dynaconf
 from fastapi import FastAPI
+from fastapi.middleware.cors import CORSMiddleware
+from fastapi.middleware.gzip import GZipMiddleware
 from fastapi.openapi.utils import get_openapi
 from prometheus_client import CollectorRegistry, multiprocess
 from prometheus_fastapi_instrumentator import Instrumentator
-from starlette.middleware.cors import CORSMiddleware
-from starlette.middleware.gzip import GZipMiddleware
 
 from common.config import settings
 from common.worker import get_primary_executor, set_primary_executor, Executor
