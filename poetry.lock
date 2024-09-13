@@ -2637,7 +2637,7 @@ transformers = "*"
 type = "git"
 url = "https://github.com/Luke100000/horde-openai-proxy.git"
 reference = "master"
-resolved_reference = "a5b9e11e7f1a2b1a75d9ac360940ae5bdc12fb43"
+resolved_reference = "9309cc344bcf4094fc91fe9064a407e5c48b7153"
 
 [[package]]
 name = "httpcore"

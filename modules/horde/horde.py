@@ -1,4 +1,3 @@
-import time
 from typing import List
 
 from fastapi import FastAPI, HTTPException
@@ -9,6 +8,7 @@ from horde_openai_proxy import (
     get_horde_completion,
     openai_to_horde,
     filter_models,
+    completions_to_openai_response,
 )
 from starlette.requests import Request
 
@@ -52,17 +52,6 @@ def init(configurator: Configurator) -> List:
         except ValueError as e:
             raise HTTPException(status_code=406, detail=str(e))
 
-        return ChatCompletionResponse(
-            id=completions[0].uuid,
-            choices=[
-                {"role": "assistant", "content": completion.text}
-                for completion in completions
-            ],
-            created=int(time.time()),
-            model=completions[0].model,
-            usage={
-                "kudos": completions[0].kudos,
-            },
-        )
+        return completions_to_openai_response(completions)
 
     return [get_chat_models, post_chat_completion]
