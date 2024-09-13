@@ -64,9 +64,6 @@ class Issue(BaseModel):
 def init(configurator: Configurator):
     configurator.register("Error", "Error reporting and artifact uploading.")
 
-    # The issues index is not thread-safe
-    configurator.assert_single_process()
-
     auth = Auth.Token(os.getenv("GITHUB_TOKEN"))
     g = Github(auth=auth)
 
@@ -100,7 +97,7 @@ def init(configurator: Configurator):
 
             repo.create_file(
                 path,
-                f"Uploaded artifact",
+                "Uploaded artifact",
                 base64.b64decode(file.content),
                 branch=branch,
             )

@@ -52,9 +52,6 @@ def init(configurator: Configurator):
         "Hugging", "Endpoints mostly relying on HuggingFace or similar ML models."
     )
 
-    # While thread safe itself, this module makes use of an executor anyway
-    configurator.assert_single_process()
-
     @configurator.get("/v1/tts/xtts-v2/queue")
     def get_tts_xtts_queue():
         return get_primary_executor().queue.qsize()

@@ -16,9 +16,6 @@ translation = {
 def init(configurator: Configurator):
     configurator.register("FusionSolar", "Metrics endpoint for Huawei FusionSolar.")
 
-    # Multiple connections may trigger rate limiting / captchas
-    configurator.assert_single_process()
-
     client = FusionSolarClient(
         os.getenv("FUSION_SOLAR_USER"),
         os.getenv("FUSION_SOLAR_PASSWORD"),

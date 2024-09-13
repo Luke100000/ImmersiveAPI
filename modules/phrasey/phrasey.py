@@ -238,8 +238,6 @@ class Phrasey:
 def init(configurator: Configurator):
     configurator.register("Phrasey", "Generates phrases for situations.")
 
-    configurator.assert_single_process()
-
     phraseys: dict[str, Phrasey] = {
         "minecraft": Phrasey("cache/phrasey/minecraft", MinecraftEnvironment()),
     }

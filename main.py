@@ -69,9 +69,6 @@ class Configurator:
         self.app = app_
         self.config = config_
 
-    def assert_single_process(self):
-        pass
-
     def register(self, name: str, description: str):
         self.tag = name
         tags_metadata.append({"name": name, "description": description})

@@ -31,7 +31,7 @@ def init(configurator: Configurator):
 
 ## Heavy lifting
 
-For heavy, background work, use the worker process pool.
+For heavy background work, use the worker process pool.
 
 Either use the primary executor, shared among all endpoints:
 
@@ -63,4 +63,4 @@ executor = Executor(1)
 
 ## Not process-safe
 
-Do not launch with multiple workers, not all operations are process-safe, and especialyl the ML endpoints would blow up in memory. Use (background) workers instead.
+Do not launch with multiple workers, not all operations are process-safe, and especially the ML endpoints would blow up in memory. Use (background) workers instead.

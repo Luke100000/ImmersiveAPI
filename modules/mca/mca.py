@@ -157,8 +157,6 @@ def init(configurator: Configurator):
         "MCA", "OpenAI compatible endpoint for MCA's chat completions."
     )
 
-    configurator.assert_single_process()
-
     # Keeps track of premium status
     premium_manager = PremiumManager()
 
