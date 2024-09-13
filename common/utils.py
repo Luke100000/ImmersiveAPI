@@ -1,3 +1,5 @@
+from typing import Optional, TypeVar
+
 import aiofiles
 import aiohttp
 
@@ -10,3 +12,12 @@ async def fetch_file(url, target):
 
         async with aiofiles.open(target, "wb") as outfile:
             await outfile.write(data)
+
+
+T = TypeVar("T")
+
+
+def not_none(x: Optional[T]) -> T:
+    if x is None:
+        raise ValueError("Value is None")
+    return x

@@ -6,13 +6,14 @@ import random
 import threading
 import time
 from queue import PriorityQueue
-from typing import Optional, Union
+from typing import Optional, Union, Tuple, cast
 
 import audioread
 import chromadb
 import numpy as np
 from fastapi import HTTPException
 
+from common.utils import not_none
 from main import Configurator
 from modules.phrasey.environments.environment import Environment, JsonFormat
 from modules.phrasey.environments.minecraft import MinecraftEnvironment
@@ -57,7 +58,7 @@ class Phrasey:
 
         self.client = chromadb.HttpClient(
             host=os.getenv("CHROMA_HOST", "localhost"),
-            port=os.getenv("CHROMA_PORT", 8000),
+            port=int(os.getenv("CHROMA_PORT", 8000)),
         )
         self.collection = self.client.get_or_create_collection("phrasey")
         self.queue = PriorityQueue()
@@ -97,7 +98,7 @@ class Phrasey:
         prompt: str,
         params: dict[str, str],
         phrases: list[str],
-        identifier: str = None,
+        identifier: Optional[str] = None,
     ):
         if identifier is None:
             identifier = self.get_identifier()
@@ -143,8 +144,8 @@ class Phrasey:
         return count
 
     def query(
-        self, params: dict[str, str], blacklist: set[str] = None
-    ) -> Optional[str]:
+        self, params: dict[str, str], blacklist: Optional[set[str]] = None
+    ) -> str:
         try:
             # Construct prompt, filter, and valid voices for this query
             prompt = self.environment.get_prompt(params)
@@ -163,13 +164,15 @@ class Phrasey:
         )
 
         samples = len(results["ids"][0])
-        distances = np.asarray(results["distances"][0])
+        distances = np.asarray(not_none(results["distances"])[0])
         print("distances", distances.shape, distances)
 
         # Filter ids by blacklist and distance
         filtered_ids = []
         for i, identifier in enumerate(results["ids"][0]):
-            if identifier not in blacklist and distances[i] < 0.1:
+            if (blacklist is None or identifier not in blacklist) and distances[
+                i
+            ] < 0.1:
                 filtered_ids.append(identifier)
 
         # If there are fewer samples than target, generate a few more
@@ -184,18 +187,18 @@ class Phrasey:
 
     def load(
         self, identifier: str, voices: list[str]
-    ) -> (list[str], list[bytes], list[float], list[int]):
+    ) -> Tuple[list[str], list[bytes], list[float], list[int]]:
         phrases = self.get_phrases(identifier)
         voice_mapping = [i % 2 for i in range(len(phrases))]
         audios, durations = self.get_audios(identifier, voices, voice_mapping)
         return phrases, audios, durations, voice_mapping
 
     def get_phrases(self, identifier: str) -> list[str]:
-        return load_json(f"{self.cache_dir}/{identifier}/phrases.json")
+        return load_json(f"{self.cache_dir}/{identifier}/phrases.json")  # pyright: ignore [reportReturnType]
 
     def get_audios(
         self, identifier: str, voices: list[str], voice_mapping: list[int]
-    ) -> (list[bytes], list[float]):
+    ) -> Tuple[list[bytes], list[float]]:
         audios = []
         durations = []
         for i, voice in enumerate(voice_mapping):
@@ -222,8 +225,10 @@ class Phrasey:
     def validate_identifier(self, identifier: str):
         if os.path.exists(f"{self.cache_dir}/{identifier}/phrases.json"):
             # Check if all audios exist
-            params = load_json(f"{self.cache_dir}/{identifier}/params.json")
-            valid_voices = self.environment.get_valid_voices(params)
+            params = cast(
+                dict[str, str], load_json(f"{self.cache_dir}/{identifier}/params.json")
+            )
+            valid_voices = cast(list[str], self.environment.get_valid_voices(params))
             count = self.populate_audios(
                 identifier, self.get_phrases(identifier), valid_voices
             )
@@ -268,34 +273,34 @@ def init(configurator: Configurator):
         phrasey = phraseys[environment]
 
         # Prepare parameters
-        params = json.loads(params)
+        params_dict = cast(dict[str, str], json.loads(params))
 
         # Parse voices
-        voices = [v.strip() for v in voices.split(",")]
-        blacklist = {v.strip() for v in blacklist.split(",")}
+        voices_list = [v.strip() for v in voices.split(",")]
+        blacklist_set = {v.strip() for v in blacklist.split(",")}
 
         # Convert voice indices to voice names
-        valid_voices = phrasey.environment.get_valid_voices(params)
-        for i, voice in enumerate(voices):
+        valid_voices = phrasey.environment.get_valid_voices(params_dict)
+        for i, voice in enumerate(voices_list):
             try:
-                voices[i] = valid_voices[int(voice) % len(valid_voices)]
+                voices_list[i] = valid_voices[int(voice) % len(valid_voices)]
             except ValueError:
                 pass
 
         # Validate voices
-        for voice in voices:
+        for voice in voices_list:
             if voice not in valid_voices:
                 return HTTPException(status_code=404, detail="Invalid voice")
 
         # Fetch an identifier
         try:
-            identifier = phrasey.query(params, blacklist)
+            identifier = phrasey.query(params_dict, blacklist_set)
         except HTTPException as e:
             return e
 
         # Load phrases and audios
         phrases, audios, durations, voice_mapping = phraseys[environment].load(
-            identifier, voices
+            identifier, voices_list
         )
 
         return {
