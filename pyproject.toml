@@ -14,7 +14,7 @@ pre-commit = "^3.8.0"
 [tool.poetry.dependencies]
 python = ">=3.9,<3.12"
 python-dotenv = "^1.0.1"
-fastapi = "^0.110.2"
+fastapi = "^0.114.1"
 numpy = "^1.24.3"
 patreon = "^0.5.0"
 cachetools = "^5.3.3"

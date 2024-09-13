@@ -4,19 +4,9 @@ from threading import Thread
 from a2wsgi import WSGIMiddleware
 
 from main import Configurator
-from modules.mc_version_stats.curseforge import get_cf_mods
 from modules.mc_version_stats.dashboard import get_app
 from modules.mc_version_stats.data import get_db
 from modules.mc_version_stats.modrinth import get_modrinth_mods
-
-
-def to_metrics(counts: dict[str, int]):
-    return "\n".join(
-        [
-            f'ff_votes_count{{handler="{name}"}} {value}'
-            for name, value in counts.items()
-        ]
-    )
 
 
 def init(configurator: Configurator):
