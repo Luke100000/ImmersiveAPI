@@ -10,13 +10,17 @@ def init(configurator: Configurator):
     configurator.register("Itch", "Proxy for the Itch.io API to list projects.")
 
     @cached(TTLCache(maxsize=1, ttl=86400))
-    def get_games():
-        session = itchio.Session(os.getenv("ITCHIO_API_KEY"))
+    def get_games() -> list:
+        apikey = os.getenv("ITCHIO_API_KEY")
+        if apikey:
+            session = itchio.Session(apikey)
+        else:
+            raise ValueError("ITCHIO_API_KEY is not set.")
 
         games = []
         for game in itchio.GameCollection(session).all():
             available = game.p_windows or game.p_osx or game.p_linux or game.p_android
-            if available:
+            if available and game.published:
                 games.append(
                     {
                         "id": game.id,
@@ -41,3 +45,5 @@ def init(configurator: Configurator):
     @configurator.get("/v1/itchio")
     def get_itchio():
         return get_games()
+
+    return [get_itchio]
