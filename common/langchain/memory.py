@@ -3,13 +3,14 @@ import threading
 from dataclasses import dataclass
 from datetime import datetime
 from functools import cache
-from typing import Optional
 
 from langchain_core.messages import AIMessage, HumanMessage, BaseMessage
 from langchain_core.prompts import ChatPromptTemplate
-from langchain_core.runnables import Runnable, RunnableConfig
+from langchain_core.runnables import Runnable
 from langchain_groq import ChatGroq
 from langsmith import traceable
+import re
+
 
 from common.langchain.types import Message, Role
 
@@ -73,6 +74,10 @@ def _to_conversation(memories: list[Memory]) -> list[BaseMessage]:
     ]
 
 
+def _remove_invalid_chars(s: str) -> str:
+    return re.sub(r"[^a-zA-Z0-9_-]", "", s)
+
+
 def _populate_names(conversation: list, default_name: str) -> list:
     """
     Memories are multi-speaker, thus ensure that name is set, and use "You" for the assistant.
@@ -82,6 +87,7 @@ def _populate_names(conversation: list, default_name: str) -> list:
             message.name = default_name
         elif message.role == Role.assistant:
             message.name = "You"
+        message.name = _remove_invalid_chars(message.name)
     return conversation
 
 
@@ -125,7 +131,7 @@ class MemoryManager(Runnable):
 
     @traceable(run_type="tool", name="Memorize")
     def invoke(  # pyright: ignore [reportIncompatibleMethodOverride]
-        self, input_dict: dict, config: Optional[RunnableConfig] = None
+        self, input_dict: dict
     ) -> list[BaseMessage]:
         assert isinstance(input_dict, dict), "Input must be a dictionary."
         assert "session_id" in input_dict, "Session ID not found in input dict."
