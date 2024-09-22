@@ -2,6 +2,7 @@ import asyncio
 import os
 from collections import defaultdict
 
+import groq
 from fastapi import HTTPException, Header, Request
 from pyrate_limiter import (
     Duration,
@@ -253,16 +254,28 @@ def init(configurator: Configurator):
                 }
 
             # Process
-            message = await get_chat_completion(
-                model,
-                character,
-                body.messages,
-                body.tools,
-                player,
-                langsmith_project=character.langsmith_project,
-            )
+            try:
+                message = await get_chat_completion(
+                    model,
+                    character,
+                    body.messages,
+                    body.tools,
+                    player,
+                    langsmith_project=character.langsmith_project,
+                )
+                return message_to_dict(message)
+            except groq.RateLimitError:
+                # TODO: Remove once Groq limits are removed
+                stats["rate_limited"] += 1
 
-            return message_to_dict(message)
+                message = await get_chat_completion(
+                    MODELS[LEGACY["default"]],
+                    character,
+                    body.messages,
+                    body.tools,
+                    player,
+                )
+                return message_to_dict(message)
         except BucketFullException:
             return {"error": "limit_premium" if premium else "limit"}
 
