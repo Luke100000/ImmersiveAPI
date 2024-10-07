@@ -4,6 +4,8 @@ from contextlib import contextmanager
 from functools import cache
 from typing import Optional
 
+import requests
+from cachetools import cached, TTLCache
 from dotenv import load_dotenv
 from groq import Groq
 from langchain_core.messages import AIMessage, SystemMessage, BaseMessage
@@ -138,7 +140,18 @@ def dummy_context_manager():
     yield
 
 
-async def get_chat_completion(
+@cached(TTLCache(maxsize=1, ttl=3600))
+def get_models():
+    return [
+        m["name"]
+        for m in requests.get(
+            url="https://api.rk.conczin.net/v1/chat/models",
+            params={"min_size": 7},
+        ).json()
+    ]
+
+
+def get_chat_completion(
     model: Model,
     character: Character,
     messages: list[Message],
@@ -188,6 +201,25 @@ async def get_chat_completion(
                 temperature=0.85,
                 max_tokens=150,
                 stop_sequences=character.stop,
+            )
+        elif model.provider == "horde":
+            # A model with `llama-3-instruct` format is added to have consistent results
+            # TODO: Filter by template
+            models = ["koboldcpp/L3-8B-Stheno-v3.2"] + get_models()
+
+            if len(models) == 1:
+                raise ValueError("No models available.")
+
+            llm = ChatOpenAI(
+                # base_url="https://api.rk.conczin.net/v1",
+                base_url="http://localhost:8000/v1",
+                model=",".join(models),
+                api_key=os.environ.get("HORDE_API_KEY"),  # pyright: ignore [reportArgumentType]
+                max_retries=3,
+                temperature=0.85,
+                max_tokens=100,
+                stop_sequences=character.stop,
+                timeout=180,
             )
         else:
             raise ValueError(f"Unknown provider: {model.provider}")

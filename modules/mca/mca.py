@@ -1,9 +1,8 @@
-import asyncio
 import os
-from collections import defaultdict
 
 import groq
 from fastapi import HTTPException, Header, Request
+from groq import BaseModel
 from pyrate_limiter import (
     Duration,
     Limiter,
@@ -40,11 +39,6 @@ Prefer a single sentence as response.
 )
 
 MODELS: dict[str, Model] = {
-    "conczin": Model(
-        price=0.1,
-        model="conczin",
-        provider="conczin",
-    ),
     "gpt-3.5-turbo": Model(
         price=0.65,
         model="gpt-3.5-turbo",
@@ -75,10 +69,31 @@ MODELS: dict[str, Model] = {
         provider="groq",
         tools=True,
     ),
+    "llama3.1-70b": Model(
+        price=0.65,
+        model="llama-3.1-70b-versatile",
+        provider="groq",
+        tools=True,
+    ),
     "llama3-8b": Model(
         price=0.1,
         model="llama3-8b-8192",
         provider="groq",
+    ),
+    "llama3.1-8b": Model(
+        price=0.1,
+        model="llama-3.1-8b-instant",
+        provider="groq",
+    ),
+    "gemma2-9b": Model(
+        price=0.2,
+        model="gemma2-9b-it",
+        provider="groq",
+    ),
+    "horde": Model(
+        price=0.1,
+        model="horde",
+        provider="horde",
     ),
 }
 
@@ -89,7 +104,7 @@ CHARACTERS = {
         system="This is a conversation between users and the loyal, friendly, and softhearted Rubeus Hagrid with a thick west country accent. Generate a short discord-message-respond in his thick west country accent!",
         memory_characters_per_level=1200,
         memory_sentences_per_summary=3,
-        memory_model="llama3-70b-8192",
+        memory_model="llama-3.1-70b-versatile",
         langsmith_project="hagrid",
         stop=[],
         glossary={
@@ -139,8 +154,44 @@ CHARACTERS["villager"] = Character(name="Villager", system=system_prompt)
 LEGACY = {
     "mistral-tiny": "open-mistral-7b",
     "mistral-small": "mixtral-8x7b",
-    "default": "gpt-4o-mini",
+    "default": "llama-3.1-70b-versatile",
 }
+
+
+class ModelStats(BaseModel):
+    count: int = 0
+    cost: int = 0
+    premium_count: int = 0
+    premium_cost: int = 0
+    rate_limited: int = 0
+    prompt_tokens: int = 0
+    completion_tokens: int = 0
+    cached_tokens: int = 0
+    kudos: int = 0
+
+
+class Stats(BaseModel):
+    summary: ModelStats = ModelStats()
+    models: dict[str, ModelStats] = dict()
+    actual_models: dict[str, ModelStats] = dict()
+
+    def refresh(self):
+        self.summary = ModelStats()
+        for model in self.models.values():
+            self.summary.count += model.count
+            self.summary.cost += model.cost
+            self.summary.premium_count += model.premium_count
+            self.summary.premium_cost += model.premium_cost
+            self.summary.rate_limited += model.rate_limited
+            self.summary.prompt_tokens += model.prompt_tokens
+            self.summary.completion_tokens += model.completion_tokens
+            self.summary.cached_tokens += model.cached_tokens
+            self.summary.kudos += model.kudos
+
+
+def safe_get(d: dict, k: str) -> int:
+    v = 0 if d is None else d.get(k, 0)
+    return 0 if v is None else v
 
 
 def init(configurator: Configurator):
@@ -168,7 +219,8 @@ def init(configurator: Configurator):
     limiter_ip_premium = Limiter(
         MultiBucketFactory([Rate(TOKENS_PREMIUM * 5, Duration.HOUR)])
     )
-    stats = defaultdict(int)
+
+    stats = Stats()
 
     @configurator.get("/v1/mca/verify")
     def verify(email: str, player: str):
@@ -179,23 +231,12 @@ def init(configurator: Configurator):
         return {"answer": "failed"}
 
     @configurator.get("/v1/mca/stats")
-    def get_stats():
+    def get_stats() -> Stats:
+        stats.refresh()
         return stats
 
-    def _sync_chat_completions(*args, **kwargs):
-        return asyncio.run(_chat_completions(*args, **kwargs))
-
     @configurator.post("/v1/mca/chat")
-    async def chat_completions(
-        body: Body, request: Request, authorization: str = Header(None)
-    ):
-        # Since the code got quite bulky and not fully async, lets just wrap it here.
-        loop = asyncio.get_running_loop()
-        return await loop.run_in_executor(
-            None, _sync_chat_completions, body, request, authorization
-        )
-
-    async def _chat_completions(
+    def chat_completions(
         body: Body, request: Request, authorization: str = Header(None)
     ):
         if not authorization or not authorization.startswith("Bearer "):
@@ -241,12 +282,8 @@ def init(configurator: Configurator):
                 weight=weight,
             )  # pyright: ignore [reportOptionalMemberAccess]
 
-            # Logging
-            stats["premium" if premium else "non_premium"] += weight
-            stats[model.model] += weight
-
             # Content moderation
-            if model.provider == "openai" and await check_prompt_openai(body.messages):
+            if model.provider == "openai" and check_prompt_openai(body.messages):
                 return {
                     "choices": [
                         {"message": {"content": "I don't want to talk about that."}}
@@ -254,8 +291,9 @@ def init(configurator: Configurator):
                 }
 
             # Process
+            rate_limited = False
             try:
-                message = await get_chat_completion(
+                message = get_chat_completion(
                     model,
                     character,
                     body.messages,
@@ -263,19 +301,46 @@ def init(configurator: Configurator):
                     player,
                     langsmith_project=character.langsmith_project,
                 )
-                return message_to_dict(message)
             except groq.RateLimitError:
                 # TODO: Remove once Groq limits are removed
-                stats["rate_limited"] += 1
-
-                message = await get_chat_completion(
+                rate_limited = True
+                message = get_chat_completion(
                     MODELS[LEGACY["default"]],
                     character,
                     body.messages,
                     body.tools,
                     player,
                 )
-                return message_to_dict(message)
+
+            # Logging
+            if rate_limited:
+                stats.models[model.model].rate_limited += 1
+
+            actual_model_name = message.response_metadata.get("model_name", model.model)
+            for model_name, stats_container in [(model.model, stats.models)] + [
+                (actual_model_name, stats.actual_models)
+            ]:
+                if model_name not in stats.models:
+                    stats_container[model_name] = ModelStats()
+                model_stats = stats_container[model_name]
+
+                token_usage = message.response_metadata.get("token_usage", {})
+                model_stats.count += 1
+                model_stats.cost += weight
+                if premium:
+                    model_stats.premium_count += 1
+                    model_stats.premium_cost += weight
+                model_stats.kudos += safe_get(token_usage, "kudos")
+                model_stats.prompt_tokens += safe_get(token_usage, "prompt_tokens")
+                model_stats.completion_tokens += safe_get(
+                    token_usage, "completion_tokens"
+                )
+                model_stats.cached_tokens += safe_get(
+                    token_usage.get("prompt_tokens_details", {}), "cached_tokens"
+                )
+
+            # Convert to a partial OpenAI response
+            return message_to_dict(message)
         except BucketFullException:
             return {"error": "limit_premium" if premium else "limit"}
 

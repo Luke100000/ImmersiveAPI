@@ -25,6 +25,7 @@ def init(configurator: Configurator) -> List:
         names: str = "",
         clean_names: str = "",
         base_models: str = "",
+        templates: str = "",
         min_size: float = 0,
         max_size: float = -1,
         quant: str = "",
@@ -34,6 +35,7 @@ def init(configurator: Configurator) -> List:
             set(n.strip() for n in names.split(",") if n.strip()),
             set(n.strip() for n in clean_names.split(",") if n.strip()),
             set(n.strip() for n in base_models.split(",") if n.strip()),
+            set(n.strip() for n in templates.split(",") if n.strip()),
             set(n.strip() for n in backends.split(",") if n.strip()),
             set(n.strip() for n in quant.split(",") if n.strip()),
             min_size=min_size,
@@ -48,7 +50,9 @@ def init(configurator: Configurator) -> List:
 
         try:
             horde_request = openai_to_horde(body)
-            completions = get_horde_completion(token, horde_request)
+            completions = get_horde_completion(
+                token, horde_request, slow_workers=False, allow_downgrade=True
+            )
         except ValueError as e:
             raise HTTPException(status_code=406, detail=str(e))
 
