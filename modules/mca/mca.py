@@ -320,7 +320,7 @@ def init(configurator: Configurator):
             for model_name, stats_container in [(model.model, stats.models)] + [
                 (actual_model_name, stats.actual_models)
             ]:
-                if model_name not in stats.models:
+                if model_name not in stats_container:
                     stats_container[model_name] = ModelStats()
                 model_stats = stats_container[model_name]
 
