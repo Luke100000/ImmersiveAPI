@@ -154,7 +154,7 @@ CHARACTERS["villager"] = Character(name="Villager", system=system_prompt)
 LEGACY = {
     "mistral-tiny": "open-mistral-7b",
     "mistral-small": "mixtral-8x7b",
-    "default": "llama-3.1-70b-versatile",
+    "default": "gpt-4o-mini",
 }
 
 

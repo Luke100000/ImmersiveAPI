@@ -145,7 +145,7 @@ def get_models():
     return [
         m["name"]
         for m in requests.get(
-            url="https://api.rk.conczin.net/v1/chat/models",
+            url="https://api.conczin.net/v1/chat/models",
             params={"min_size": 7},
         ).json()
     ]
@@ -211,8 +211,7 @@ def get_chat_completion(
                 raise ValueError("No models available.")
 
             llm = ChatOpenAI(
-                # base_url="https://api.rk.conczin.net/v1",
-                base_url="http://localhost:8000/v1",
+                base_url="https://api.conczin.net/v1",
                 model=",".join(models),
                 api_key=os.environ.get("HORDE_API_KEY"),  # pyright: ignore [reportArgumentType]
                 max_retries=3,
