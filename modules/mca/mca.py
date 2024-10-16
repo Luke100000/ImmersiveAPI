@@ -1,8 +1,6 @@
-import logging
 import os
 
 import groq
-import openai
 from fastapi import HTTPException, Header, Request
 from groq import BaseModel
 from pyrate_limiter import (
@@ -285,15 +283,12 @@ def init(configurator: Configurator):
             )  # pyright: ignore [reportOptionalMemberAccess]
 
             # Content moderation
-            try:
-                if model.provider == "openai" and check_prompt_openai(body.messages):
-                    return {
-                        "choices": [
-                            {"message": {"content": "I don't want to talk about that."}}
-                        ]
-                    }
-            except openai.RateLimitError:
-                logging.warning("OpenAI moderation rate limit exceeded")
+            if model.provider == "openai" and check_prompt_openai(body.messages):
+                return {
+                    "choices": [
+                        {"message": {"content": "I don't want to talk about that."}}
+                    ]
+                }
 
             # Process
             rate_limited = False
