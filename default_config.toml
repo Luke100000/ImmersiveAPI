@@ -7,9 +7,7 @@ model = "text-embedding-3-small"
 dimensions = 1024
 
 [[global.glossaries]]
-type = "git"
-name = "mca_wiki"
-repository = "https://github.com/Luke100000/minecraft-comes-alive.wiki.git"
+
 
 [converter]
 enable = false
