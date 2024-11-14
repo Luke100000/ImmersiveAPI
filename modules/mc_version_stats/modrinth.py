@@ -1,14 +1,18 @@
 import json
-from typing import List, Dict, Any, Optional
+from typing import List, Dict, Any, Optional, Generator
 
-from modules.mc_version_stats.mod import Version, Mod
-from modules.mc_version_stats.utils import request_get
+from modules.mc_version_stats.mod import Mod
+from modules.mc_version_stats.utils import (
+    request_get,
+    date_to_timestamp,
+    parse_versions,
+)
 
 PAGE_SIZE = 100
 
 
 def modrinth_search(
-    query: str = None,
+    query: Optional[str] = None,
     facets: Optional[List[List[str]]] = None,
     index: Optional[str] = None,
     offset: Optional[int] = None,
@@ -40,33 +44,8 @@ def modrinth_search(
     params = {k: v for k, v in params.items() if v is not None}
 
     response = request_get(url, params=params)
-    response.raise_for_status()
-    return response.json()
-
-
-def get_project_versions(
-    project_id: str,
-    loaders: Optional[List[str]] = None,
-    game_versions: Optional[List[str]] = None,
-) -> List[Dict[str, Any]]:
-    """
-    Retrieves the versions for a specific project on Modrinth.
-
-    Parameters:
-    - project_id (str): The ID of the project.
-    - loaders (Optional[List[str]]): List of loaders to filter versions.
-    - game_versions (Optional[List[str]]): List of game versions to filter versions.
-
-    Returns:
-    - List[Dict[str, Any]]: A list of versions for the specified project from the Modrinth API.
-    """
-    url = f"https://api.modrinth.com/v2/project/{project_id}/version"
-    params = {"loaders": loaders, "game_versions": game_versions}
-
-    # Filter out None values
-    params = {k: v for k, v in params.items() if v is not None}
-
-    response = request_get(url, params=params)
+    if not response:
+        raise Exception("Failed to get response from Modrinth API")
     response.raise_for_status()
     return response.json()
 
@@ -84,52 +63,81 @@ blacklisted_categories = {
 }
 
 
-def prepare_categories(categories: List[str]) -> List[str]:
-    return [
+def prepare_categories(categories: list[str]) -> set[str]:
+    return {
         category.lower()
         for category in categories
         if category not in blacklisted_categories
-    ]
+    }
 
 
-def get_modrinth_mods(db: dict = None):
+def populate_modrinth_details(mod: Mod) -> Mod:
+    response = request_get(f"https://api.modrinth.com/v2/project/{mod.id}")
+    if not response:
+        raise Exception("Failed to get response from Modrinth API")
+    response.raise_for_status()
+    result = response.json()
+
+    mod.body = result["body"]
+    mod.links = {
+        "issues": result["issues_url"],
+        "source": result["source_url"],
+        "wiki": result["wiki_url"],
+        "discord": result["discord_url"],
+        **{d["id"]: d["url"] for d in result["donation_urls"]},
+    }
+
+    mod.mod_loaders = set(result["loaders"])
+
+    return mod
+
+
+def get_modrinth_mods(project_type: str = "mod") -> Generator[Mod, None, None]:
     index = 0
     while True:
         results = modrinth_search(
             limit=PAGE_SIZE,
             offset=index,
-            facets=[["project_type:mod"]],
+            facets=[
+                ["project_type:" + project_type],
+                ["downloads>100"],
+            ],
             index="downloads",
         )["hits"]
         index += PAGE_SIZE
 
         for result in results:
-            if db is not None and result["project_id"] in db:
-                continue
-
             mod = Mod(
-                result["project_id"],
-                result["downloads"],
-                prepare_categories(result["categories"]),
-                result["license"],
-                result["date_created"],
-                "modrinth",
+                id=result["project_id"],
+                source="modrinth",
+                slug=result["slug"],
+                last_modified=date_to_timestamp(result["date_modified"]),
+                created_at=date_to_timestamp(result["date_created"]),
+                name=result["title"],
+                author=result["author"],
+                description=result["description"],
+                type=result["project_type"],
+                categories=prepare_categories(result["categories"]),
+                downloads=result["downloads"],
+                follows=result["follows"],
+                body="",
+                license=result["license"],
+                links={},
+                icon=result["icon_url"],
+                gallery=result["gallery"],
+                versions=parse_versions(result["versions"]),
             )
 
-            # Fetch versions
-            for version in get_project_versions(result["project_id"]):
-                for game_version in version["game_versions"]:
-                    for loader in version["loaders"]:
-                        mod.versions.append(
-                            Version(
-                                version["id"],
-                                game_version,
-                                loader.lower(),
-                                version["downloads"],
-                                version["date_published"],
-                            )
-                        )
+            if result["client_side"] == "required":
+                mod.categories.add("client")
+            if result["client_side"] == "optional":
+                mod.categories.add("optional-client")
+            if result["server_side"] == "required":
+                mod.categories.add("server")
 
-            mod.post_process()
+            if "featured_gallery" in result and result["featured_gallery"]:
+                if result["featured_gallery"] in mod.gallery:
+                    mod.gallery.remove(result["featured_gallery"])
+                mod.gallery.insert(0, result["featured_gallery"])
 
             yield mod

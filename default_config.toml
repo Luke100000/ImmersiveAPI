@@ -40,3 +40,6 @@ enable = false
 
 [horde]
 enable = false
+
+[mc_version_stats]
+enable = false

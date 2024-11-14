@@ -1,0 +1,118 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Version Data Table</title>
+    <!--suppress CssUnusedSymbol -->
+    <style>
+        body {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            min-height: 100vh;
+            margin: 0;
+            font-family: Arial, sans-serif;
+            background-color: #e0e0e0;
+            color: #333;
+        }
+
+        .metadata {
+            background-color: #444;
+            box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
+            color: #fff;
+            border-radius: 8px;
+            margin-top: 20px;
+            margin-bottom: 20px;
+            width: 50em;
+            text-align: center;
+        }
+
+        table {
+            border-collapse: collapse;
+            width: 50em;
+            background-color: white;
+            box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
+            border-radius: 8px;
+            overflow: hidden;
+        }
+
+        th, td {
+            padding: 12px 15px;
+            text-align: center;
+            border-bottom: 1px solid #ddd;
+        }
+
+        th {
+            background-color: #555;
+            color: white;
+            font-weight: bold;
+        }
+
+        .heatmap {
+            color: white;
+            font-weight: bold;
+        }
+
+        .heatmap {
+        }
+
+        .preferred-version {
+            font-weight: bold;
+        }
+    </style>
+</head>
+<body>
+
+<div class="metadata">
+    <h1>Version Coverage</h1>
+    <p>Total Versions: {{ versions|length }} | Total Mods: {{ total }} | Versions in bold are recommended</p>
+</div>
+
+<table>
+    <thead>
+    <tr>
+        <th>Version</th>
+        <th>Mod Count</th>
+        <th>Coverage</th>
+    </tr>
+    </thead>
+    <tbody>
+    {% for super_version, sub_versions in versions_per_super_version.items() %}
+        <tr>
+            <td colspan="2" style="background-color: #f1f1f1; font-weight: bold;">{{ super_version }}</td>
+            <td class="heatmap"
+                style="
+                        {% set coverage_percent = (super_version_relative_coverage[super_version] * 100) | round(0) | int %}
+                        {% set inverse_coverage_percent = 100 - coverage_percent %}
+                        background: linear-gradient(to right, #00FF00 0%, #00FF00 {{ coverage_percent }}%, #FF0000 {{ coverage_percent }}%, #FF0000 100%);
+                        color: black;
+                        ">
+                {{ (super_version_relative_coverage[super_version] * 100) | round(0) | int }}%
+            </td>
+        </tr>
+        {% for version in sub_versions %}
+            {% set major_version = version.split('.')[0] %}
+            <tr>
+                <td class="{% if version in preferred_versions %}preferred-version{% endif %}">
+                    {{ version }}
+                </td>
+                <td>{{ "{:,}".format(coverage[version]) }}</td>
+                <td class="heatmap"
+                    style="
+                            {% set coverage_percent = (relative_coverage[version] * 100) | round(0) | int %}
+                            {% set inverse_coverage_percent = 100 - coverage_percent %}
+                            background: linear-gradient(to right, #00FF00 0%, #00FF00 {{ coverage_percent }}%, #FF0000 {{ coverage_percent }}%, #FF0000 100%);
+                            color: black;
+                            ">
+                    {{ (relative_coverage[version] * 100) | round(0) | int }}%
+                </td>
+            </tr>
+        {% endfor %}
+    {% endfor %}
+    </tbody>
+</table>
+
+</body>
+</html>
