@@ -59,9 +59,11 @@ def init(configurator: Configurator):
                 versions.add(version)
                 coverage[version] += 1
 
-        versions = [v for v in parse_versions(list(versions)) if is_clean_version(v)][
-            ::-1
-        ]
+        versions = [
+            v
+            for v in parse_versions(list(versions))
+            if is_clean_version(v) and coverage[v] > 10
+        ][::-1]
         coverage = {k: v for k, v in coverage.items() if k in versions}
 
         super_versions = set()
