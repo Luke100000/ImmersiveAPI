@@ -19,7 +19,7 @@ def init(configurator: Configurator):
         "Minecraft Version Stats", "Metrics endpoint for analysing version popularity."
     )
 
-    def updater(sleep_time: int = 3):
+    def updater():
         while True:
             for mod in get_modrinth_mods("mod"):
                 existing_mod = database.get_mod(mod.id)
@@ -28,13 +28,14 @@ def init(configurator: Configurator):
                     if existing_mod.last_modified != mod.last_modified:
                         populate_modrinth_details(mod)
                         database.add_mod(mod)
+                        time.sleep(3)
                     else:
                         database.update_mod(mod)
+                        time.sleep(0.1)
                 else:
                     populate_modrinth_details(mod)
                     database.add_mod(mod)
-
-                time.sleep(sleep_time)
+                    time.sleep(3)
             time.sleep(60)
 
     Thread(target=updater, daemon=True).start()
@@ -47,6 +48,8 @@ def init(configurator: Configurator):
     @configurator.get("/mcv/dashboard")
     def get_dashboard(request: Request):
         mods = database.get_mods()
+
+        mods = [m for m in mods if "library" not in m.categories]
 
         versions = set()
         coverage = defaultdict(int)
