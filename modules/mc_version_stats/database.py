@@ -1,6 +1,7 @@
 import json
 from typing import Optional
 
+from cachetools import cached, TTLCache
 from sqlalchemy import (
     create_engine,
     Integer,
@@ -129,6 +130,7 @@ class ModDatabase:
             )
             return None if mod is None else mod.to_mod()
 
+    @cached(TTLCache(maxsize=1, ttl=3600))
     def get_mods(self):
         with self.Session() as session:
             # noinspection PyTypeChecker
