@@ -106,6 +106,9 @@ def get_modrinth_mods(project_type: str = "mod") -> Generator[Mod, None, None]:
         )["hits"]
         index += PAGE_SIZE
 
+        if len(results) == 0:
+            break
+
         for result in results:
             mod = Mod(
                 id=result["project_id"],
