@@ -1401,6 +1401,21 @@ test = ["certifi", "cryptography-vectors (==43.0.3)", "pretend", "pytest (>=6.2.
 test-randomorder = ["pytest-randomly"]
 
 [[package]]
+name = "cutlet"
+version = "0.4.0"
+description = "Romaji converter"
+optional = false
+python-versions = ">=3.5"
+files = [
+    {file = "cutlet-0.4.0.tar.gz", hash = "sha256:9abc50b2c36aabc0c863b7a0fd6a3a651dc372e056f0914d83e76ac2612f3626"},
+]
+
+[package.dependencies]
+fugashi = "*"
+jaconv = "*"
+mojimoji = "*"
+
+[[package]]
 name = "cycler"
 version = "0.12.1"
 description = "Composable style cycles"
@@ -2357,6 +2372,62 @@ test-full = ["adlfs", "aiohttp (!=4.0.0a0,!=4.0.0a1)", "cloudpickle", "dask", "d
 tqdm = ["tqdm"]
 
 [[package]]
+name = "fugashi"
+version = "1.4.0"
+description = "A Cython MeCab wrapper for fast, pythonic Japanese tokenization."
+optional = false
+python-versions = ">=3.8"
+files = [
+    {file = "fugashi-1.4.0-cp310-cp310-macosx_10_9_universal2.whl", hash = "sha256:0a2221232176244ff983b03d29a80b3be0768ef708405fb5f7629cf250386698"},
+    {file = "fugashi-1.4.0-cp310-cp310-macosx_10_9_x86_64.whl", hash = "sha256:70940296be946ea9dc3a0d6608f9f5cfb19d18693573634083e50aed5ae09edd"},
+    {file = "fugashi-1.4.0-cp310-cp310-macosx_11_0_arm64.whl", hash = "sha256:d7aaa73e5c1614e9a4d50d8f3975727fcc01f318ff45fc000f2c4e4d96f2927a"},
+    {file = "fugashi-1.4.0-cp310-cp310-manylinux_2_17_aarch64.manylinux2014_aarch64.whl", hash = "sha256:26679c754cdcb1683911b3de5c6c13d99eb47d962f98da0872fb0eb80cb278d1"},
+    {file = "fugashi-1.4.0-cp310-cp310-manylinux_2_17_x86_64.manylinux2014_x86_64.whl", hash = "sha256:fd19fa1b3d4965ef162801cd554b82b10dbe0344f094fb3375ff064c11c24478"},
+    {file = "fugashi-1.4.0-cp310-cp310-win_amd64.whl", hash = "sha256:c2eaafda887d1e7c41e1c332888e075459bf3ef74fdb474286671ac2033acaa5"},
+    {file = "fugashi-1.4.0-cp311-cp311-macosx_10_9_universal2.whl", hash = "sha256:ec966fdf2647b87fea1ef31850ea3ec9960f0c409c8398c583d9b46673be9f7e"},
+    {file = "fugashi-1.4.0-cp311-cp311-macosx_10_9_x86_64.whl", hash = "sha256:96a1da8e74a36ce651a6452a94d339ef749b1882bc568679d0c9a03154569313"},
+    {file = "fugashi-1.4.0-cp311-cp311-macosx_11_0_arm64.whl", hash = "sha256:86b8284d3ad49f970fd704327124a9b71a8500723222c35106c93c459acf7b26"},
+    {file = "fugashi-1.4.0-cp311-cp311-manylinux_2_17_aarch64.manylinux2014_aarch64.whl", hash = "sha256:a6a5ea534278c4dcaad44d7752585f8375029a28dd3a9d853deda34ddd2ae32d"},
+    {file = "fugashi-1.4.0-cp311-cp311-manylinux_2_17_x86_64.manylinux2014_x86_64.whl", hash = "sha256:b89b8e6db0fbe374c91322c1ec115061f154dd261aeb992a8b6d8e28056138a4"},
+    {file = "fugashi-1.4.0-cp311-cp311-win_amd64.whl", hash = "sha256:aeae8fc06d1c32c2ee1da79e30b8f25afd592853985e4776a3e4b78337e4b757"},
+    {file = "fugashi-1.4.0-cp312-cp312-macosx_10_13_universal2.whl", hash = "sha256:eb88cb765c5d7c9bd5f01e179a98262970c3a4d3f14ee39daab641a6d89870c2"},
+    {file = "fugashi-1.4.0-cp312-cp312-macosx_10_13_x86_64.whl", hash = "sha256:08e965ee31782d8324e0aecb7b03c36db79a999f573f8fdc53960643c2637050"},
+    {file = "fugashi-1.4.0-cp312-cp312-macosx_11_0_arm64.whl", hash = "sha256:44dd186fd5fbe295d2f5613f528ec8e765c93c31138adc65be0f391e0560da2b"},
+    {file = "fugashi-1.4.0-cp312-cp312-manylinux_2_17_aarch64.manylinux2014_aarch64.whl", hash = "sha256:04ef5a3537bf2a3c5255b82f816e30f86ffc4711777357a0104a043753b84e82"},
+    {file = "fugashi-1.4.0-cp312-cp312-manylinux_2_17_x86_64.manylinux2014_x86_64.whl", hash = "sha256:c5e383c5fac4addb0203e022944df1a0c49859a64921af83ea9591da98211501"},
+    {file = "fugashi-1.4.0-cp312-cp312-win_amd64.whl", hash = "sha256:cb63079142cb9c9ca98c79ba487d58e169dde8750318c38d5fab8e00ac461e2f"},
+    {file = "fugashi-1.4.0-cp313-cp313-macosx_10_13_universal2.whl", hash = "sha256:8b5e43ef6532c90ad3afac816fe5c63f8613c66119b28aeafdfa442abc4e5735"},
+    {file = "fugashi-1.4.0-cp313-cp313-macosx_10_13_x86_64.whl", hash = "sha256:322d357c446c1b2eba42f8170fc3c1094d78f08a13dbf060a08e58c7cdebcf42"},
+    {file = "fugashi-1.4.0-cp313-cp313-macosx_11_0_arm64.whl", hash = "sha256:8fe382c159c2afb6dc3c653b169b9efe1699a7701ab23e5e019539058e5d06db"},
+    {file = "fugashi-1.4.0-cp313-cp313-manylinux_2_17_aarch64.manylinux2014_aarch64.whl", hash = "sha256:0cca9a9ecacb5269598764a56ab73b883001b93ab726032962d4d2d416b76c7b"},
+    {file = "fugashi-1.4.0-cp313-cp313-manylinux_2_17_x86_64.manylinux2014_x86_64.whl", hash = "sha256:016d003de8db2b7b67a6ffaf74915cee8f717c3aa7a66b78acf30c5b13e0e9bc"},
+    {file = "fugashi-1.4.0-cp313-cp313-win_amd64.whl", hash = "sha256:99328a498150cfc39e4ac574a1431a24f967033420f4f92b4ade24aab0271ea2"},
+    {file = "fugashi-1.4.0-cp38-cp38-macosx_10_9_universal2.whl", hash = "sha256:3f6dc71546bd995578dd58cade68b267392c0e5382f80ee30d3339ff370fa0a7"},
+    {file = "fugashi-1.4.0-cp38-cp38-macosx_10_9_x86_64.whl", hash = "sha256:63f1309e248ffa4ebdc4c927b6666075fcb41fce2674296edc6e700bedf72d41"},
+    {file = "fugashi-1.4.0-cp38-cp38-macosx_11_0_arm64.whl", hash = "sha256:32d4c66bb3ce489a20ca87245e05626c8fedd8f9b72e901eff4518d2d21ba97c"},
+    {file = "fugashi-1.4.0-cp38-cp38-manylinux_2_17_aarch64.manylinux2014_aarch64.whl", hash = "sha256:f8fba18a4986dd9f9ac39c276c6b0372b9a2c0e981f7e1dd8a69199ce316d244"},
+    {file = "fugashi-1.4.0-cp38-cp38-manylinux_2_17_x86_64.manylinux2014_x86_64.whl", hash = "sha256:884672b090c4f8d8582efc1c921bb0b69fb0f154db7ec3f57b345c8fdd0f9909"},
+    {file = "fugashi-1.4.0-cp38-cp38-win_amd64.whl", hash = "sha256:3615340db5b0f5b3f0fae1550bb753549dc7a87b8bfea67db769fda47c513748"},
+    {file = "fugashi-1.4.0-cp39-cp39-macosx_10_9_universal2.whl", hash = "sha256:a9e0f66dd1fcda351e8e07565b826706b8dd535fa4a27a19a4cb138261239f24"},
+    {file = "fugashi-1.4.0-cp39-cp39-macosx_10_9_x86_64.whl", hash = "sha256:04db2cb4e157e7f9fe436336fbc0aaf0950acb93ff84fc0ed62752a7fb97acda"},
+    {file = "fugashi-1.4.0-cp39-cp39-macosx_11_0_arm64.whl", hash = "sha256:99f1d0ec94326e5215610b156affb8e2dca2d96f2859f03ce380189223809101"},
+    {file = "fugashi-1.4.0-cp39-cp39-manylinux_2_17_aarch64.manylinux2014_aarch64.whl", hash = "sha256:b007f3adf5e185ef55093b65ade1b8201b3d2553bd363278360cfff2821b3154"},
+    {file = "fugashi-1.4.0-cp39-cp39-manylinux_2_17_x86_64.manylinux2014_x86_64.whl", hash = "sha256:51598ec28fe49ad2971dc83b224d13b4d057d4fbe13754d55ad04a9286e9ff2c"},
+    {file = "fugashi-1.4.0-cp39-cp39-win_amd64.whl", hash = "sha256:de5b81a63654fcf583669d92f3b3b0c7c4ab41aa54441dce827c45232dbc98e7"},
+    {file = "fugashi-1.4.0-pp310-pypy310_pp73-macosx_10_15_x86_64.whl", hash = "sha256:4348142a8edfbbaefc6d4d11ee28de375bcb8e347a86908356ec4245d17fe259"},
+    {file = "fugashi-1.4.0-pp310-pypy310_pp73-macosx_11_0_arm64.whl", hash = "sha256:334793ca17a81c3fcea0ca2edf10bd5fcd9bc59cf8c99572003d76172d9e352d"},
+    {file = "fugashi-1.4.0-pp38-pypy38_pp73-macosx_10_9_x86_64.whl", hash = "sha256:6c95a08ca732c68b85fc0e1d9596d9c930c062e107d5ecfc2e7a86d5a85ed907"},
+    {file = "fugashi-1.4.0-pp38-pypy38_pp73-macosx_11_0_arm64.whl", hash = "sha256:0c511691cf2d0b2d72ff69a72cdf51ce9ffc9c81ee193f95c4ca16ad9eae0b84"},
+    {file = "fugashi-1.4.0-pp39-pypy39_pp73-macosx_10_15_x86_64.whl", hash = "sha256:7f69c7cc1ca6ff896dc307702d80d80a1575d15237c34d9c8cfdc7cdb65b5481"},
+    {file = "fugashi-1.4.0-pp39-pypy39_pp73-macosx_11_0_arm64.whl", hash = "sha256:52ff5e6230344954316aa1a37688a9da46dcb94dac1960a52bd19dfbf6e2ae00"},
+    {file = "fugashi-1.4.0.tar.gz", hash = "sha256:443880fa975defc3194f524fbd6cdbcd32776fa66d573d07ccec9edb76cd5271"},
+]
+
+[package.extras]
+unidic = ["unidic"]
+unidic-lite = ["unidic-lite"]
+
+[[package]]
 name = "fusion-solar-py"
 version = "0.0.21"
 description = "A simply API to the Huawei Fusion Solar web interface."
@@ -3155,6 +3226,16 @@ python-versions = ">=3.8"
 files = [
     {file = "itsdangerous-2.2.0-py3-none-any.whl", hash = "sha256:c6242fc49e35958c8b15141343aa660db5fc54d4f13a1db01a3f5891b98700ef"},
     {file = "itsdangerous-2.2.0.tar.gz", hash = "sha256:e0050c0b7da1eea53ffaf149c0cfbb5c6e2e2b69c4bef22c81fa6eb73e5f6173"},
+]
+
+[[package]]
+name = "jaconv"
+version = "0.4.0"
+description = "Pure-Python Japanese character interconverter for Hiragana, Katakana, Hankaku, Zenkaku and more"
+optional = false
+python-versions = "*"
+files = [
+    {file = "jaconv-0.4.0.tar.gz", hash = "sha256:32da74b247f276e09a52d6b35c153df2387965cb85a6f034cc8af21d446f8161"},
 ]
 
 [[package]]
@@ -4512,6 +4593,58 @@ files = [
 ]
 
 [[package]]
+name = "mecab-python3"
+version = "1.0.10"
+description = "Python wrapper for the MeCab morphological analyzer for Japanese"
+optional = false
+python-versions = "*"
+files = [
+    {file = "mecab_python3-1.0.10-cp310-cp310-macosx_10_9_universal2.whl", hash = "sha256:ddeeb7e40348066cbcf980dffa19bc84e087bb0fb452ce149defc11747f52f85"},
+    {file = "mecab_python3-1.0.10-cp310-cp310-macosx_10_9_x86_64.whl", hash = "sha256:1acb9f47108170a43549637f3f45449c7018d56e91ca5fc8ad56bbcd8288848c"},
+    {file = "mecab_python3-1.0.10-cp310-cp310-macosx_11_0_arm64.whl", hash = "sha256:e487498dc7231926230944ad04e40406d23499240fd35273d8d2c4f775dcc162"},
+    {file = "mecab_python3-1.0.10-cp310-cp310-manylinux_2_17_aarch64.manylinux2014_aarch64.whl", hash = "sha256:2a2924d9ee1a7eefe0601edf16d2b63c5519e3403b319cfc9d1eda4bf978f6d9"},
+    {file = "mecab_python3-1.0.10-cp310-cp310-manylinux_2_17_x86_64.manylinux2014_x86_64.whl", hash = "sha256:069c176c02b6bec3fdc9e00c42138dc77ef4b683908b6909808bc7528d2996bc"},
+    {file = "mecab_python3-1.0.10-cp310-cp310-win_amd64.whl", hash = "sha256:63cd0a65835257a1fcb88f25a6eaf1a8e472990a9d3f7d08300c5cccf8973931"},
+    {file = "mecab_python3-1.0.10-cp311-cp311-macosx_10_9_universal2.whl", hash = "sha256:ebc8bbdb7e0c616e1467b02cadc3c7a764912dec241b31a14c90b1c1ac58afc8"},
+    {file = "mecab_python3-1.0.10-cp311-cp311-macosx_10_9_x86_64.whl", hash = "sha256:3d66bbda223e64bf1eb320809b5d7e21fc6b045ccc14e07232d8592dd40b1a29"},
+    {file = "mecab_python3-1.0.10-cp311-cp311-macosx_11_0_arm64.whl", hash = "sha256:9eed9b626a82eb26e571e45832b7c03b46e250e57c70d7309aa0c28c0fb95d47"},
+    {file = "mecab_python3-1.0.10-cp311-cp311-manylinux_2_17_aarch64.manylinux2014_aarch64.whl", hash = "sha256:01c1123fb64fb67d29e7221a9cba36b589b795683bd94e762d87385a9633de95"},
+    {file = "mecab_python3-1.0.10-cp311-cp311-manylinux_2_17_x86_64.manylinux2014_x86_64.whl", hash = "sha256:da59058da7459457f14382ddb6a2bb4a80176d0dcfa3eb835c53abd11e5aa97d"},
+    {file = "mecab_python3-1.0.10-cp311-cp311-win_amd64.whl", hash = "sha256:1eca068650d9f228072820ce015eb5831b9114afe6cc0f381208eaa2e1f23f0f"},
+    {file = "mecab_python3-1.0.10-cp312-cp312-macosx_10_13_universal2.whl", hash = "sha256:fb21b38fea3da3a3c893b6af34f9d34e4846c30f7d2f76fe58beee195963fbf3"},
+    {file = "mecab_python3-1.0.10-cp312-cp312-macosx_10_13_x86_64.whl", hash = "sha256:7fa96813dca31ad1517a1c5921b5620713fdefea072795ec9de31425fcf2c4e1"},
+    {file = "mecab_python3-1.0.10-cp312-cp312-macosx_11_0_arm64.whl", hash = "sha256:134e2c68a783f545bc8373601469d017a13d9b7cac46d243ec1bbfb2c94639a3"},
+    {file = "mecab_python3-1.0.10-cp312-cp312-manylinux_2_17_aarch64.manylinux2014_aarch64.whl", hash = "sha256:2d9ff1c7a7ec4f42c98d74db71bc9b1d513db4cf676a023665ae40197f2da040"},
+    {file = "mecab_python3-1.0.10-cp312-cp312-manylinux_2_17_x86_64.manylinux2014_x86_64.whl", hash = "sha256:2953a3e53fa269f2e1b109de3a55fc7668e9e566f0340a69c2202a37f0447691"},
+    {file = "mecab_python3-1.0.10-cp312-cp312-win_amd64.whl", hash = "sha256:308cbec46e426d53bde1f97a95ea655d3e6fcababe0c444dd74c9d3f8105a179"},
+    {file = "mecab_python3-1.0.10-cp313-cp313-macosx_10_13_universal2.whl", hash = "sha256:711ee9a7ba27aa6988b580951671e5966d7b9aa16cae453d17a5e149d295941c"},
+    {file = "mecab_python3-1.0.10-cp313-cp313-macosx_10_13_x86_64.whl", hash = "sha256:1cc4e90d23b57e1ea4bf0ecc57cf7cdbc432164398b67ad113256bc20ed52154"},
+    {file = "mecab_python3-1.0.10-cp313-cp313-macosx_11_0_arm64.whl", hash = "sha256:4b90261aa514f29c6e05bd99717a02eeb9be3d7ea0a0be01f65ce0d86c572c68"},
+    {file = "mecab_python3-1.0.10-cp313-cp313-manylinux_2_17_aarch64.manylinux2014_aarch64.whl", hash = "sha256:894d87d708545314359cfd1b062238c2756d8f985b4c3fe7cabdf111f533a367"},
+    {file = "mecab_python3-1.0.10-cp313-cp313-manylinux_2_17_x86_64.manylinux2014_x86_64.whl", hash = "sha256:7bd7b86dd39a068dadf06ba8dd717ec1defb2cea181c5cbc6c54b1adb6dd0d4b"},
+    {file = "mecab_python3-1.0.10-cp313-cp313-win_amd64.whl", hash = "sha256:3528ef81cc4c9506ae3b273958fe2314aa1022a8db64640e631e09fd3e1af97b"},
+    {file = "mecab_python3-1.0.10-cp36-cp36m-macosx_10_9_x86_64.whl", hash = "sha256:c7da20d1ede231645e2be96a202f15419cb508b4b21f3c466bc5848f5956af27"},
+    {file = "mecab_python3-1.0.10-cp37-cp37m-macosx_10_9_x86_64.whl", hash = "sha256:1e385987f2ef3f617ee87bf2ca555e10c468c156c71bfcac7182202df261f4d2"},
+    {file = "mecab_python3-1.0.10-cp38-cp38-macosx_10_9_universal2.whl", hash = "sha256:9666fa3e116768d81c3d20f13bb05daf8a474919312cc5239180ed6f5c318e80"},
+    {file = "mecab_python3-1.0.10-cp38-cp38-macosx_10_9_x86_64.whl", hash = "sha256:06f9259bd2ffb4a71e99712ea845b579674a2be7b245b88b03f28a390ab13dea"},
+    {file = "mecab_python3-1.0.10-cp38-cp38-macosx_11_0_arm64.whl", hash = "sha256:8d16cf163c9fe568a42a31e99a60cdaa97d76124d04a8daa2bb2b93f18d08107"},
+    {file = "mecab_python3-1.0.10-cp38-cp38-manylinux_2_17_aarch64.manylinux2014_aarch64.whl", hash = "sha256:82c175f1ae970b3baa3589e29f3946a1a83b76a48245ea103558abdbfb3398b1"},
+    {file = "mecab_python3-1.0.10-cp38-cp38-manylinux_2_17_x86_64.manylinux2014_x86_64.whl", hash = "sha256:a20e0c94bb24e36ec73d1e6ae91608cd913174f8aa1d8195b218d2d77aeb3ccc"},
+    {file = "mecab_python3-1.0.10-cp38-cp38-win_amd64.whl", hash = "sha256:9af3ef731dfbd1f0a97f4a91ebfea2454dc3e8fa9e42423912eb6628f2acdfec"},
+    {file = "mecab_python3-1.0.10-cp39-cp39-macosx_10_9_universal2.whl", hash = "sha256:c72f1c4c582f7f86aa9454694719e7873f80830e300df0d71f6b38ff9c0f94ea"},
+    {file = "mecab_python3-1.0.10-cp39-cp39-macosx_10_9_x86_64.whl", hash = "sha256:1c45dd85ee584326d23e1ec4d6d4c23ac39e88e5bc0442b4e81b178c59d1c148"},
+    {file = "mecab_python3-1.0.10-cp39-cp39-macosx_11_0_arm64.whl", hash = "sha256:1b6845fb4bf4771018a10a6c455dc4cb3e0590c8ac55d25cddfe85138a72bbd2"},
+    {file = "mecab_python3-1.0.10-cp39-cp39-manylinux_2_17_aarch64.manylinux2014_aarch64.whl", hash = "sha256:f30f4cca5992c7c5ac3767d6e21c235d02104eb11b94b60361494509a72d92a5"},
+    {file = "mecab_python3-1.0.10-cp39-cp39-manylinux_2_17_x86_64.manylinux2014_x86_64.whl", hash = "sha256:5bd723e757d321135d38ab383639c148e20eb65468517398fff26eb89344d0b5"},
+    {file = "mecab_python3-1.0.10-cp39-cp39-win_amd64.whl", hash = "sha256:f93201fa2c4d7e03b3cc25ffd52a8c4ee207db874258d5143ece8b457e22a885"},
+    {file = "mecab_python3-1.0.10.tar.gz", hash = "sha256:21cd4416043e9a993fcfb986dde93e4366a07543dd95849b5ef2e50c9a9afcce"},
+]
+
+[package.extras]
+unidic = ["unidic"]
+unidic-lite = ["unidic-lite"]
+
+[[package]]
 name = "minecraft-recipe-renderer"
 version = "0.1.0"
 description = ""
@@ -4677,6 +4810,51 @@ lint = ["black (==24.8.0)", "clang-format (==18.1.8)", "isort (==5.13.2)", "pyli
 plot = ["matplotlib (==3.9.2)", "pandas (==2.2.2)"]
 test = ["pytest (==8.3.3)", "pytest-sugar (==1.0.0)"]
 type = ["mypy (==1.11.2)"]
+
+[[package]]
+name = "mojimoji"
+version = "0.0.13"
+description = "A fast converter between Japanese hankaku and zenkaku characters"
+optional = false
+python-versions = ">=3.7"
+files = [
+    {file = "mojimoji-0.0.13-cp310-cp310-macosx_10_9_x86_64.whl", hash = "sha256:d4e35fed7eb8ac573eef365d4a614c952179ad4e0e27a8e32d22e6c57a945b8c"},
+    {file = "mojimoji-0.0.13-cp310-cp310-macosx_11_0_arm64.whl", hash = "sha256:308a6b43c3c9c5a6d912e1984d02aa58ccabb83c9e57c5edb71389c90187d6d3"},
+    {file = "mojimoji-0.0.13-cp310-cp310-manylinux_2_17_i686.manylinux2014_i686.whl", hash = "sha256:761c1bcca7146b24c82b72645fbb80dbe6d373792e84f7d71bafa538c0b170af"},
+    {file = "mojimoji-0.0.13-cp310-cp310-manylinux_2_17_x86_64.manylinux2014_x86_64.whl", hash = "sha256:8feb1b8bf21eae1c35fca72a8c2c05c9a12271d882a02b01608d746d3dbab684"},
+    {file = "mojimoji-0.0.13-cp310-cp310-win32.whl", hash = "sha256:f617ebe1fdceadc2b87497c4d56f3c863155179488feb63f83a62cf95df37b69"},
+    {file = "mojimoji-0.0.13-cp310-cp310-win_amd64.whl", hash = "sha256:a5dfcef1fc16360aab65b8b60518a9d19cc7916ffc296ee0907819490686429e"},
+    {file = "mojimoji-0.0.13-cp311-cp311-macosx_10_9_x86_64.whl", hash = "sha256:c97d7c1861635cd538f44bf70dd27ed24435b0f8fe634ca52c49cb4c4424d6fa"},
+    {file = "mojimoji-0.0.13-cp311-cp311-macosx_11_0_arm64.whl", hash = "sha256:2402eaf2a5f963735c44e59559fa00ee8eb8dec46c0e3f29bfdb1ee49d7a75df"},
+    {file = "mojimoji-0.0.13-cp311-cp311-manylinux_2_17_i686.manylinux2014_i686.whl", hash = "sha256:60a7358d7d413d4ea9c92e3b523ab4e701e30cefc505b2f1409761fc9e7ba730"},
+    {file = "mojimoji-0.0.13-cp311-cp311-manylinux_2_17_x86_64.manylinux2014_x86_64.whl", hash = "sha256:535f278df0a26280e904cd3688ae610414b176cc373431ac31e378305ee96452"},
+    {file = "mojimoji-0.0.13-cp311-cp311-win32.whl", hash = "sha256:d27f88051d4fde5b2fdb1a07e3064c950541da6d25e3f1829eedededc015b0c2"},
+    {file = "mojimoji-0.0.13-cp311-cp311-win_amd64.whl", hash = "sha256:ea2f75e93425f0bcfaef68c189845ec9a212d37a4997ffa35353ef7e5c57ca9a"},
+    {file = "mojimoji-0.0.13-cp312-cp312-macosx_10_9_x86_64.whl", hash = "sha256:9d8f1618fb9b100bba172f2629df20e6db591ce5912996ac630d215627dd7553"},
+    {file = "mojimoji-0.0.13-cp312-cp312-macosx_11_0_arm64.whl", hash = "sha256:ad4a2e1fb2b643ac3166f30be97a95ad1877e4670c6dc656c4ef580681b84c49"},
+    {file = "mojimoji-0.0.13-cp312-cp312-manylinux_2_17_i686.manylinux2014_i686.whl", hash = "sha256:d001f2042073b194bad071925b7ee36d9f320b79c93b4463df87267fee986e86"},
+    {file = "mojimoji-0.0.13-cp312-cp312-manylinux_2_17_x86_64.manylinux2014_x86_64.whl", hash = "sha256:3c5fd38d1f4079dc54ac79f93b0e5442c660b297a3868308251ffc37beb1216b"},
+    {file = "mojimoji-0.0.13-cp312-cp312-win32.whl", hash = "sha256:c97ee81e4f7083df13b8ef690366e67afd8170c8f7c259161bae6ed12d41fe5b"},
+    {file = "mojimoji-0.0.13-cp312-cp312-win_amd64.whl", hash = "sha256:6e442d6dcfb2fc1a08eea86da80ebe71ad63fbc4217fa4faede7023c0b51d055"},
+    {file = "mojimoji-0.0.13-cp37-cp37m-macosx_10_9_x86_64.whl", hash = "sha256:b44d0a99b69bca583e497cf217d2573f9a01ca49d9dc23116bffb196efdb192f"},
+    {file = "mojimoji-0.0.13-cp37-cp37m-manylinux_2_17_i686.manylinux2014_i686.whl", hash = "sha256:1087035b4b0d5f2be0db74ccdb285e0bcf977a8c24e47ee93cd084570d073648"},
+    {file = "mojimoji-0.0.13-cp37-cp37m-manylinux_2_17_x86_64.manylinux2014_x86_64.whl", hash = "sha256:da069e1c48f54de4c4c372c74cf8c7f27487449d1547337aaedc21b26538b5e7"},
+    {file = "mojimoji-0.0.13-cp37-cp37m-win32.whl", hash = "sha256:522eff5b0fd3ea2cdbeae27581a684174ed843dd7b9076791bf344a746a1ed8f"},
+    {file = "mojimoji-0.0.13-cp37-cp37m-win_amd64.whl", hash = "sha256:99472af3849bd795970ecc9102f1007350cb8aef0ff21ba0511c121fe94c3ffe"},
+    {file = "mojimoji-0.0.13-cp38-cp38-macosx_10_9_x86_64.whl", hash = "sha256:01130d705445c4b41dcb6177b82ef6ae54ae13dc8d7ad9bf1a673acf0db8059c"},
+    {file = "mojimoji-0.0.13-cp38-cp38-macosx_11_0_arm64.whl", hash = "sha256:18422803dc00703ebf4969a6d6957bd9099913295f0578c9e29ee25d4988ed7f"},
+    {file = "mojimoji-0.0.13-cp38-cp38-manylinux_2_17_i686.manylinux2014_i686.whl", hash = "sha256:7fc8a9caeea0147eee642a50c004fc64f0c1410736423f74802cf9950ae14b43"},
+    {file = "mojimoji-0.0.13-cp38-cp38-manylinux_2_17_x86_64.manylinux2014_x86_64.whl", hash = "sha256:cc0f872b573218bfac9532ccb2f52f6279e8aa337654bbb28e90f0051d3ceb0b"},
+    {file = "mojimoji-0.0.13-cp38-cp38-win32.whl", hash = "sha256:98ea6f420f1298eb6a36b759551b22d133fe882da407f3eccf8c2cc5d302d05f"},
+    {file = "mojimoji-0.0.13-cp38-cp38-win_amd64.whl", hash = "sha256:ab1aee2ef6a170b26e431733767361dfc12983847f2be23f6dc2311de7b98df0"},
+    {file = "mojimoji-0.0.13-cp39-cp39-macosx_10_9_x86_64.whl", hash = "sha256:918f415c42cabde6128faba93be92482a4fb1f40d0d800727e04716aef40c94e"},
+    {file = "mojimoji-0.0.13-cp39-cp39-macosx_11_0_arm64.whl", hash = "sha256:a27b8cec5e05db2a7acc475a7ab70b840cf2087bcb2d4a276b89a3f9d20b0887"},
+    {file = "mojimoji-0.0.13-cp39-cp39-manylinux_2_17_i686.manylinux2014_i686.whl", hash = "sha256:853d87ce8fbef597bc3a1f23a9f95f6a4267f697e28fc85c665598c190b4b71c"},
+    {file = "mojimoji-0.0.13-cp39-cp39-manylinux_2_17_x86_64.manylinux2014_x86_64.whl", hash = "sha256:9f2284489d1b8330bb785eb844c1a6a6a2346c95bc3f52088084c71b4a1fb234"},
+    {file = "mojimoji-0.0.13-cp39-cp39-win32.whl", hash = "sha256:507c73837b19c17918de5d2afccdaaed95cf00d1e9e38eac93ab39c8fc0930f8"},
+    {file = "mojimoji-0.0.13-cp39-cp39-win_amd64.whl", hash = "sha256:6b627a62c18655adb36b9b2a420b7f43a0d2f39ebe2aa01418968d6dc71bb104"},
+    {file = "mojimoji-0.0.13.tar.gz", hash = "sha256:0e6d2fba22cc8bf132a5bdf3a964296d9287a618d09681a12868f0fd518e4230"},
+]
 
 [[package]]
 name = "monotonic"
@@ -9271,6 +9449,16 @@ tzdata = {version = "*", markers = "platform_system == \"Windows\""}
 devenv = ["check-manifest", "pytest (>=4.3)", "pytest-cov", "pytest-mock (>=3.3)", "zest.releaser"]
 
 [[package]]
+name = "unidic-lite"
+version = "1.0.8"
+description = "A small version of UniDic packaged for Python"
+optional = false
+python-versions = "*"
+files = [
+    {file = "unidic-lite-1.0.8.tar.gz", hash = "sha256:db9d4572d9fdd4d00a97949d4b0741ec480ee05a7e7e2e32f547500dae27b245"},
+]
+
+[[package]]
 name = "uri-template"
 version = "1.3.0"
 description = "RFC 6570 URI Template Processor"
@@ -9937,4 +10125,4 @@ type = ["pytest-mypy"]
 [metadata]
 lock-version = "2.0"
 python-versions = ">=3.9,<3.12"
-content-hash = "60785b478cfa9eebd69919c94140873422ac301863af997009b0bc2ee207bc17"
+content-hash = "bd76425854e23eb9e5a9555ae83464c9ef9d5b0a2ec550643b12e0720563e41d"
