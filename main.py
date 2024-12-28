@@ -6,12 +6,15 @@ import os
 import shutil
 import time
 
+import aioredis
 from dotenv import load_dotenv
 from dynaconf import Dynaconf
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.middleware.gzip import GZipMiddleware
 from fastapi.openapi.utils import get_openapi
+from fastapi_cache import FastAPICache
+from fastapi_cache.backends.redis import RedisBackend
 from prometheus_client import CollectorRegistry, multiprocess
 from prometheus_fastapi_instrumentator import Instrumentator
 
@@ -136,6 +139,9 @@ app.openapi = custom_openapi
 
 @app.on_event("startup")
 async def startup():
+    redis = aioredis.from_url("redis://localhost")
+    FastAPICache.init(RedisBackend(redis), prefix="minecraft-recipe-renderer")
+
     instrumentator.expose(app)
     start_all_modules()
 
