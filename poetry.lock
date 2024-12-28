@@ -204,24 +204,6 @@ yarl = ">=1.12.0,<2.0"
 speedups = ["Brotli", "aiodns (>=3.2.0)", "brotlicffi"]
 
 [[package]]
-name = "aioredis"
-version = "2.0.1"
-description = "asyncio (PEP 3156) Redis support"
-optional = false
-python-versions = ">=3.6"
-files = [
-    {file = "aioredis-2.0.1-py3-none-any.whl", hash = "sha256:9ac0d0b3b485d293b8ca1987e6de8658d7dafcca1cddfcd1d506cae8cdebfdd6"},
-    {file = "aioredis-2.0.1.tar.gz", hash = "sha256:eaa51aaf993f2d71f54b70527c440437ba65340588afeb786cd87c55c89cd98e"},
-]
-
-[package.dependencies]
-async-timeout = "*"
-typing-extensions = "*"
-
-[package.extras]
-hiredis = ["hiredis (>=1.0)"]
-
-[[package]]
 name = "aiosignal"
 version = "1.3.2"
 description = "aiosignal: a list of registered asynchronous callbacks"
@@ -4654,7 +4636,6 @@ files = []
 develop = false
 
 [package.dependencies]
-aioredis = "^2.0.1"
 cachetools = "^5.5.0"
 fastapi-cache2 = {version = "^0.2.2", extras = ["redis"]}
 gitpython = "^3.1.43"
@@ -4667,7 +4648,7 @@ requests = "^2.32.3"
 type = "git"
 url = "https://github.com/Luke100000/minecraft-recipe-renderer.git"
 reference = "HEAD"
-resolved_reference = "f74d72af54139959f3905ec93ef1e1d1bfec11f4"
+resolved_reference = "e8258e56edd1e1b5b00cb33da820b9b3816c2eb2"
 
 [[package]]
 name = "mistune"
@@ -10125,4 +10106,4 @@ type = ["pytest-mypy"]
 [metadata]
 lock-version = "2.0"
 python-versions = ">=3.9,<3.12"
-content-hash = "bd76425854e23eb9e5a9555ae83464c9ef9d5b0a2ec550643b12e0720563e41d"
+content-hash = "78fcc651aaa126052f264cf9d70a196fe63400a6e3df90bd7fbeb89ccb71d4d6"
