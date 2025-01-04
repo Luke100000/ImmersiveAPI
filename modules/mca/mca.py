@@ -51,12 +51,6 @@ MODELS: dict[str, Model] = {
         provider="openai",
         tools=True,
     ),
-    "open-mistral-7b": Model(
-        price=0.2,
-        model="mistral",
-        provider="mistral",
-        system=mistral_system_context,
-    ),
     "mixtral-8x7b": Model(
         price=0.5,
         model="mixtral-8x7b-32768",
@@ -69,9 +63,9 @@ MODELS: dict[str, Model] = {
         provider="groq",
         tools=True,
     ),
-    "llama3.1-70b": Model(
+    "llama3.3-70b": Model(
         price=0.65,
-        model="llama-3.1-70b-versatile",
+        model="llama-3.3-70b-versatile",
         provider="groq",
         tools=True,
     ),
@@ -104,7 +98,7 @@ CHARACTERS = {
         system="This is a conversation between users and the loyal, friendly, and softhearted Rubeus Hagrid with a thick west country accent. Generate a short discord-message-respond in his thick west country accent!",
         memory_characters_per_level=1200,
         memory_sentences_per_summary=3,
-        memory_model="llama-3.1-70b-versatile",
+        memory_model="llama-3.3-70b-versatile",
         langsmith_project="hagrid",
         stop=[],
         glossary={
@@ -152,8 +146,10 @@ CHARACTERS["villager"] = Character(name="Villager", system=system_prompt)
 
 # Maps renamed models to their new names
 LEGACY = {
-    "mistral-tiny": "open-mistral-7b",
+    "mistral-tiny": "mixtral-8x7b",
     "mistral-small": "mixtral-8x7b",
+    "llama3.1-70b": "llama3.3-70b",
+    "gpt-3.5-turbo": "gpt-4o-mini",
     "default": "gpt-4o-mini",
 }
 
