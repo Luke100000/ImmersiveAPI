@@ -12,12 +12,13 @@ access_token = os.getenv("PATREON_API_KEY")
 campaign_id = os.getenv("PATREON_CAMPAIGN_ID")
 
 
-@cached(TTLCache(maxsize=8, ttl=30))
-def fetch_members(page_size: int = 100):
+@cached(TTLCache(maxsize=8, ttl=60))
+def fetch_members(page_size: int = 1000) -> list[dict]:
     members = []
     cursor = None
     while True:
         params = [
+            "include=currently_entitled_tiers%2Cuser",
             "fields[member]="
             + "%2C".join(
                 [
@@ -28,7 +29,7 @@ def fetch_members(page_size: int = 100):
                     "campaign_lifetime_support_cents",
                 ]
             ),
-            f"filter[campaign_id]={campaign_id}",
+            "fields[user]=" + "%2C".join(["hide_pledges"]),
             "sort=last_charge_date",
             ("page[cursor]=" + cursor) if cursor else "",
             f"page[count]={page_size}",
@@ -43,9 +44,23 @@ def fetch_members(page_size: int = 100):
             },
         )
 
-        members += [r["attributes"] for r in response.json()["data"]]
+        response_json = response.json()
 
-        cursor = response.json()["meta"]["pagination"]["cursors"]["next"]
+        users = {u["id"]: u for u in response_json["included"] if u["type"] == "user"}
+
+        members += [
+            {
+                **r["attributes"],
+                **users[r["relationships"]["user"]["data"]["id"]]["attributes"],
+                "tiers": {
+                    t["id"]
+                    for t in r["relationships"]["currently_entitled_tiers"]["data"]
+                },
+            }
+            for r in response_json["data"]
+        ]
+
+        cursor = response_json["meta"]["pagination"]["cursors"]["next"]
         if not cursor:
             break
 

@@ -2,7 +2,7 @@ import os
 
 import groq
 from fastapi import HTTPException, Header, Request
-from groq import BaseModel
+from pydantic import BaseModel, Field
 from pyrate_limiter import (
     Duration,
     Limiter,
@@ -167,8 +167,8 @@ class ModelStats(BaseModel):
 
 class Stats(BaseModel):
     summary: ModelStats = ModelStats()
-    models: dict[str, ModelStats] = dict()
-    actual_models: dict[str, ModelStats] = dict()
+    models: dict[str, ModelStats] = Field(default_factory=dict)
+    actual_models: dict[str, ModelStats] = Field(default_factory=dict)
 
     def refresh(self):
         self.summary = ModelStats()
