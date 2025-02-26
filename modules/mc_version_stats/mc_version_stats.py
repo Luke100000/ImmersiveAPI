@@ -13,6 +13,8 @@ from modules.mc_version_stats.modrinth import (
 )
 from modules.mc_version_stats.utils import parse_versions, is_clean_version
 
+DEBUG = True
+
 
 def init(configurator: Configurator):
     configurator.register(
@@ -20,7 +22,7 @@ def init(configurator: Configurator):
     )
 
     def updater():
-        while True:
+        while not DEBUG:
             for mod in get_modrinth_mods("mod"):
                 existing_mod = database.get_mod(mod.id)
 

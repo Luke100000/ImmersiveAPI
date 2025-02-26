@@ -66,29 +66,29 @@ class ModTable(Base):
             versions=self.versions.split(","),
         )
 
-
-def from_mod(mod: Mod):
-    return ModTable(
-        id=mod.id,
-        source=mod.source,
-        slug=mod.slug,
-        last_modified=mod.last_modified,
-        created_at=mod.created_at,
-        name=mod.name,
-        author=mod.author,
-        description=mod.description,
-        type=mod.type,
-        categories=",".join(mod.categories),
-        downloads=mod.downloads,
-        follows=mod.follows,
-        body=mod.body,
-        license=mod.license,
-        links=json.dumps(mod.links),
-        icon=mod.icon,
-        gallery=json.dumps(mod.gallery),
-        mod_loaders=",".join(mod.mod_loaders),
-        versions=",".join(mod.versions),
-    )
+    @staticmethod
+    def from_mod(mod: Mod):
+        return ModTable(
+            id=mod.id,
+            source=mod.source,
+            slug=mod.slug,
+            last_modified=mod.last_modified,
+            created_at=mod.created_at,
+            name=mod.name,
+            author=mod.author,
+            description=mod.description,
+            type=mod.type,
+            categories=",".join(mod.categories),
+            downloads=mod.downloads,
+            follows=mod.follows,
+            body=mod.body,
+            license=mod.license,
+            links=json.dumps(mod.links),
+            icon=mod.icon,
+            gallery=json.dumps(mod.gallery),
+            mod_loaders=",".join(mod.mod_loaders),
+            versions=",".join(mod.versions),
+        )
 
 
 class ModDatabase:
@@ -99,13 +99,13 @@ class ModDatabase:
 
     def add_mod(self, mod: Mod) -> None:
         with self.Session() as session:
-            mod_instance = from_mod(mod)
+            mod_instance = ModTable.from_mod(mod)
             session.merge(mod_instance)
             session.commit()
 
     def update_mod(self, mod: Mod) -> None:
         with self.Session() as session:
-            mod_instance = from_mod(mod)
+            mod_instance = ModTable.from_mod(mod)
             session.execute(
                 update(ModTable)
                 .where(ModTable.id.__eq__(mod.id))

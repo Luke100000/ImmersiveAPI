@@ -7,15 +7,15 @@ etc.
 
 * `modules` - Each directory represents a module and contains at least a `.py` with the same name, containing the
   initializer.
-* `common` - Shared code between modules
-* `cache` - Persistent cache for data, each module should have its own subdirectory
-* `temp` - Temporary files, each module should clean up after the task is done
-* `data` - Static data
-* `config.toml` / `default_config.toml` - Used to toggle modules and pass additional config
+* `common` - Shared code between modules.
+* `cache` - Persistent cache for data, each module should have its own subdirectory.
+* `temp` - Temporary files, each module should clean up after the task is done.
+* `data` - Static data.
+* `config.toml` / `default_config.toml` - Used to toggle modules and pass additional config.
 
 ## Module
 
-Each module is a group of **self-contained, async, thread safe** endpoints.
+Each module is a group of **self-contained, thread safe** endpoints.
 
 ````py
 from main import Configurator
