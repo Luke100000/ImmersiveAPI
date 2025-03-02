@@ -114,24 +114,27 @@ def render_embed(
     )
 
     # Load and draw icon in pill shape
-    response = requests.get(icon_url)
-    icon_height = height - border * 2
-    icon = (
-        Image.open(BytesIO(response.content))
-        .convert("RGBA")
-        .resize((icon_height * scale, icon_height * scale))
-    )
-    icon_mask = Image.new("L", (icon_height * scale, icon_height * scale), 0)
-    draw_icon = ImageDraw.Draw(icon_mask)
-    draw_icon.rounded_rectangle(
-        [
-            (0, 0),
-            (icon_height * scale, icon_height * scale),
-        ],
-        (corner - border) * scale,
-        fill=255,
-    )
-    img.paste(icon, (border * scale, border * scale), icon_mask)
+    try:
+        response = requests.get(icon_url)
+        icon_height = height - border * 2
+        icon = (
+            Image.open(BytesIO(response.content))
+            .convert("RGBA")
+            .resize((icon_height * scale, icon_height * scale))
+        )
+        icon_mask = Image.new("L", (icon_height * scale, icon_height * scale), 0)
+        draw_icon = ImageDraw.Draw(icon_mask)
+        draw_icon.rounded_rectangle(
+            [
+                (0, 0),
+                (icon_height * scale, icon_height * scale),
+            ],
+            (corner - border) * scale,
+            fill=255,
+        )
+        img.paste(icon, (border * scale, border * scale), icon_mask)
+    except Exception:
+        pass
 
     # Downscale to final resolution for anti-aliasing
     img = img.resize((width, height), Image.Resampling.LANCZOS)
