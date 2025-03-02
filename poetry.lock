@@ -4769,7 +4769,7 @@ requests = "^2.32.3"
 type = "git"
 url = "https://github.com/Luke100000/minecraft-recipe-renderer.git"
 reference = "HEAD"
-resolved_reference = "09fd492d3c2ba77807ce012de50357977fefd012"
+resolved_reference = "f4c27ab2096b87cc7f651a7a664bb6a29c5436f8"
 
 [[package]]
 name = "mistune"
