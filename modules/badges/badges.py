@@ -208,7 +208,7 @@ def init(configurator: Configurator):
             title="Height",
             description="The height in pixels.",
         ),
-        background_color: str = Query(default="#555555", title="Background Color"),
+        background_color: str = Query(default="555555", title="Background Color"),
     ) -> Response:
         try:
             result = await cached_render_embed(
@@ -217,7 +217,7 @@ def init(configurator: Configurator):
                 icon_url=icon_url,
                 width=width,
                 height=height,
-                background_color=background_color,
+                background_color="#" + background_color,
             )
         except ValueError as e:
             return Response(status_code=422, content=str(e))
