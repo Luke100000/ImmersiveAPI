@@ -170,7 +170,7 @@ def render_embed(
     return encode_image(img)
 
 
-@cache(expire=3600 * 24, coder=BytesCoder())
+@cache(expire=86400, coder=BytesCoder())
 async def cached_render_embed(
     **kwargs,
 ) -> bytes:
@@ -222,4 +222,8 @@ def init(configurator: Configurator):
         except ValueError as e:
             return Response(status_code=422, content=str(e))
 
-        return Response(content=result, media_type="image/png")
+        return Response(
+            content=result,
+            media_type="image/png",
+            headers={"Cache-Control": "public, max-age=86400, immutable"},
+        )
