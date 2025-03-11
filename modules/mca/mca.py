@@ -38,33 +38,28 @@ Prefer a single sentence as response.
 """
 )
 
+
 MODELS: dict[str, Model] = {
-    "gpt-3.5-turbo": Model(
-        price=0.65,
-        model="gpt-3.5-turbo",
-        provider="openai",
-        tools=True,
-    ),
     "gpt-4o-mini": Model(
         price=0.3,
         model="gpt-4o-mini",
         provider="openai",
         tools=True,
     ),
-    "mixtral-8x7b": Model(
-        price=0.5,
-        model="mixtral-8x7b-32768",
-        provider="groq",
+    "mistral-small": Model(
+        price=0.2,
+        model="mistral-small-latest",
+        provider="mistral",
         system=mistral_system_context,
     ),
     "llama3-70b": Model(
-        price=0.65,
+        price=0.6,
         model="llama3-70b-8192",
         provider="groq",
         tools=True,
     ),
     "llama3.3-70b": Model(
-        price=0.65,
+        price=0.6,
         model="llama-3.3-70b-versatile",
         provider="groq",
         tools=True,
@@ -144,12 +139,18 @@ YOU ARE A MINECRAFT VILLAGER, FULLY IMMERSED IN THEIR VIRTUAL WORLD, UNAWARE OF 
 CHARACTERS["villager"] = Character(name="Villager", system=system_prompt)
 
 # Maps renamed models to their new names
-LEGACY = {
-    "mistral-tiny": "mixtral-8x7b",
-    "mistral-small": "mixtral-8x7b",
+ALIASES = {
+    "default": "mistral-small",
+    # Provider
+    "mistral": "mistral-small",
+    "openai": "gpt-4o-mini",
+    "groq": "llama3.1-8b",
+    "horde": "horde",
+    # Legacy
+    "mixtral-8x7b": "mistral-small",
+    "mistral-tiny": "mistral-small",
     "llama3.1-70b": "llama3.3-70b",
     "gpt-3.5-turbo": "gpt-4o-mini",
-    "default": "gpt-4o-mini",
 }
 
 
@@ -243,8 +244,8 @@ def init(configurator: Configurator):
 
         # Forward legacy models
         model = body.model
-        if model in LEGACY:
-            model = LEGACY[model]
+        if model in ALIASES:
+            model = ALIASES[model]
 
         if model not in MODELS:
             return {"error": "invalid_model"}
@@ -300,7 +301,7 @@ def init(configurator: Configurator):
                 # TODO: Remove once Groq limits are removed
                 rate_limited = True
                 message = get_chat_completion(
-                    MODELS[LEGACY["default"]],
+                    MODELS[ALIASES["default"]],
                     character,
                     body.messages,
                     body.tools,
