@@ -20,7 +20,7 @@ from modules.mca.premium import PremiumManager
 
 # Settings
 TOKENS_USER = 35000
-TOKENS_PREMIUM = 350000
+TOKENS_PREMIUM = 500000
 
 HAGRID_SECRET = os.getenv("HAGRID_SECRET")
 
