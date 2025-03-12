@@ -19,8 +19,8 @@ from modules.mca.patreon_utils import verify_patron
 from modules.mca.premium import PremiumManager
 
 # Settings
-TOKENS_USER = 50000
-TOKENS_PREMIUM = 500000
+TOKENS_USER = 35000
+TOKENS_PREMIUM = 350000
 
 HAGRID_SECRET = os.getenv("HAGRID_SECRET")
 
