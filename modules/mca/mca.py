@@ -29,16 +29,6 @@ def collapse(s: str) -> str:
     return s.replace("\n", " ").strip()
 
 
-# Additional context tailored for Mistral
-mistral_system_context = collapse(
-    """
-Do not offer assistance, you are a villager, not an assistant.
-Prefer a more casual language, you are a villager, not Shakespeare.
-Prefer a single sentence as response.
-"""
-)
-
-
 MODELS: dict[str, Model] = {
     "gpt-4o-mini": Model(
         price=0.3,
@@ -50,7 +40,6 @@ MODELS: dict[str, Model] = {
         price=0.2,
         model="mistral-small-latest",
         provider="mistral",
-        system=mistral_system_context,
     ),
     "llama3-70b": Model(
         price=0.6,
