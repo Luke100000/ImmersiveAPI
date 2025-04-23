@@ -8,6 +8,7 @@ from sqlalchemy import (
     String,
     Text,
     update,
+    select,
 )
 from sqlalchemy.orm import declarative_base, Mapped, mapped_column, sessionmaker
 
@@ -111,7 +112,6 @@ class ModDatabase:
                 .where(ModTable.id.__eq__(mod.id))
                 .values(
                     slug=mod_instance.slug,
-                    last_modified=mod_instance.last_modified,
                     name=mod_instance.name,
                     author=mod.author,
                     description=mod_instance.description,
@@ -130,9 +130,17 @@ class ModDatabase:
             )
             return None if mod is None else mod.to_mod()
 
-    @cached(TTLCache(maxsize=1, ttl=3600))
+    @cached(TTLCache(maxsize=1, ttl=300))
     def get_mods(self):
         with self.Session() as session:
             # noinspection PyTypeChecker
             mods: list[ModTable] = session.query(ModTable).all()
             return [mod.to_mod() for mod in mods]
+
+    @cached(TTLCache(maxsize=1, ttl=10))
+    def get_versions(self):
+        with self.Session() as session:
+            result = session.scalars(
+                select(ModTable.versions).where(~ModTable.categories.ilike("%library%"))
+            ).all()
+        return [v.split(",") for v in result]

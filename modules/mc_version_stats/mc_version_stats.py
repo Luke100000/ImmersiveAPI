@@ -13,7 +13,7 @@ from modules.mc_version_stats.modrinth import (
 )
 from modules.mc_version_stats.utils import parse_versions, is_clean_version
 
-DEBUG = True
+DEBUG = False
 
 
 def init(configurator: Configurator):
@@ -21,23 +21,39 @@ def init(configurator: Configurator):
         "Minecraft Version Stats", "Metrics endpoint for analysing version popularity."
     )
 
+    last_updated = "NA"
+    last_added = "NA"
+    scanning_progress = 0
+
     def updater():
+        nonlocal last_updated, last_added, scanning_progress
+
+        sleep_time = 1
+        populate_min_age = 86400
+
         while not DEBUG:
             for mod in get_modrinth_mods("mod"):
                 existing_mod = database.get_mod(mod.id)
+                scanning_progress += 1
 
                 if existing_mod:
-                    if existing_mod.last_modified != mod.last_modified:
+                    if (
+                        abs(existing_mod.last_modified - mod.last_modified)
+                        > populate_min_age
+                    ):
                         populate_modrinth_details(mod)
                         database.add_mod(mod)
-                        time.sleep(3)
+                        time.sleep(sleep_time)
+                        last_updated = mod.name
                     else:
                         database.update_mod(mod)
-                        time.sleep(0.1)
+                        time.sleep(0.1 * sleep_time)
                 else:
                     populate_modrinth_details(mod)
                     database.add_mod(mod)
-                    time.sleep(3)
+                    time.sleep(sleep_time)
+                    last_added = mod.name
+
             time.sleep(60)
 
     Thread(target=updater, daemon=True).start()
@@ -49,15 +65,13 @@ def init(configurator: Configurator):
 
     @configurator.get("/mcv/dashboard")
     def get_dashboard(request: Request):
-        mods = database.get_mods()
-
-        mods = [m for m in mods if "library" not in m.categories]
+        mods = database.get_versions()
 
         versions = set()
         coverage = defaultdict(int)
 
-        for mod in mods:
-            for version in mod.versions:
+        for mod_versions in mods:
+            for version in mod_versions:
                 versions.add(version)
                 coverage[version] += 1
 
@@ -86,6 +100,9 @@ def init(configurator: Configurator):
         context = {
             "total": len(mods),
             "versions": versions,
+            "last_updated": last_updated,
+            "last_added": last_added,
+            "scanning_progress": scanning_progress,
             "versions_per_super_version": versions_per_super_version,
             "preferred_versions": [
                 v

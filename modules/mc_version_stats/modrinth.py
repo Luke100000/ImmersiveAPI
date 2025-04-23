@@ -102,7 +102,7 @@ def get_modrinth_mods(project_type: str = "mod") -> Generator[Mod, None, None]:
                 ["project_type:" + project_type],
                 ["downloads>100"],
             ],
-            index="downloads",
+            index="updated",
         )["hits"]
         index += PAGE_SIZE
 

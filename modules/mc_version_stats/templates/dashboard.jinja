@@ -68,6 +68,8 @@
 <div class="metadata">
     <h1>Modrinth Version Coverage</h1>
     <p>Total Versions: {{ versions|length }} | Total Mods: {{ total }} | Versions in bold are recommended</p>
+    <p>Last Updated: {{ last_updated }}, last
+        added: {{ last_added }}, {{ (scanning_progress / total * 100) | round(1) }}% scanned for today.</p>
 </div>
 
 <table>
