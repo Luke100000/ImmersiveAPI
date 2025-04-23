@@ -75,7 +75,7 @@ MODELS: dict[str, Model] = {
     ),
 }
 
-# Tokens to characters (since this endpoint may also be used by e.g. Hagrid)
+# Tokens to characters (since e.g.: Hagrid may also use this endpoint)
 CHARACTERS = {
     HAGRID_SECRET: Character(
         name="Rubeus Hagrid",
@@ -185,7 +185,7 @@ def init(configurator: Configurator):
     `[key:value][key:value]...Rest of the system prompt`
     * `world_id`: The world id for the session, e.g. the guild id or world UUID.
     * `player_id`: The player id
-    * `character_id`: The character id, e.g. the villager UUID.
+    * `character_id`: The character id, e.g., the villager UUID.
     * `use_memory`: Whether to use memory for this session, otherwise use classic in-context memory.
     * `shared_memory`: Whether to share memory across the world, otherwise separate memory per player.
     """
@@ -298,7 +298,7 @@ def init(configurator: Configurator):
                 )
 
             # Logging
-            if rate_limited:
+            if rate_limited and model.model in stats.models:
                 stats.models[model.model].rate_limited += 1
 
             actual_model_name = message.response_metadata.get("model_name", model.model)

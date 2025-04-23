@@ -28,10 +28,11 @@ def init(configurator: Configurator):
     def updater():
         nonlocal last_updated, last_added, scanning_progress
 
-        sleep_time = 1
+        sleep_time = 10
         populate_min_age = 86400
 
         while not DEBUG:
+            scanning_progress = 0
             for mod in get_modrinth_mods("mod"):
                 existing_mod = database.get_mod(mod.id)
                 scanning_progress += 1
