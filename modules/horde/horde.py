@@ -10,6 +10,7 @@ from horde_openai_proxy import (
     filter_models,
     completions_to_openai_response,
 )
+from jinja2 import TemplateError
 from starlette.requests import Request
 
 from main import Configurator
@@ -56,7 +57,6 @@ def init(configurator: Configurator) -> List:
             else:
                 deduplicated.append(message)
                 last_role = message["role"]
-        print(deduplicated)
         return deduplicated
 
     @configurator.post("/v1/chat/completions")
@@ -66,8 +66,14 @@ def init(configurator: Configurator) -> List:
         token = request.headers["authorization"].lstrip("Bearer ")
 
         try:
-            body.messages = deduplicate(body.messages)
-            horde_request = openai_to_horde(body)
+            try:
+                horde_request = openai_to_horde(body)
+            except TemplateError:
+                # TODO: Meh
+                body.messages[0]["role"] = "user"
+                body.messages = deduplicate(body.messages)
+                horde_request = openai_to_horde(body)
+
             completions = get_horde_completion(
                 token, horde_request, slow_workers=False, allow_downgrade=True
             )
