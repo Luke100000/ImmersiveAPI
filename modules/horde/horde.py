@@ -42,6 +42,23 @@ def init(configurator: Configurator) -> List:
             max_size=max_size,
         )
 
+    def deduplicate(messages: list[dict]) -> list[dict]:
+        """
+        Deduplicate messages in the format of OpenAI chat completion API.
+        :param messages: List of messages.
+        :return: List of deduplicated messages.
+        """
+        last_role = None
+        deduplicated = []
+        for message in messages:
+            if message["role"] == last_role:
+                deduplicated[-1]["content"] += message["content"]
+            else:
+                deduplicated.append(message)
+                last_role = message["role"]
+        print(deduplicated)
+        return deduplicated
+
     @configurator.post("/v1/chat/completions")
     def post_chat_completion(
         request: Request, body: ChatCompletionRequest
@@ -49,6 +66,7 @@ def init(configurator: Configurator) -> List:
         token = request.headers["authorization"].lstrip("Bearer ")
 
         try:
+            body.messages = deduplicate(body.messages)
             horde_request = openai_to_horde(body)
             completions = get_horde_completion(
                 token, horde_request, slow_workers=False, allow_downgrade=True
