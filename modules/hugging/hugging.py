@@ -203,5 +203,5 @@ def init(configurator: Configurator):
     @configurator.post("/v1/tts/piper/speak")
     async def get_tts_piper(body: PiperTTSRequestBody):
         return StreamingResponse(
-            speak(body.text, body.voice), media_type="audio/L16; rate=16000; channels=1"
+            speak(body.text, body.voice), media_type="audio/L16; rate=22050; channels=1"
         )
