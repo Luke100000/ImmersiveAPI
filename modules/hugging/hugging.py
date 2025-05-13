@@ -7,7 +7,7 @@ import aiofiles
 import aiofiles.os
 from fastapi import UploadFile
 from pydantic import BaseModel
-from starlette.responses import Response
+from starlette.responses import Response, StreamingResponse
 
 from common.worker import get_primary_executor
 from main import Configurator
@@ -16,6 +16,12 @@ from modules.hugging.coqui import (
     get_languages,
     get_speakers,
     get_base_speakers,
+)
+from modules.hugging.piper_utils import (
+    get_best_voices,
+    speak,
+    get_gender_lookup,
+    blacklist,
 )
 
 
@@ -86,7 +92,7 @@ def init(configurator: Configurator):
         if cache:
             text_hash = hashlib.sha256(text.encode("utf-8")).hexdigest()
 
-            # Also scan for english, if the phrase is identical in most cases its fine to use the English version
+            # Also scan for english if the phrase is identical, in most cases its fine to use the English version
             for scan_language in ["en", language]:
                 cache_key = (
                     f"cache/tts/{scan_language}-{speaker}/{text_hash}.{file_format}"
@@ -143,3 +149,59 @@ def init(configurator: Configurator):
 
         audio = await c
         return Response(content=audio, media_type=f"audio/{file_format}")
+
+    @configurator.get("/v1/tts/piper/voices")
+    async def get_tts_piper_voices(high_quality: bool = True):
+        speakers = get_best_voices()
+
+        if high_quality:
+            speakers = {
+                name: s for name, s in speakers.items() if s["name"] not in blacklist
+            }
+
+        genders = get_gender_lookup()
+
+        languages = {}
+        voices = []
+
+        for speaker_name, s in speakers.items():
+            code = s["language"]["code"]
+            if code not in languages:
+                languages[code] = {
+                    "male": 0,
+                    "female": 0,
+                    "unknown": 0,
+                }
+
+            for speaker_id in range(s["num_speakers"]):
+                if s["speaker_id_map"]:
+                    vid = f"{speaker_name}:{speaker_id}"
+                else:
+                    vid = f"{speaker_name}:-1"
+
+                gender = genders.get(vid, "unknown")
+                languages[code][gender] += 1
+
+                voices.append(
+                    {
+                        "id": vid,
+                        "name": s["name"],
+                        "language": s["language"]["code"],
+                        "gender": gender,
+                    }
+                )
+
+        return {
+            "languages": languages,
+            "voices": voices,
+        }
+
+    class PiperTTSRequestBody(BaseModel):
+        text: str
+        voice: str
+
+    @configurator.post("/v1/tts/piper/speak")
+    async def get_tts_piper(body: PiperTTSRequestBody):
+        return StreamingResponse(
+            speak(body.text, body.voice), media_type="audio/L16; rate=16000; channels=1"
+        )
