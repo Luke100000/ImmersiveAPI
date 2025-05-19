@@ -261,11 +261,10 @@ def init(configurator: Configurator):
 
             # Rate limit per ip
             lim = limiter_ip_premium if premium else limiter_ip
-            # noinspection PyAsyncCall
             lim.try_acquire(
-                name=str(request.client.host),  # pyright: ignore [reportOptionalMemberAccess]
+                name=str(request.client.host),
                 weight=weight,
-            )  # pyright: ignore [reportOptionalMemberAccess]
+            )
 
             # Content moderation
             if model.provider == "openai" and check_prompt_openai(body.messages):

@@ -65,14 +65,17 @@ def fetch_members(page_size: int = 1000) -> list[dict]:
             break
 
     for m in members:
-        if (
-            "last_charge_date" in m
-            and m["last_charge_date"]
-            and m["patron_status"] == "active_patron"
-        ):
-            date1 = datetime.strptime(m["last_charge_date"], "%Y-%m-%dT%H:%M:%S.%f%z")
-            date2 = datetime.now(date1.tzinfo)
-            m["days_left"] = max(0, 35 - (date2 - date1).days)
+        if m["patron_status"] == "active_patron":
+            if "last_charge_date" in m and m["last_charge_date"]:
+                # Active patrons
+                date1 = datetime.strptime(
+                    m["last_charge_date"], "%Y-%m-%dT%H:%M:%S.%f%z"
+                )
+                date2 = datetime.now(date1.tzinfo)
+                m["days_left"] = max(0, 35 - (date2 - date1).days)
+            else:
+                # Gifts
+                m["days_left"] = 35
         else:
             m["days_left"] = 0
 
@@ -95,15 +98,3 @@ def verify_patron(email: str) -> bool:
     }
 
     return email_to_user[email]["days_left"] if email in email_to_user else False
-
-
-def test():
-    print(get_member_list())
-
-    for m in fetch_members():
-        if m["days_left"] > 0:
-            print(m)
-
-
-if __name__ == "__main__":
-    test()
