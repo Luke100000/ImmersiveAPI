@@ -1,5 +1,7 @@
+import logging
 import os
 import re
+import time
 from contextlib import contextmanager
 from functools import cache
 from typing import Optional
@@ -8,6 +10,8 @@ import requests
 from cachetools import cached, TTLCache
 from dotenv import load_dotenv
 from groq import Groq
+from httpx import HTTPStatusError
+from langchain_core.language_models import BaseChatModel
 from langchain_core.messages import AIMessage, SystemMessage, BaseMessage
 from langchain_groq import ChatGroq
 from langchain_mistralai import ChatMistralAI
@@ -301,12 +305,32 @@ def get_chat_completion(
         )
 
         # Launch
-        response = llm.invoke(prompt)
+        response = timeout_call(llm, prompt)
 
         os.environ["LANGCHAIN_TRACING_V2"] = "false"
 
-        # noinspection PyTypeChecker
-        return response  # pyright: ignore [reportReturnType]
+        return response
+
+
+def timeout_call(
+    llm: BaseChatModel, prompt: list[BaseMessage], retries: int = 5
+) -> AIMessage:
+    """
+    Call the LLM with a timeout.
+    """
+    for _ in range(retries):
+        try:
+            return llm.invoke(prompt)
+        except HTTPStatusError as e:
+            if e.response.status_code == 429:
+                # Rate limit error, wait and retry
+                retry_after = float(e.response.headers.get("Retry-After", 1))
+                logging.info(f"Rate limit hit, retrying after {retry_after} seconds...")
+                time.sleep(retry_after)
+                continue
+            else:
+                raise RuntimeError(f"An error occurred: {e.response.text}")
+    raise RuntimeError("Rate limit exceeded after multiple retries.")
 
 
 def message_to_dict(message: AIMessage) -> dict:
