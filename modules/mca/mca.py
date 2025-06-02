@@ -36,6 +36,11 @@ MODELS: dict[str, Model] = {
         provider="openai",
         tools=True,
     ),
+    "mistral-medium": Model(
+        price=0.3,
+        model="mistral-medium-latest",
+        provider="mistral",
+    ),
     "mistral-small": Model(
         price=0.2,
         model="mistral-small-latest",
@@ -129,14 +134,14 @@ CHARACTERS["villager"] = Character(name="Villager", system=system_prompt)
 
 # Maps renamed models to their new names
 ALIASES = {
-    "default": "mistral-small",
+    "default": "mistral-medium",
     # Provider
-    "mistral": "mistral-small",
+    "mistral": "mistral-medium",
     "openai": "gpt-4o-mini",
     "groq": "llama3.1-8b",
     "horde": "horde",
     # Legacy
-    "mixtral-8x7b": "mistral-small",
+    "mixtral-8x7b": "mistral-medium",
     "mistral-tiny": "mistral-small",
     "llama3.1-70b": "llama3.3-70b",
     "gpt-3.5-turbo": "gpt-4o-mini",
