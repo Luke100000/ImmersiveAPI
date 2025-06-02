@@ -313,7 +313,7 @@ def get_chat_completion(
 
 
 def timeout_call(
-    llm: BaseChatModel, prompt: list[BaseMessage], retries: int = 5
+    llm: BaseChatModel, prompt: list[BaseMessage], retries: int = 10
 ) -> AIMessage:
     """
     Call the LLM with a timeout.
@@ -324,7 +324,7 @@ def timeout_call(
         except HTTPStatusError as e:
             if e.response.status_code == 429:
                 # Rate limit error, wait and retry
-                retry_after = float(e.response.headers.get("Retry-After", 1))
+                retry_after = float(e.response.headers.get("Retry-After", 0.5))
                 logging.info(f"Rate limit hit, retrying after {retry_after} seconds...")
                 time.sleep(retry_after)
                 continue
