@@ -47,7 +47,7 @@ Answer ONLY with the summary, in a single line.
 
 
 @cache
-def _get_compression_chain(model: str = "llama3-70b-8192"):
+def _get_compression_chain(model: str):
     return (
         ChatPromptTemplate.from_messages(
             [
@@ -117,7 +117,7 @@ class MemoryManager(Runnable):
         db_file: str = "cache/memory.db",
         characters_per_level: int = 700,
         sentences_per_summary: int = 3,
-        model: str = "llama3-70b-8192",
+        model: str = "llama-3.3-70b-versatile",
     ):
         self.conn = sqlite3.connect(db_file, check_same_thread=False)
         self.lock = threading.Lock()
@@ -219,7 +219,7 @@ class MemoryManager(Runnable):
                     self._compress_buffer(count, to_be_summarized)
                 )
 
-                # Reset and start next compression level
+                # Reset and start the next compression level
                 count = 0
                 to_be_summarized = []
 

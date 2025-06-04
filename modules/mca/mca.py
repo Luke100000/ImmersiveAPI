@@ -48,7 +48,7 @@ MODELS: dict[str, Model] = {
     ),
     "llama3-70b": Model(
         price=0.6,
-        model="llama3-70b-8192",
+        model="llama-3.3-70b-versatile",
         provider="groq",
         tools=True,
     ),
@@ -60,7 +60,7 @@ MODELS: dict[str, Model] = {
     ),
     "llama3-8b": Model(
         price=0.1,
-        model="llama3-8b-8192",
+        model="llama-3.1-8b-instant",
         provider="groq",
     ),
     "llama3.1-8b": Model(

@@ -92,21 +92,18 @@ Only respond with the markdown reformatted content, do not prepend or append any
 
 
 RATE_LIMITS = {
-    "llama3-8b-8192": 30_000,
-    "llama3-70b-8192": 6_000,
-    "gpt-3.5-turbo": -1,
+    "llama-3.1-8b-instant": 30_000,
+    "llama-3.3-70b-versatile": 12_000,
 }
 
 RATE_LIMIT_REQUESTS = {
-    "llama3-8b-8192": 30,
-    "llama3-70b-8192": 30,
-    "gpt-3.5-turbo": -1,
+    "llama-3.1-8b-instant": 30,
+    "llama-3.3-70b-versatile": 30,
 }
 
 CONTEXT_SIZES = {
-    "llama3-8b-8192": 8192,
-    "llama3-70b-8192": 8192,
-    "gpt-3.5-turbo": 16384,
+    "llama-3.1-8b-instant": 8192,
+    "llama-3.3-70b-versatile": 8192,
 }
 
 RATE_LIMIT_UTILIZATION = 0.5
@@ -152,13 +149,16 @@ def _get_connection():
 
 class QualityPreset(Enum):
     DEFAULT = dict(
-        simplification_model="llama3-8b-8192", summarization_model="llama3-70b-8192"
+        simplification_model="llama-3.1-8b-instant",
+        summarization_model="llama-3.3-70b-versatile",
     )
     HIGH = dict(
-        simplification_model="llama3-70b-8192", summarization_model="llama3-70b-8192"
+        simplification_model="llama-3.3-70b-versatile",
+        summarization_model="llama-3.3-70b-versatile",
     )
     LOW = dict(
-        simplification_model="llama3-8b-8192", summarization_model="llama3-8b-8192"
+        simplification_model="llama-3.1-8b-instant",
+        summarization_model="llama-3.1-8b-instant",
     )
     FAST = dict(
         simplification_model="gpt-3.5-turbo", summarization_model="gpt-3.5-turbo"
@@ -328,7 +328,7 @@ class InformationPage:
                 f"  Reduced size of chunk {i + 1} of {len(merged_chapters)} by {100 - factor}% to {len(chunk)} characters."
             )
 
-            # Sleep to stay below rate limit
+            # Sleep to stay below the rate limit
             _rate_limit(
                 content,
                 RATE_LIMITS[self.quality.simplification_model],

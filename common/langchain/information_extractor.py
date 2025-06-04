@@ -35,7 +35,7 @@ class InformationExtractor(Runnable):
     Given a document and query, retrieve the relevant parts of the document.
     """
 
-    def __init__(self, model: str = "llama3-70b-8192"):
+    def __init__(self, model: str = "llama-3.3-70b-versatile"):
         self.chain = _get_compression_chain(model)
 
     @traceable(run_type="tool", name="Information Extractor")
