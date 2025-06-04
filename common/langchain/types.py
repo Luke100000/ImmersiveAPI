@@ -64,5 +64,4 @@ class Character(BaseModel):
     memory_characters_per_level: int = 1000
     memory_sentences_per_summary: int = 3
     memory_model: str = "mistral-medium"
-    langsmith_project: Optional[str] = None
     stop: list[str] = ["\n"]

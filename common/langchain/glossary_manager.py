@@ -10,7 +10,6 @@ from langchain_core.runnables import Runnable, RunnableConfig
 from langchain_text_splitters import (
     RecursiveCharacterTextSplitter,
 )
-from langsmith import traceable
 
 from common.rag.document_manager import InformationPage
 from common.shared_models import get_sentence_embeddings, ADDITIONAL_QUERY_PROMPTS
@@ -59,7 +58,6 @@ class GlossaryManager(Runnable):
 
         self.db.add_documents(split_docs)
 
-    @traceable(run_type="retriever", name="Search Glossary")
     def invoke(self, input_dict: dict, config: Optional[RunnableConfig] = None) -> str:
         assert "query" in input_dict, "Query is required"
 

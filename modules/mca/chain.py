@@ -2,7 +2,6 @@ import os
 import re
 from contextlib import contextmanager
 from functools import cache
-from typing import Optional
 
 import requests
 from cachetools import cached, TTLCache
@@ -11,7 +10,6 @@ from langchain_core.messages import AIMessage, SystemMessage, BaseMessage
 from langchain_groq import ChatGroq
 from langchain_mistralai import ChatMistralAI
 from langchain_openai import ChatOpenAI
-from langsmith import trace, traceable
 
 from common.config import settings
 from common.langchain.glossary_manager import GlossaryManager
@@ -100,7 +98,6 @@ def get_boolean(flags: dict, key: str, default: bool = False):
     return flags[key].lower() == "true" if key in flags else default
 
 
-@traceable(run_type="chain", name="Process Glossary")
 def get_glossary_entry(query: str, glossary: GlossarySearch) -> str:
     return get_glossary_manager().invoke(
         {
@@ -134,155 +131,137 @@ def get_chat_completion(
     messages: list[Message],
     tools: list[dict],
     auth_token: str,
-    langsmith_project: Optional[str] = None,
 ) -> AIMessage:
-    if langsmith_project:
-        os.environ["LANGCHAIN_TRACING_V2"] = "true"
-        os.environ["LANGSMITH_PROJECT"] = langsmith_project
-
     # Preload
     get_glossary_manager()
     get_vector_compressor()
 
-    with (
-        trace(
-            "Chat",
-            "chain",
-            project_name=langsmith_project,
-            inputs={"messages": messages, "tools": tools},
-            tags=[model.model, character.name],
+    # Instantiate model
+    if model.provider == "mistral":
+        llm = ChatMistralAI(
+            model_name=model.model,
+            max_retries=5,
+            temperature=0.85,
+            max_tokens=150,
         )
-        if langsmith_project
-        else dummy_context_manager()
-    ):
-        # Instantiate model
-        if model.provider == "mistral":
-            llm = ChatMistralAI(
-                model_name=model.model,
-                max_retries=5,
-                temperature=0.85,
-                max_tokens=150,
-            )
-        elif model.provider == "groq":
-            llm = ChatGroq(
-                model=model.model,
-                max_retries=5,
-                temperature=0.85,
-                max_tokens=150,
-                stop_sequences=character.stop,
-            )
-        elif model.provider == "openai":
-            llm = ChatOpenAI(
-                model=model.model,
-                max_retries=5,
-                temperature=0.85,
-                max_tokens=150,
-                stop_sequences=character.stop,
-            )
-        elif model.provider == "horde":
-            # A model with `llama-3-instruct` format is added to have consistent results
-            # TODO: Filter by template
-            models = ["koboldcpp/L3-8B-Stheno-v3.2"] + get_models()
-
-            if len(models) == 1:
-                raise ValueError("No models available.")
-
-            llm = ChatOpenAI(
-                base_url="https://api.conczin.net/v1",
-                model=",".join(models),
-                api_key=os.environ.get("HORDE_API_KEY"),  # pyright: ignore [reportArgumentType]
-                max_retries=3,
-                temperature=0.85,
-                max_tokens=100,
-                stop_sequences=character.stop,
-                timeout=180,
-            )
-        else:
-            raise ValueError(f"Unknown provider: {model.provider}")
-
-        # Enable tools and add glossary functions if requested
-        if model.tools and len(tools) > 0:
-            llm = llm.bind_tools(tools)
-
-        # Process system prompt
-        static_system = character.system + "\n" + model.system
-        if messages[0].role == Role.system:
-            flags, dynamic_system = get_system_flags(messages[0].content)
-        else:
-            flags, dynamic_system = {}, ""
-
-        # Extract session related data
-        world_id = flags.get("world_id", auth_token)
-        player_id = flags.get("player_id", auth_token)
-        character_id = (
-            flags["character_id"]
-            if "character_id" in flags
-            else get_villager(messages[0].content)
+    elif model.provider == "groq":
+        llm = ChatGroq(
+            model=model.model,
+            max_retries=5,
+            temperature=0.85,
+            max_tokens=150,
+            stop_sequences=character.stop,
         )
-        use_memory = get_boolean(flags, "use_memory", False)
-        shared_memory = get_boolean(flags, "shared_memory", False)
-        session_id = (
-            None
-            if character_id is None
-            else f"{world_id if shared_memory else player_id}_{character_id}"
+    elif model.provider == "openai":
+        llm = ChatOpenAI(
+            model=model.model,
+            max_retries=5,
+            temperature=0.85,
+            max_tokens=150,
+            stop_sequences=character.stop,
         )
-        enabled_glossaries = {g.strip() for g in flags.get("glossaries", "").split(",")}
+    elif model.provider == "horde":
+        # A model with `llama-3-instruct` format is added to have consistent results
+        # TODO: Filter by template
+        models = ["koboldcpp/L3-8B-Stheno-v3.2"] + get_models()
 
-        # Clean the remaining messages and construct a query for RAG
-        messages = clean_conversation(messages, player_id)
-        query = to_conversation(crop_conversation(messages, 400))
+        if len(models) == 1:
+            raise ValueError("No models available.")
 
-        # If the system is too large, compress it using a RAG
-        dynamic_system = (
-            get_vector_compressor().invoke(
+        llm = ChatOpenAI(
+            base_url="https://api.conczin.net/v1",
+            model=",".join(models),
+            api_key=os.environ.get("HORDE_API_KEY"),
+            max_retries=3,
+            temperature=0.85,
+            max_tokens=100,
+            stop_sequences=character.stop,
+            timeout=180,
+        )
+    else:
+        raise ValueError(f"Unknown provider: {model.provider}")
+
+    # Enable tools and add glossary functions if requested
+    if model.tools and len(tools) > 0:
+        llm = llm.bind_tools(tools)
+
+    # Process system prompt
+    static_system = character.system + "\n" + model.system
+    if messages[0].role == Role.system:
+        flags, dynamic_system = get_system_flags(messages[0].content)
+    else:
+        flags, dynamic_system = {}, ""
+
+    # Extract session related data
+    world_id = flags.get("world_id", auth_token)
+    player_id = flags.get("player_id", auth_token)
+    character_id = (
+        flags["character_id"]
+        if "character_id" in flags
+        else get_villager(messages[0].content)
+    )
+    use_memory = get_boolean(flags, "use_memory", False)
+    shared_memory = get_boolean(flags, "shared_memory", False)
+    session_id = (
+        None
+        if character_id is None
+        else f"{world_id if shared_memory else player_id}_{character_id}"
+    )
+    enabled_glossaries = {g.strip() for g in flags.get("glossaries", "").split(",")}
+
+    # Clean the remaining messages and construct a query for RAG
+    messages = clean_conversation(messages, player_id)
+    query = to_conversation(crop_conversation(messages, 400))
+
+    # If the system is too large, compress it using a RAG
+    dynamic_system = (
+        get_vector_compressor().invoke(
+            {
+                "input": dynamic_system,
+                "query": query,
+                "k": 3,
+            }
+        )
+        if dynamic_system
+        else ""
+    )
+
+    # Construct the prompt
+    prompt: list[BaseMessage] = (
+        [SystemMessage(f"{static_system}\n{dynamic_system}")]
+        + [
+            AIMessage(
+                content=get_glossary_entry(query, glossary),
+                name="Glossary",
+            )
+            for key, glossary in character.glossary.items()
+            if glossary.always or key in enabled_glossaries
+        ]
+        + (
+            get_memory_manager(
+                characters_per_level=character.memory_characters_per_level,
+                sentences_per_summary=character.memory_sentences_per_summary,
+                model=character.memory_model,
+            ).invoke(
                 {
-                    "input": dynamic_system,
-                    "query": query,
-                    "k": 3,
+                    "session_id": session_id,
+                    "conversation": messages,
                 }
             )
-            if dynamic_system
-            else ""
-        )
-
-        # Construct the prompt
-        prompt: list[BaseMessage] = (
-            [SystemMessage(f"{static_system}\n{dynamic_system}")]
-            + [
-                AIMessage(
-                    content=get_glossary_entry(query, glossary),
-                    name="Glossary",
+            if use_memory and session_id is not None
+            else [
+                m.as_langchain()
+                for m in crop_conversation(
+                    messages, character.fallback_memory_characters
                 )
-                for key, glossary in character.glossary.items()
-                if glossary.always or key in enabled_glossaries
             ]
-            + (
-                get_memory_manager(
-                    characters_per_level=character.memory_characters_per_level,
-                    sentences_per_summary=character.memory_sentences_per_summary,
-                    model=character.memory_model,
-                ).invoke(
-                    {
-                        "session_id": session_id,
-                        "conversation": messages,
-                    }
-                )
-                if use_memory and session_id is not None
-                else [
-                    m.as_langchain()
-                    for m in crop_conversation(
-                        messages, character.fallback_memory_characters
-                    )
-                ]
-            )
         )
+    )
 
-        # Launch
-        response = rate_limited_call(llm, prompt)
+    # Launch
+    response = rate_limited_call(llm, prompt)
 
-        os.environ["LANGCHAIN_TRACING_V2"] = "false"
-
-        return response
+    return response
 
 
 def message_to_dict(message: AIMessage) -> dict:

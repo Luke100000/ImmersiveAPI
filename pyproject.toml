@@ -66,7 +66,6 @@ langchain-community = "^0.2.5"
 langchain-chroma = "^0.1.1"
 langchain-huggingface = "^0.0.3"
 langchain-mistralai = "^0.1.8"
-langsmith = "^0.1.82"
 langchain-openai = "^0.1.15"
 onnxruntime = "1.19.2"
 

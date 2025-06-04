@@ -3,12 +3,12 @@ import threading
 from dataclasses import dataclass
 from datetime import datetime
 from functools import cache
+from typing import Optional
 
 from langchain_core.messages import AIMessage, HumanMessage, BaseMessage
 from langchain_core.prompts import ChatPromptTemplate
-from langchain_core.runnables import Runnable
+from langchain_core.runnables import Runnable, RunnableConfig
 from langchain_mistralai import ChatMistralAI
-from langsmith import traceable
 import re
 
 from common.langchain.ratelimit import rate_limited_call
@@ -129,8 +129,9 @@ class MemoryManager(Runnable):
 
         self.chain = _get_compression_chain(model)
 
-    @traceable(run_type="tool", name="Memorize")
-    def invoke(self, input_dict: dict) -> list[BaseMessage]:
+    def invoke(
+        self, input_dict: dict, config: Optional[RunnableConfig] = None
+    ) -> list[BaseMessage]:
         assert isinstance(input_dict, dict), "Input must be a dictionary."
         assert "session_id" in input_dict, "Session ID not found in input dict."
         assert "conversation" in input_dict, "Conversation not found in input dict."

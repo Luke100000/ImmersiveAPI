@@ -26,7 +26,6 @@ def main():
         ],
         [],
         HAGRID_SECRET,
-        langsmith_project="hagrid",
     )
 
     print(json.dumps(message_to_dict(response), indent=2))

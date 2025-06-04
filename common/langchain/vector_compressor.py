@@ -4,7 +4,6 @@ from langchain.embeddings import CacheBackedEmbeddings
 from langchain_community.vectorstores import FAISS
 from langchain_core.documents import Document
 from langchain_core.runnables import Runnable, RunnableConfig
-from langsmith import traceable
 
 from common.langchain.lru_in_memory_store import LRUInMemoryStore
 from common.shared_models import get_sentence_embeddings, ADDITIONAL_QUERY_PROMPTS
@@ -73,7 +72,6 @@ class VectorCompressor(Runnable):
             namespace=self.embedding.name,
         )
 
-    @traceable(run_type="tool", name="Compress")
     def invoke(self, input_dict: dict, config: Optional[RunnableConfig] = None) -> str:
         assert isinstance(input_dict, dict), "Input must be a dictionary."
         assert "input" in input_dict, "Input not found in input dict."

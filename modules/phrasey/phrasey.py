@@ -118,7 +118,7 @@ class Phrasey:
         voices = self.environment.get_valid_voices(params)
         self.populate_audios(identifier, phrases, voices)
 
-        # Add to database
+        # Add to the database
         self.collection.upsert(
             documents=prompt,
             metadatas=params,
@@ -194,7 +194,7 @@ class Phrasey:
         return phrases, audios, durations, voice_mapping
 
     def get_phrases(self, identifier: str) -> list[str]:
-        return load_json(f"{self.cache_dir}/{identifier}/phrases.json")  # pyright: ignore [reportReturnType]
+        return load_json(f"{self.cache_dir}/{identifier}/phrases.json")
 
     def get_audios(
         self, identifier: str, voices: list[str], voice_mapping: list[int]

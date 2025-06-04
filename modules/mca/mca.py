@@ -76,7 +76,6 @@ CHARACTERS = {
         system="This is a conversation between users and the loyal, friendly, and softhearted Rubeus Hagrid with a thick west country accent. Generate a short discord-message-respond in his thick west country accent!",
         memory_characters_per_level=1200,
         memory_sentences_per_summary=3,
-        langsmith_project="hagrid",
         stop=[],
         glossary={
             "mca_wiki_fast": GlossarySearch(
@@ -273,12 +272,7 @@ def init(configurator: Configurator):
             rate_limited = False
             try:
                 message = get_chat_completion(
-                    model,
-                    character,
-                    body.messages,
-                    body.tools,
-                    player,
-                    langsmith_project=character.langsmith_project,
+                    model, character, body.messages, body.tools, player
                 )
             except groq.RateLimitError:
                 # TODO: Remove once Groq limits are removed
