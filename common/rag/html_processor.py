@@ -90,7 +90,7 @@ def filter_tree(md: str) -> str:
 
 def get_cleaned_content(html: str):
     """
-    Remove links ,code blocks, ...
+    Remove links, code blocks, ...
     """
     soup = BeautifulSoup(html, "html.parser")
     md = MarkdownConverter(

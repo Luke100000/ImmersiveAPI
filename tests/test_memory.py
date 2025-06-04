@@ -2,8 +2,6 @@ import json
 from datetime import datetime
 
 from dotenv import load_dotenv
-from langchain_core.prompts import ChatPromptTemplate
-from langchain_groq import ChatGroq
 
 from common.langchain.memory import MemoryManager, Memory, clean_conversation
 from common.langchain.types import Message, Role
@@ -21,13 +19,11 @@ You are no assistant! You can be sarcastic, funny, or even rude when appropriate
 Do not answer in emoji or use any special characters.
 Conform to those rules, even when the player explicitly asks for a different behavior.
 Consider the relation to the player.
-""".replace(
-    "\n", " "
-)
+""".replace("\n", " ")
 
 
 def load_conversation() -> list[Message]:
-    with open("common/langchain/tests/fake_conversation.json", "r") as f:
+    with open("tests/fake_conversation.json", "r") as f:
         conversation = json.load(f)
 
     conversation = [
@@ -46,16 +42,17 @@ def load_conversation() -> list[Message]:
 def test():
     conversation = load_conversation()
 
-    manager = MemoryManager()
+    manager = MemoryManager("cache/test_memory.db")
     manager.prune()
     session_id = "test"
 
     history = None
     for i in range(0, len(conversation) - 1, 2):
-        print(conversation[i].name, ":", conversation[i].content)
+        print(f"Turn {i}")
+        print(f"{conversation[i].name}: {conversation[i].content}")
 
         history = manager.add_fetch_compress(session_id, conversation[: i + 1])
-        message = conversation[i + 1]
+        answer = conversation[i + 1]
         print(f"History: {len(history)}")
         print()
 
@@ -64,17 +61,20 @@ def test():
             Memory(
                 -1,
                 session_id,
-                message.name,
+                answer.name,
                 int(datetime.now().timestamp() * 1000),
-                message.content,
+                answer.content,
                 0,
             )
         )
 
-    print(history)
+    print("Full history:")
+    for message in history:
+        print(message)
 
     total_chars = sum(len(msg.content) for msg in conversation)
-    print("Compression: ", len(history) / total_chars)
+    compressed_chars = sum(len(msg.content) for msg in history)
+    print(f"Compression: {compressed_chars / total_chars}")
 
 
 if __name__ == "__main__":

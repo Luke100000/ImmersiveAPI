@@ -1,17 +1,15 @@
 import logging
 import sqlite3
-import time
 from dataclasses import dataclass, field
-from enum import Enum
 from functools import cache
 from typing import List, Optional
 
 from langchain_core.messages import AIMessage
 from langchain_core.prompts import ChatPromptTemplate
-from langchain_groq import ChatGroq
-from langchain_openai import ChatOpenAI
+from langchain_mistralai import ChatMistralAI
 from pydantic import BaseModel
 
+from common.langchain.ratelimit import rate_limited_call
 from common.rag.html_processor import get_chapters
 
 
@@ -22,13 +20,11 @@ class Summary(BaseModel):
 
 
 def get_model(model: str, max_tokens: Optional[int] = None):
-    if model == "gpt-3.5-turbo":
-        return ChatOpenAI(model=model, temperature=0, max_tokens=max_tokens)
-    return ChatGroq(model=model, temperature=0, max_tokens=max_tokens)  # pyright: ignore [reportCallIssue]
+    return ChatMistralAI(model=model, temperature=0, max_tokens=max_tokens)
 
 
 @cache
-def get_summary_chain(model: str):
+def get_summary_chain(model: str = "mistral-medium"):
     template = """
 You are a summarizer for a RAG system, summarizing the content of a page.
 Return a json dictionary containing the following fields:
@@ -52,14 +48,11 @@ Start of the content:
 
     prompt = ChatPromptTemplate.from_template(template)
 
-    return prompt | llm.with_structured_output(Summary, method="json_mode")  # pyright: ignore [reportArgumentType]
-
-
-# todo make this modifying, e.g. java files needs a different treatment than html
+    return prompt | llm.with_structured_output(Summary, method="json_mode")
 
 
 @cache
-def get_simplifier_chain(model: str):
+def get_simplifier_chain(model: str = "mistral-medium"):
     system = """
 You are a content post-processor for a RAG system, removing errors introduced by web scraping.
 For example, perform the following operations:
@@ -91,41 +84,7 @@ Only respond with the markdown reformatted content, do not prepend or append any
     return prompt | llm | postprocess
 
 
-RATE_LIMITS = {
-    "llama-3.1-8b-instant": 30_000,
-    "llama-3.3-70b-versatile": 12_000,
-}
-
-RATE_LIMIT_REQUESTS = {
-    "llama-3.1-8b-instant": 30,
-    "llama-3.3-70b-versatile": 30,
-}
-
-CONTEXT_SIZES = {
-    "llama-3.1-8b-instant": 8192,
-    "llama-3.3-70b-versatile": 8192,
-}
-
-RATE_LIMIT_UTILIZATION = 0.5
-
-
-def _rate_limit(
-    content: str,
-    tpm: int = -1,
-    rpm: int = -1,
-    utilization: float = RATE_LIMIT_UTILIZATION,
-):
-    if tpm > 0:
-        t = (len(content) + 200) / 4 / tpm * 60 / utilization
-    else:
-        t = 0
-
-    if rpm > 0:
-        t = max(t, 60 / rpm / utilization)
-
-    if t > 0:
-        logging.info(f"Sleeping for {t} seconds")
-        time.sleep(t)
+CONTEXT_SIZE = 16384
 
 
 @cache
@@ -147,32 +106,6 @@ def _get_connection():
     return conn
 
 
-class QualityPreset(Enum):
-    DEFAULT = dict(
-        simplification_model="llama-3.1-8b-instant",
-        summarization_model="llama-3.3-70b-versatile",
-    )
-    HIGH = dict(
-        simplification_model="llama-3.3-70b-versatile",
-        summarization_model="llama-3.3-70b-versatile",
-    )
-    LOW = dict(
-        simplification_model="llama-3.1-8b-instant",
-        summarization_model="llama-3.1-8b-instant",
-    )
-    FAST = dict(
-        simplification_model="gpt-3.5-turbo", summarization_model="gpt-3.5-turbo"
-    )
-
-    @property
-    def simplification_model(self):
-        return self.value["simplification_model"]
-
-    @property
-    def summarization_model(self):
-        return self.value["summarization_model"]
-
-
 def clean_tags(tags: list[str]):
     return [t.lower().strip() for t in tags]
 
@@ -185,8 +118,6 @@ class InformationPage:
     tags: List[str] = field(default_factory=list)
     content: str = ""
     simplified_content: str = ""
-
-    quality: QualityPreset = QualityPreset.DEFAULT
 
     @staticmethod
     def _fetch_document_by_source(source: str):
@@ -220,12 +151,7 @@ class InformationPage:
         _get_connection().commit()
 
     @staticmethod
-    def from_content(
-        source: str,
-        content: str,
-        simplify: bool = True,
-        quality: QualityPreset = QualityPreset.DEFAULT,
-    ):
+    def from_content(source: str, content: str, simplify: bool = True):
         row = InformationPage._fetch_document_by_source(source)
 
         if row:
@@ -246,7 +172,6 @@ class InformationPage:
                 tags=tags,
                 content=db_content,
                 simplified_content=db_simplified_content,
-                quality=quality,
             )
 
             # Data has changed, request reprocessing
@@ -256,11 +181,7 @@ class InformationPage:
                 doc.summary = ""
         else:
             # Create new doc
-            doc = InformationPage(
-                source=source,
-                content=content,
-                quality=quality,
-            )
+            doc = InformationPage(source=source, content=content)
 
         # Update document
         if doc.populate(simplify):
@@ -302,7 +223,7 @@ class InformationPage:
         logging.info(f"Simplifying {self.source} ({len(self.content)} characters)")
 
         if chunksize is None:
-            chunksize = CONTEXT_SIZES[self.quality.simplification_model] // 2
+            chunksize = CONTEXT_SIZE // 2
 
         # Batch chapters into chunks
         merged_chapters = []
@@ -319,20 +240,11 @@ class InformationPage:
         # Simplify the content
         simplified_chunks = []
         for i, content in enumerate(merged_chapters):
-            chunk = get_simplifier_chain(self.quality.simplification_model).invoke(
-                {"content": content}
-            )
+            chunk = rate_limited_call(get_simplifier_chain(), {"content": content})
             simplified_chunks.append(chunk)
             factor = int(len(chunk) / len(content) * 100)
             logging.info(
                 f"  Reduced size of chunk {i + 1} of {len(merged_chapters)} by {100 - factor}% to {len(chunk)} characters."
-            )
-
-            # Sleep to stay below the rate limit
-            _rate_limit(
-                content,
-                RATE_LIMITS[self.quality.simplification_model],
-                RATE_LIMIT_REQUESTS[self.quality.simplification_model],
             )
 
         self.simplified_content = "\n".join(simplified_chunks)
@@ -342,30 +254,14 @@ class InformationPage:
 
         # And summarize it
         logging.info(f"Summarizing {self.source}")
-        # noinspection PyBroadException
-        try:
-            summary: Summary = get_summary_chain(
-                self.quality.summarization_model
-            ).invoke(  # pyright: ignore [reportAssignmentType]
-                {"content": self.simplified[:max_size]}
-            )
-        except Exception:
-            logging.exception("Error summarizing content")
-            summary: Summary = get_summary_chain(
-                "gpt-3.5-turbo"
-            ).invoke(  # pyright: ignore [reportAssignmentType]
-                {"content": self.simplified[:max_size]}
-            )
+
+        summary: Summary = rate_limited_call(
+            get_summary_chain(), {"content": self.simplified[:max_size]}
+        )
 
         self.title = summary.title
         self.summary = summary.summary
         self.tags = clean_tags(summary.tags.split(","))
-
-        _rate_limit(
-            self.simplified[:max_size],
-            RATE_LIMITS[self.quality.summarization_model],
-            RATE_LIMIT_REQUESTS[self.quality.summarization_model],
-        )
 
 
 class DocumentManager:

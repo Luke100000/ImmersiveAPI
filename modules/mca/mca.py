@@ -36,32 +36,21 @@ MODELS: dict[str, Model] = {
         provider="openai",
         tools=True,
     ),
-    "mistral-medium": Model(
-        price=0.3,
-        model="mistral-medium-latest",
-        provider="mistral",
-    ),
     "mistral-small": Model(
         price=0.2,
         model="mistral-small-latest",
         provider="mistral",
     ),
-    "llama3-70b": Model(
-        price=0.6,
-        model="llama-3.3-70b-versatile",
-        provider="groq",
-        tools=True,
+    "mistral-medium": Model(
+        price=0.3,
+        model="mistral-medium-latest",
+        provider="mistral",
     ),
     "llama3.3-70b": Model(
         price=0.6,
         model="llama-3.3-70b-versatile",
         provider="groq",
         tools=True,
-    ),
-    "llama3-8b": Model(
-        price=0.1,
-        model="llama-3.1-8b-instant",
-        provider="groq",
     ),
     "llama3.1-8b": Model(
         price=0.1,
@@ -87,7 +76,6 @@ CHARACTERS = {
         system="This is a conversation between users and the loyal, friendly, and softhearted Rubeus Hagrid with a thick west country accent. Generate a short discord-message-respond in his thick west country accent!",
         memory_characters_per_level=1200,
         memory_sentences_per_summary=3,
-        memory_model="llama-3.3-70b-versatile",
         langsmith_project="hagrid",
         stop=[],
         glossary={
@@ -143,7 +131,9 @@ ALIASES = {
     # Legacy
     "mixtral-8x7b": "mistral-medium",
     "mistral-tiny": "mistral-small",
+    "llama3-70b": "llama3.3-70b",
     "llama3.1-70b": "llama3.3-70b",
+    "llama3-8b": "llama3.1-8b",
     "gpt-3.5-turbo": "gpt-4o-mini",
 }
 

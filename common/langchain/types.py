@@ -48,8 +48,6 @@ class GlossarySearch(BaseModel):
     k: int
     lambda_mult: float = 0.5
     always: bool = True
-    compression_model: str = "llama-3.3-70b-versatile"
-    compression: bool = True
 
 
 class Character(BaseModel):
@@ -65,6 +63,6 @@ class Character(BaseModel):
     fallback_memory_characters: int = 3000
     memory_characters_per_level: int = 1000
     memory_sentences_per_summary: int = 3
-    memory_model: str = "llama-3.1-8b-instant"
+    memory_model: str = "mistral-medium"
     langsmith_project: Optional[str] = None
     stop: list[str] = ["\n"]

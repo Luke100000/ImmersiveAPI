@@ -3,11 +3,11 @@ import hashlib
 import os
 from typing import List
 
-from common.rag.document_manager import DocumentManager, InformationPage, QualityPreset
+from common.rag.document_manager import DocumentManager, InformationPage
 
 
 class GitDocumentManager(DocumentManager):
-    def __init__(self, url: str, quality_preset: QualityPreset = QualityPreset.DEFAULT):
+    def __init__(self, url: str):
         identifier = hashlib.md5(url.encode()).hexdigest()
 
         # clone
@@ -33,10 +33,7 @@ class GitDocumentManager(DocumentManager):
                     try:
                         self.documents.append(
                             InformationPage.from_content(
-                                f"{base_path}/{filename}",
-                                f.read(),
-                                simplify=False,
-                                quality=quality_preset,
+                                f"{base_path}/{filename}", f.read(), simplify=False
                             )
                         )
                     except Exception as e:

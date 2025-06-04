@@ -1,7 +1,5 @@
-import logging
 import os
 import re
-import time
 from contextlib import contextmanager
 from functools import cache
 from typing import Optional
@@ -9,9 +7,6 @@ from typing import Optional
 import requests
 from cachetools import cached, TTLCache
 from dotenv import load_dotenv
-from groq import Groq
-from httpx import HTTPStatusError
-from langchain_core.language_models import BaseChatModel
 from langchain_core.messages import AIMessage, SystemMessage, BaseMessage
 from langchain_groq import ChatGroq
 from langchain_mistralai import ChatMistralAI
@@ -20,21 +15,14 @@ from langsmith import trace, traceable
 
 from common.config import settings
 from common.langchain.glossary_manager import GlossaryManager
-from common.langchain.information_extractor import InformationExtractor
 from common.langchain.memory import MemoryManager, clean_conversation
+from common.langchain.ratelimit import rate_limited_call
 from common.langchain.types import Message, Model, Character, GlossarySearch, Role
 from common.langchain.vector_compressor import VectorCompressor
 from common.rag.git_document_manager import GitDocumentManager
 from common.rag.wiki_document_manager import WikiDocumentManager
 
 load_dotenv()
-
-
-@cache
-def get_client():
-    return Groq(
-        api_key=os.environ.get("GROQ_API_KEY"),
-    )
 
 
 @cache
@@ -45,11 +33,6 @@ def get_memory_manager(**kwargs):
 @cache
 def get_vector_compressor():
     return VectorCompressor()
-
-
-@cache
-def get_information_extractor(model: str):
-    return InformationExtractor(model)
 
 
 @cache
@@ -119,23 +102,13 @@ def get_boolean(flags: dict, key: str, default: bool = False):
 
 @traceable(run_type="chain", name="Process Glossary")
 def get_glossary_entry(query: str, glossary: GlossarySearch) -> str:
-    document = get_glossary_manager().invoke(
+    return get_glossary_manager().invoke(
         {
             "query": query,
             "k": glossary.k,
             "filter": list(glossary.tags),
             "lambda_mult": glossary.lambda_mult,
         }
-    )
-    return (
-        get_information_extractor(glossary.compression_model).invoke(
-            {
-                "query": query,
-                "document": document,
-            }
-        )
-        if glossary.compression and document
-        else document
     )
 
 
@@ -305,32 +278,11 @@ def get_chat_completion(
         )
 
         # Launch
-        response = timeout_call(llm, prompt)
+        response = rate_limited_call(llm, prompt)
 
         os.environ["LANGCHAIN_TRACING_V2"] = "false"
 
         return response
-
-
-def timeout_call(
-    llm: BaseChatModel, prompt: list[BaseMessage], retries: int = 10
-) -> AIMessage:
-    """
-    Call the LLM with a timeout.
-    """
-    for _ in range(retries):
-        try:
-            return llm.invoke(prompt)
-        except HTTPStatusError as e:
-            if e.response.status_code == 429:
-                # Rate limit error, wait and retry
-                retry_after = float(e.response.headers.get("Retry-After", 0.5))
-                logging.info(f"Rate limit hit, retrying after {retry_after} seconds...")
-                time.sleep(retry_after)
-                continue
-            else:
-                raise RuntimeError(f"An error occurred: {e.response.text}")
-    raise RuntimeError("Rate limit exceeded after multiple retries.")
 
 
 def message_to_dict(message: AIMessage) -> dict:

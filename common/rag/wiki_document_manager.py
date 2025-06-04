@@ -9,7 +9,7 @@ from typing import List
 from tqdm.auto import tqdm
 
 from common.rag.cached_request import cached_request, cache
-from common.rag.document_manager import DocumentManager, InformationPage, QualityPreset
+from common.rag.document_manager import DocumentManager, InformationPage
 from common.rag.html_processor import get_cleaned_content
 
 whitelist = {"root", "Dungeons", "Earth", "Legends", "Story_Mode"}
@@ -107,12 +107,11 @@ def _process_location(data):
     loc, content = data
     try:
         cleaned_content = _get_cached_cleaned_content(loc, content)
-        return InformationPage.from_content(
-            loc, cleaned_content, simplify=True, quality=QualityPreset.LOW
-        )
+        return InformationPage.from_content(loc, cleaned_content, simplify=True)
     except Exception as e:
         print(f"Error processing {loc}: {e}")
         traceback.print_exc()
+        return None
 
 
 class WikiDocumentManager(DocumentManager):

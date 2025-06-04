@@ -7,11 +7,11 @@ from functools import cache
 from langchain_core.messages import AIMessage, HumanMessage, BaseMessage
 from langchain_core.prompts import ChatPromptTemplate
 from langchain_core.runnables import Runnable
-from langchain_groq import ChatGroq
+from langchain_mistralai import ChatMistralAI
 from langsmith import traceable
 import re
 
-
+from common.langchain.ratelimit import rate_limited_call
 from common.langchain.types import Message, Role
 
 
@@ -55,7 +55,7 @@ def _get_compression_chain(model: str):
                 ("human", "{messages}"),
             ]
         )
-        | ChatGroq(model=model, temperature=0, max_tokens=200, stop_sequences=["\n"])
+        | ChatMistralAI(model=model, temperature=0, max_tokens=200)
         | (lambda x: x.content)
     )
 
@@ -117,7 +117,7 @@ class MemoryManager(Runnable):
         db_file: str = "cache/memory.db",
         characters_per_level: int = 700,
         sentences_per_summary: int = 3,
-        model: str = "llama-3.3-70b-versatile",
+        model: str = "mistral-medium",
     ):
         self.conn = sqlite3.connect(db_file, check_same_thread=False)
         self.lock = threading.Lock()
@@ -130,9 +130,7 @@ class MemoryManager(Runnable):
         self.chain = _get_compression_chain(model)
 
     @traceable(run_type="tool", name="Memorize")
-    def invoke(  # pyright: ignore [reportIncompatibleMethodOverride]
-        self, input_dict: dict
-    ) -> list[BaseMessage]:
+    def invoke(self, input_dict: dict) -> list[BaseMessage]:
         assert isinstance(input_dict, dict), "Input must be a dictionary."
         assert "session_id" in input_dict, "Session ID not found in input dict."
         assert "conversation" in input_dict, "Conversation not found in input dict."
@@ -250,11 +248,12 @@ class MemoryManager(Runnable):
         Summarize memories into fewer memories.
         """
         messages = [f"{memory.name}: {memory.content}" for memory in memories]
-        summary = self.chain.invoke(
+        summary = rate_limited_call(
+            self.chain,
             {
                 "messages": "\n".join(messages),
                 "sentences": self.sentences_per_summary,
-            }
+            },
         )
         return Memory(
             -1,
