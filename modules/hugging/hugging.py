@@ -1,6 +1,7 @@
 import asyncio
 import hashlib
 import tempfile
+import threading
 from enum import Enum
 from typing import List, Any, Optional, Union, Iterable
 import aiofiles
@@ -244,9 +245,13 @@ def init(configurator: Configurator):
         )
 
         def generate():
-            for chunk in pcm_iter:
-                proc.stdin.write(chunk)
-            proc.stdin.close()
+            def writer():
+                for chunk in pcm_iter:
+                    proc.stdin.write(chunk)
+                proc.stdin.close()
+
+            threading.Thread(target=writer, daemon=True).start()
+
             while True:
                 out = proc.stdout.read(4096)
                 if not out:
