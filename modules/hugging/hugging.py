@@ -1,14 +1,15 @@
 import asyncio
 import hashlib
 import tempfile
-from typing import List, Any, Optional, Union
-
+from enum import Enum
+from typing import List, Any, Optional, Union, Iterable
 import aiofiles
 import aiofiles.os
 from fastapi import UploadFile
 from pydantic import BaseModel
 from starlette.responses import Response, StreamingResponse
 
+import subprocess
 from common.worker import get_primary_executor
 from main import Configurator
 from modules.hugging.coqui import (
@@ -196,12 +197,68 @@ def init(configurator: Configurator):
             "voices": voices,
         }
 
+    class PiperFormats(Enum):
+        PCM = "pcm"
+        WAV = "wav"
+        OGG = "ogg"
+        MP3 = "mp3"
+
     class PiperTTSRequestBody(BaseModel):
         text: str
-        voice: str
+        voice: str = "alan:-1"
+        format: PiperFormats = PiperFormats.PCM
+
+    def get_media_type(fmt: PiperFormats) -> str:
+        if fmt == PiperFormats.PCM:
+            return "audio/L16; rate=22050; channels=1"
+        elif fmt == PiperFormats.WAV:
+            return "audio/wav"
+        elif fmt == PiperFormats.OGG:
+            return "audio/ogg"
+        elif fmt == PiperFormats.MP3:
+            return "audio/mpeg"
+        return "application/octet-stream"
+
+    def convert_stream(pcm_iter: Iterable[bytes], fmt: PiperFormats) -> Iterable[bytes]:
+        if fmt == PiperFormats.PCM:
+            return pcm_iter
+
+        proc = subprocess.Popen(
+            [
+                "ffmpeg",
+                "-f",
+                "s16le",
+                "-ar",
+                "22050",
+                "-ac",
+                "1",
+                "-i",
+                "pipe:0",
+                "-f",
+                fmt.value,
+                "pipe:1",
+            ],
+            stdin=subprocess.PIPE,
+            stdout=subprocess.PIPE,
+            stderr=subprocess.DEVNULL,
+        )
+
+        def generate():
+            for chunk in pcm_iter:
+                proc.stdin.write(chunk)
+            proc.stdin.close()
+            while True:
+                out = proc.stdout.read(4096)
+                if not out:
+                    break
+                yield out
+
+        return generate()
 
     @configurator.post("/v1/tts/piper/speak")
-    async def get_tts_piper(body: PiperTTSRequestBody):
+    def get_tts_piper(body: PiperTTSRequestBody):
+        pcm_iter = speak(body.text, body.voice)
         return StreamingResponse(
-            speak(body.text, body.voice), media_type="audio/L16; rate=22050; channels=1"
+            convert_stream(pcm_iter, body.format),
+            media_type=get_media_type(body.format),
         )

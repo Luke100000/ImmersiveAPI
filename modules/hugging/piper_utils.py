@@ -2,6 +2,7 @@ import json
 import os.path
 from functools import cache
 from pathlib import Path
+from typing import Iterable
 
 from piper import PiperVoice
 from piper.download import get_voices, ensure_voice_exists
@@ -38,7 +39,7 @@ def get_best_voices():
     return best_voices
 
 
-def speak(text: str, speaker: str):
+def speak(text: str, speaker: str) -> Iterable[bytes]:
     name, speaker_id = speaker.split(":", 1)
     voices = get_best_voices()
 
