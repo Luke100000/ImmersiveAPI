@@ -58,6 +58,8 @@ blacklisted_categories = {
     "fabric",
     "quilt",
     "neoforge",
+    "optional-client",
+    "optional-server",
     "client",
     "server",
 }

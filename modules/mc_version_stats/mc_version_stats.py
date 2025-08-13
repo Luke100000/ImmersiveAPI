@@ -5,6 +5,7 @@ from threading import Thread
 from fastapi import Request
 from fastapi.templating import Jinja2Templates
 
+from common.config import settings
 from main import Configurator
 from modules.mc_version_stats.data import database
 from modules.mc_version_stats.modrinth import (
@@ -12,8 +13,6 @@ from modules.mc_version_stats.modrinth import (
     populate_modrinth_details,
 )
 from modules.mc_version_stats.utils import parse_versions, is_clean_version
-
-DEBUG = False
 
 
 def init(configurator: Configurator):
@@ -31,7 +30,7 @@ def init(configurator: Configurator):
         sleep_time = 10
         populate_min_age = 3600
 
-        while not DEBUG:
+        while not settings["mc_version_stats"].get("debug", False):
             scanning_progress = 0
             for mod in get_modrinth_mods("mod"):
                 existing_mod = database.get_mod(mod.id)
@@ -42,14 +41,17 @@ def init(configurator: Configurator):
                         abs(existing_mod.last_modified - mod.last_modified)
                         > populate_min_age
                     ):
+                        # Mod has been updated significantly
                         populate_modrinth_details(mod)
                         database.add_mod(mod)
                         time.sleep(sleep_time)
                         last_updated = mod.name
                     else:
+                        # Only update metadata
                         database.update_mod(mod)
                         time.sleep(0.1 * sleep_time)
                 else:
+                    # New mod, populate details
                     populate_modrinth_details(mod)
                     database.add_mod(mod)
                     time.sleep(sleep_time)

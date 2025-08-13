@@ -1,7 +1,7 @@
 import asyncio
 import io
 import textwrap
-from typing import Optional
+from typing import Optional, Union
 from urllib.parse import urlparse
 
 import requests
@@ -46,12 +46,12 @@ def fitted_text(
     draw: ImageDraw.ImageDraw,
     text: str,
     font_path: str,
-    x: int,
-    y: int,
-    width: int,
-    height: int,
-    size: int,
-    color: int,
+    x: float,
+    y: float,
+    width: float,
+    height: float,
+    size: float,
+    color: Union[int, str],
     anchor: Optional[str] = None,
 ):
     while True:
@@ -64,9 +64,9 @@ def fitted_text(
             )
 
         font = ImageFont.truetype(font_path, size)
-        bbox = draw.textbbox((0, 0), text, font=font)
-        w = bbox[2] - bbox[0]
-        h = bbox[3] - bbox[1]
+        x0, y0, x1, y1 = draw.textbbox((0, 0), text, font=font)
+        w = x1 - x0
+        h = y1 - y0
 
         if size < 5 or (h < height and w < width):
             draw.text(
@@ -170,7 +170,7 @@ def render_embed(
     return encode_image(img)
 
 
-@cache(expire=86400, coder=BytesCoder())
+@cache(expire=86400, coder=BytesCoder)
 async def cached_render_embed(
     **kwargs,
 ) -> bytes:
@@ -180,6 +180,7 @@ async def cached_render_embed(
 def init(configurator: Configurator):
     configurator.register("Asset Generator", "Misc Assets for websites and co.")
 
+    # TODO: Bad path naming
     @configurator.get(
         "/embed",
         responses={200: {"content": {"image/png": {}}}},
