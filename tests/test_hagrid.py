@@ -2,7 +2,7 @@ import json
 import logging
 import time
 
-from common.langchain.types import Message
+from common.langchain.types import Message, Role
 from modules.mca.chain import get_chat_completion, message_to_dict
 from modules.mca.mca import MODELS, CHARACTERS, HAGRID_SECRET
 
@@ -11,15 +11,15 @@ logging.basicConfig(level=logging.INFO)
 
 def main():
     response = get_chat_completion(
-        MODELS["gpt-4o-mini"],
+        MODELS["gpt-4.1-mini"],
         CHARACTERS[HAGRID_SECRET],
         [
             Message(
-                role="system",
+                role=Role.system,
                 content="[use_memory:true][shared_memory:true][world_id:default][character_id:hagrid][glossaries:mca_wiki]",
             ),
             Message(
-                role="user",
+                role=Role.user,
                 content="How to get amethysts?",
                 name="Conczin",
             ),

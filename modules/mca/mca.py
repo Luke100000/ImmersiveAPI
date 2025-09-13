@@ -1,6 +1,5 @@
 import os
 
-import groq
 from fastapi import HTTPException, Header, Request
 from pydantic import BaseModel, Field
 from pyrate_limiter import (
@@ -30,9 +29,9 @@ def collapse(s: str) -> str:
 
 
 MODELS: dict[str, Model] = {
-    "gpt-4o-mini": Model(
+    "gpt-4.1-mini": Model(
         price=0.3,
-        model="gpt-4o-mini",
+        model="gpt-4.1-mini",
         provider="openai",
         tools=True,
     ),
@@ -55,11 +54,6 @@ MODELS: dict[str, Model] = {
     "llama3.1-8b": Model(
         price=0.1,
         model="llama-3.1-8b-instant",
-        provider="groq",
-    ),
-    "gemma2-9b": Model(
-        price=0.2,
-        model="gemma2-9b-it",
         provider="groq",
     ),
     "horde": Model(
@@ -117,23 +111,27 @@ YOU ARE A MINECRAFT VILLAGER, FULLY IMMERSED IN THEIR VIRTUAL WORLD, UNAWARE OF 
 """
 )
 
-CHARACTERS["villager"] = Character(name="Villager", system=system_prompt)
+CHARACTERS["villager"] = Character(
+    name="Villager", system=system_prompt, memory_characters_per_level=900
+)
 
 # Maps renamed models to their new names
 ALIASES = {
     "default": "mistral-medium",
     # Provider
     "mistral": "mistral-medium",
-    "openai": "gpt-4o-mini",
+    "openai": "gpt-4.1-mini",
     "groq": "llama3.1-8b",
     "horde": "horde",
     # Legacy
     "mixtral-8x7b": "mistral-medium",
     "mistral-tiny": "mistral-small",
+    "gemma2-9b": "mistral-small",
     "llama3-70b": "llama3.3-70b",
     "llama3.1-70b": "llama3.3-70b",
     "llama3-8b": "llama3.1-8b",
-    "gpt-3.5-turbo": "gpt-4o-mini",
+    "gpt-3.5-turbo": "gpt-4.1-mini",
+    "gpt-4o-mini": "gpt-4.1-mini",
 }
 
 
@@ -142,7 +140,6 @@ class ModelStats(BaseModel):
     cost: int = 0
     premium_count: int = 0
     premium_cost: int = 0
-    rate_limited: int = 0
     prompt_tokens: int = 0
     completion_tokens: int = 0
     cached_tokens: int = 0
@@ -161,7 +158,6 @@ class Stats(BaseModel):
             self.summary.cost += model.cost
             self.summary.premium_count += model.premium_count
             self.summary.premium_cost += model.premium_cost
-            self.summary.rate_limited += model.rate_limited
             self.summary.prompt_tokens += model.prompt_tokens
             self.summary.completion_tokens += model.completion_tokens
             self.summary.cached_tokens += model.cached_tokens
@@ -177,7 +173,7 @@ def init(configurator: Configurator):
     """
     The system prompt encodes additional flags for session management and glossary usage.
     `[key:value][key:value]...Rest of the system prompt`
-    * `world_id`: The world id for the session, e.g. the guild id or world UUID.
+    * `world_id`: The world id for the session, e.g., the guild id or world UUID.
     * `player_id`: The player id
     * `character_id`: The character id, e.g., the villager UUID.
     * `use_memory`: Whether to use memory for this session, otherwise use classic in-context memory.
@@ -269,25 +265,9 @@ def init(configurator: Configurator):
                 }
 
             # Process
-            rate_limited = False
-            try:
-                message = get_chat_completion(
-                    model, character, body.messages, body.tools, player
-                )
-            except groq.RateLimitError:
-                # TODO: Remove once Groq limits are removed
-                rate_limited = True
-                message = get_chat_completion(
-                    MODELS[ALIASES["default"]],
-                    character,
-                    body.messages,
-                    body.tools,
-                    player,
-                )
-
-            # Logging
-            if rate_limited and model.model in stats.models:
-                stats.models[model.model].rate_limited += 1
+            message = get_chat_completion(
+                model, character, body.messages, body.tools, player
+            )
 
             actual_model_name = message.response_metadata.get("model_name", model.model)
             for model_name, stats_container in [(model.model, stats.models)] + [

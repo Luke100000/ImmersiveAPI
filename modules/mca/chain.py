@@ -192,7 +192,7 @@ def get_chat_completion(
     else:
         flags, dynamic_system = {}, ""
 
-    # Extract session related data
+    # Extract session-related data
     world_id = flags.get("world_id", auth_token)
     player_id = flags.get("player_id", auth_token)
     character_id = (

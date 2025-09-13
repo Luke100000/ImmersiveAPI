@@ -20,7 +20,7 @@ class Summary(BaseModel):
 
 
 def get_model(model: str, max_tokens: Optional[int] = None):
-    return ChatMistralAI(model=model, temperature=0, max_tokens=max_tokens)
+    return ChatMistralAI(model_name=model, temperature=0, max_tokens=max_tokens)
 
 
 @cache
@@ -155,7 +155,7 @@ class InformationPage:
         row = InformationPage._fetch_document_by_source(source)
 
         if row:
-            # Load doc from cache
+            # Load doc from the cache
             (
                 db_source,
                 db_title,
@@ -180,7 +180,7 @@ class InformationPage:
                 doc.simplified_content = ""
                 doc.summary = ""
         else:
-            # Create new doc
+            # Create a new doc
             doc = InformationPage(source=source, content=content)
 
         # Update document

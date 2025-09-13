@@ -1,14 +1,15 @@
 import logging
 import time
 
+import groq
 from httpx import HTTPStatusError
-from langchain_core.language_models import BaseChatModel
-from langchain_core.messages import BaseMessage, AIMessage
+from langchain_core.runnables import RunnableSerializable
+from langchain_core.runnables.utils import Input, Output
 
 
 def rate_limited_call(
-    llm: BaseChatModel, prompt: list[BaseMessage], retries: int = 10
-) -> AIMessage:
+    llm: RunnableSerializable, prompt: Input, retries: int = 10
+) -> Output:
     """
     Call the LLM with a timeout.
     """
@@ -24,4 +25,8 @@ def rate_limited_call(
                 continue
             else:
                 raise RuntimeError(f"An error occurred: {e.response.text}")
+        except groq.RateLimitError:
+            logging.info("Groq Rate limit hit, retrying after 0.5 seconds...")
+            time.sleep(0.5)
+            continue
     raise RuntimeError("Rate limit exceeded after multiple retries.")

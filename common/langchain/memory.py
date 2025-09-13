@@ -55,7 +55,7 @@ def _get_compression_chain(model: str):
                 ("human", "{messages}"),
             ]
         )
-        | ChatMistralAI(model=model, temperature=0, max_tokens=200)
+        | ChatMistralAI(model_name=model, temperature=0, max_tokens=200)
         | (lambda x: x.content)
     )
 
@@ -80,7 +80,7 @@ def _remove_invalid_chars(s: str) -> str:
 
 def _populate_names(conversation: list, default_name: str) -> list:
     """
-    Memories are multi-speaker, thus ensure that name is set, and use "You" for the assistant.
+    Memories are multi-speaker, thus ensure that the name is set, and use "You" for the assistant.
     """
     for message in conversation:
         if message.role == Role.user and message.name is None:
@@ -273,7 +273,7 @@ class MemoryManager(Runnable):
         # fetch memories
         memories = self.fetch_memories(session_id)
 
-        # find first tracked message
+        # find the first tracked message
         index = -1
         any_matched = False
         for index, message in enumerate(conversation[::-1]):
