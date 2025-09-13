@@ -93,6 +93,8 @@ class Configurator:
 
 
 def start_module(name: str):
+    print(f"Initializing {name}...")
+
     start_import = time.time()
     module = importlib.import_module(f"modules.{name}.{name}")
     initializer = getattr(module, "init")
@@ -100,6 +102,7 @@ def start_module(name: str):
     start_init = time.time()
     initializer(Configurator(app, settings[name]))
     end = time.time()
+
     print(
         f"Initialized {name} in {end - start_import:.2f}s ({end - start_init:.2f}s initializing)"
     )
