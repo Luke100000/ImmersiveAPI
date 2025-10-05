@@ -11,14 +11,14 @@ from langchain_groq import ChatGroq
 from langchain_mistralai import ChatMistralAI
 from langchain_openai import ChatOpenAI
 
-from ...config import settings
-from ...llm.glossary_manager import GlossaryManager
-from ...llm.memory import MemoryManager, clean_conversation
-from ...llm.ratelimit import rate_limited_call
-from ...llm.types import Character, GlossarySearch, Message, Model, Role
-from ...llm.vector_compressor import VectorCompressor
-from ...rag.git_document_manager import GitDocumentManager
-from ...rag.wiki_document_manager import WikiDocumentManager
+from app.config import settings
+from app.llm.glossary_manager import GlossaryManager
+from app.llm.memory import MemoryManager, clean_conversation
+from app.llm.ratelimit import rate_limited_call
+from app.llm.types import Character, GlossarySearch, Message, Model, Role
+from app.llm.vector_compressor import VectorCompressor
+from app.rag.git_document_manager import GitDocumentManager
+from app.rag.wiki_document_manager import WikiDocumentManager
 
 load_dotenv()
 

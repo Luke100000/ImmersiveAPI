@@ -1,5 +1,4 @@
 [global]
-background_workers = 2
 asyncio_debug = false
 
 [global.embedding]

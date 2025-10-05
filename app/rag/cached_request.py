@@ -29,7 +29,7 @@ def cached_request(url: str, lastmod: str) -> bytes:
     if content and cached_last_mod == lastmod:
         return _decompress(content)
 
-    logging.info(f"Downloading {url}...")
+    logging.info(f"Downloading {url}app.")
     response = requests.get(url)
 
     try:

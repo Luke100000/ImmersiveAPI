@@ -57,8 +57,8 @@ def get_simplifier_chain(model: str = "mistral-medium"):
 You are a content post-processor for a RAG system, removing errors introduced by web scraping.
 For example, perform the following operations:
 - Convert tables into lists while keeping all information
-- Remove web scraping artifacts like links, image tags, incomplete lines, formatting, ...
-- Remove fragments like "Jump to navigation", "From Minecraft Wiki", or headers commonly used in wikis ...
+- Remove web scraping artifacts like links, image tags, incomplete lines, formatting, app.
+- Remove fragments like "Jump to navigation", "From Minecraft Wiki", or headers commonly used in wikis app.
 Do not strip information, only reformat and compact.
 Output valid markdown!
 Only respond with the markdown reformatted content, do not prepend or append anything.

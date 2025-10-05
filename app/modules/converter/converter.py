@@ -8,9 +8,9 @@ from fastapi import Request
 from starlette.responses import Response
 from starlette.templating import Jinja2Templates
 
-from ...configurator import Configurator
-from ...modules.converter.registry import clean_format, conversions
-from ...utils import fetch_file
+from app.configurator import Configurator
+from app.modules.converter.registry import clean_format, conversions
+from app.utils import fetch_file
 
 
 def init(configurator: Configurator):

@@ -1,19 +1,15 @@
-import asyncio
 import hashlib
+import os
 import subprocess
-import tempfile
 import threading
 from enum import Enum
-from typing import Any, Iterable, List, Optional, Union
+from typing import Any, Iterable, List, Optional
 
-import aiofiles
-import aiofiles.os
-from fastapi import UploadFile
 from pydantic import BaseModel
 from starlette.responses import Response, StreamingResponse
 
-from ...configurator import Configurator
-from ...worker import get_primary_executor
+from app.configurator import Configurator
+
 from .coqui import (
     generate_speech,
     get_base_speakers,
@@ -61,34 +57,30 @@ def init(configurator: Configurator):
         "Hugging", "Endpoints mostly relying on HuggingFace or similar ML models."
     )
 
-    @configurator.get("/v1/tts/xtts-v2/queue")
-    def get_tts_xtts_queue():
-        return get_primary_executor().queue.qsize()
+    @configurator.get("/v1/tts/xtts-v2/model", deprecated=True)
+    def get_tts_xtts_model():
+        return {
+            "speakers": get_speakers(),
+            "languages": get_languages(),
+            "base_speakers": get_base_speakers(),
+        }
 
-    @configurator.get("/v1/tts/xtts-v2/model")
-    async def get_tts_xtts_model():
-        return await get_primary_executor().submit(
-            0,
-            lambda: {
-                "speakers": get_speakers(),
-                "languages": get_languages(),
-                "base_speakers": get_base_speakers(),
-            },
-        )
-
-    @configurator.post("/v1/tts/xtts-v2")
-    async def post_tts_xtts(
+    @configurator.post("/v1/tts/xtts-v2", deprecated=True)
+    def post_tts_xtts(
         text: str,
         language: str = "en",
-        speaker: Optional[str] = None,
+        speaker: str = "male_1",
         file_format: str = "wav",
         cache: bool = False,
         prepare_speakers: int = 0,
         load_async: bool = False,
-        file: Union[UploadFile, None, str] = None,
     ):
+        # Deprecated parameters
+        assert prepare_speakers is not None
+        assert load_async is not None
+
         # Map generic speakers to actual speakers
-        if speaker is not None and speaker in get_base_speakers():
+        if get_base_speakers():
             speaker = get_base_speakers()[speaker]
 
         cache_key = None
@@ -100,57 +92,23 @@ def init(configurator: Configurator):
                 cache_key = (
                     f"cache/tts/{scan_language}-{speaker}/{text_hash}.{file_format}"
                 )
-                await aiofiles.os.makedirs("tmp", exist_ok=True)
 
                 # If a cached file is found, return it
-                if await aiofiles.os.path.exists(cache_key):
-                    async with aiofiles.open(cache_key, "rb") as f:
+                if os.path.exists(cache_key):
+                    with open(cache_key, "rb") as f:
                         return Response(
-                            content=await f.read(), media_type=f"audio/{file_format}"
+                            content=f.read(), media_type=f"audio/{file_format}"
                         )
-
-            # If an uncached file is found, load all other speakers as well
-            if prepare_speakers > 0:
-                for gender in ["male", "female"]:
-                    for count in range(min(25, prepare_speakers)):
-                        await asyncio.create_task(
-                            post_tts_xtts(
-                                text=text,
-                                language=language,
-                                speaker=f"{gender}_{count}",
-                                file_format=file_format,
-                                cache=True,
-                                prepare_speakers=False,
-                                load_async=True,
-                            )
-                        )
-
-        # Save speaker audio to a file
-        speaker_wav = None
-        if file:
-            f = tempfile.NamedTemporaryFile()
-            f.write(await file.read())
-            f.flush()
-            speaker_wav = f.name
 
         # Generate audio
-        c = get_primary_executor().submit(
-            2 if load_async else 0,
-            generate_speech,
+        audio = generate_speech(
             text=text,
-            language=language,
             speaker=speaker,
-            speaker_wav=speaker_wav,
+            language=language,
             file_format=file_format,
             file_path=cache_key,
-            overwrite=False,
         )
 
-        # Don't wait for the audio to load if it's async
-        if load_async:
-            return Response(content="")
-
-        audio = await c
         return Response(content=audio, media_type=f"audio/{file_format}")
 
     @configurator.get("/v1/tts/piper/voices")

@@ -3,7 +3,7 @@ import os
 from fusion_solar_py.client import BatteryStatus, FusionSolarClient
 from starlette.responses import Response
 
-from ...configurator import Configurator
+from app.configurator import Configurator
 
 # noinspection SpellCheckingInspection
 translation = {
@@ -69,7 +69,7 @@ def init(configurator: Configurator):
         # The home always consumes
         values["home"] = -values["load"]
 
-        # Battery flow can be negative, so lets also provide the more accurate battery charge value
+        # Battery flow can be negative, so let's also provide the more accurate battery charge value
         # We also invert the battery to make it consistent with the rest
         values["battery"] = -data.current_charge_discharge_kw * 1000
 

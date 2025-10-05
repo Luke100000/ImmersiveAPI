@@ -3,7 +3,7 @@ import os
 import itchio
 from cachetools import TTLCache, cached
 
-from ...configurator import Configurator
+from app.configurator import Configurator
 
 
 def init(configurator: Configurator):

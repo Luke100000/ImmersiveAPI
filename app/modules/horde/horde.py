@@ -13,7 +13,7 @@ from horde_openai_proxy import (
 from jinja2 import TemplateError
 from starlette.requests import Request
 
-from ...configurator import Configurator
+from app.configurator import Configurator
 
 app = FastAPI()
 

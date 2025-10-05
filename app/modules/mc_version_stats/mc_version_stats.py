@@ -5,8 +5,9 @@ from threading import Thread
 from fastapi import Request
 from fastapi.templating import Jinja2Templates
 
-from ...config import settings
-from ...configurator import Configurator
+from app.config import settings
+from app.configurator import Configurator
+
 from .data import database
 from .modrinth import (
     get_modrinth_mods,

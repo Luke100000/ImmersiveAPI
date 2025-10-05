@@ -10,7 +10,7 @@ from github.Issue import Issue
 from github.Repository import Repository
 from pydantic import BaseModel
 
-from ...configurator import Configurator
+from app.configurator import Configurator
 
 load_dotenv()
 

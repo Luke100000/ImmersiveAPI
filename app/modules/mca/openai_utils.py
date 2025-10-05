@@ -3,7 +3,7 @@ from functools import cache
 from dotenv import load_dotenv
 from openai import OpenAI
 
-from ...llm.types import Message, Role
+from app.llm.types import Message, Role
 
 load_dotenv()
 

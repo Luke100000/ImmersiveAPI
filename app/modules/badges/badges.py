@@ -12,7 +12,7 @@ from fastapi_cache.decorator import cache
 from PIL import Image, ImageDraw, ImageFont
 from starlette.responses import Response
 
-from ...configurator import Configurator
+from app.configurator import Configurator
 
 
 class BytesCoder(Coder):

@@ -16,51 +16,24 @@ etc.
 
 Each module is a group of **self-contained, thread safe** endpoints.
 
-````py
-from ...configurator import Configurator
+```py
+from app.configurator import Configurator
 
 
 def init(configurator: Configurator):
+
+
     configurator.register("Name", "Description")
 
-    @configurator.post("/v1/your_module/your_endpoint")
-    async def your_endpoint():
-        return {"hello": "world"}
-````
 
-## Heavy lifting
-
-For heavy background work, use the worker process pool.
-
-Either use the primary executor, shared among all endpoints:
-
-```py
-from worker import get_primary_executor
-
-
-def generate_text():
-    return "Hello, world!"
-
-
+@configurator.post("/v1/your_module/your_endpoint")
 async def your_endpoint():
-    # noinspection PyUnusedLocal
-    result = await get_primary_executor().submit(
-        0,  # priority
-        generate_text,
-        # args...
-        # kwargs...
-    )
-```
+    return {"hello": "world"}
 
-Or create a private executor for your module:
-
-```py
-from worker import Executor
-
-executor = Executor(1)
 ```
 
 ## Not process-safe
 
-Do not launch with multiple workers, not all operations are process-safe, and especially the ML endpoints would blow up in memory.
+Do not launch with multiple workers, not all operations are process-safe, and especially the ML endpoints would blow up
+in memory.
 Use (background) workers instead.

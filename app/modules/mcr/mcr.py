@@ -1,7 +1,7 @@
 from fastapi import FastAPI
 from minecraft_recipe_renderer.api import setup as setup_renderer
 
-from ...configurator import Configurator
+from app.configurator import Configurator
 
 
 def init(configurator: Configurator):

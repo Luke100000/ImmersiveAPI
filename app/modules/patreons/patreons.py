@@ -5,8 +5,8 @@ from collections import defaultdict
 import patreon as patreon
 from cachetools import TTLCache, cached
 
-from ...configurator import Configurator
-from ...patreon_utils import fetch_members, get_member_list
+from app.configurator import Configurator
+from app.patreon_utils import fetch_members, get_member_list
 
 creator_access_token = os.getenv("PATREON_API_KEY")
 

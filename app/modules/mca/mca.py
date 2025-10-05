@@ -9,9 +9,10 @@ from pyrate_limiter import (
     Rate,
 )
 
-from ...configurator import Configurator
-from ...llm.types import Body, Character, GlossarySearch, Model
-from ...patreon_utils import verify_patron
+from app.configurator import Configurator
+from app.llm.types import Body, Character, GlossarySearch, Model
+from app.patreon_utils import verify_patron
+
 from .chain import get_chat_completion, message_to_dict
 from .multi_bucket_factory import MultiBucketFactory
 from .openai_utils import check_prompt_openai
@@ -74,14 +75,14 @@ CHARACTERS = {
         glossary={
             "mca_wiki_fast": GlossarySearch(
                 tags={"mca_wiki"},
-                description="Fetch technical information about modding, MCA, configuration, documentation, common questions, ...",
+                description="Fetch technical information about modding, MCA, configuration, documentation, common questions, app.",
                 k=3,
                 lambda_mult=0.8,
                 always=False,
             ),
             "mca_wiki": GlossarySearch(
                 tags={"mca_wiki"},
-                description="Fetch technical information about modding, MCA, configuration, documentation, common questions, ...",
+                description="Fetch technical information about modding, MCA, configuration, documentation, common questions, app.",
                 k=7,
                 lambda_mult=0.7,
                 always=False,
@@ -172,7 +173,7 @@ def safe_get(d: dict, k: str) -> int:
 def init(configurator: Configurator):
     """
     The system prompt encodes additional flags for session management and glossary usage.
-    `[key:value][key:value]...Rest of the system prompt`
+    `[key:value][key:value]app.Rest of the system prompt`
     * `world_id`: The world id for the session, e.g., the guild id or world UUID.
     * `player_id`: The player id
     * `character_id`: The character id, e.g., the villager UUID.

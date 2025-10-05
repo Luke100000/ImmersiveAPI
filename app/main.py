@@ -19,7 +19,6 @@ from redis.asyncio.client import Redis
 
 from .config import settings
 from .configurator import Configurator, tags_metadata
-from .worker import Executor, get_primary_executor, set_primary_executor
 
 load_dotenv()
 
@@ -59,12 +58,8 @@ app.add_middleware(
 instrumentator = Instrumentator().instrument(app)
 
 
-# Launch the background worker
-set_primary_executor(Executor(settings["global"]["background_workers"]))
-
-
 def start_module(name: str):
-    print(f"Initializing {name}...")
+    print(f"Initializing {name}app.")
 
     start_import = time.time()
     module = importlib.import_module(f"app.modules.{name}.{name}")
@@ -131,8 +126,3 @@ async def startup():
     # Enable asyncio debugging
     if settings["global"]["asyncio_debug"]:
         asyncio.get_event_loop().set_debug(True)
-
-
-@app.on_event("shutdown")
-async def shutdown():
-    get_primary_executor().shutdown()
