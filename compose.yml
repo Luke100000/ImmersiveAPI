@@ -1,0 +1,18 @@
+services:
+  app:
+    build: .
+    image: immersive-api:latest
+    ports:
+      - "8070:8000"
+    depends_on:
+      - redis
+    volumes:
+      - ./data:/data
+      - ./cache:/cache
+    env_file:
+      - .env
+
+  redis:
+    image: redis:latest
+    volumes:
+      - ./redis_data:/data

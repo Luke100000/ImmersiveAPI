@@ -1,0 +1,45 @@
+[global]
+background_workers = 2
+asyncio_debug = false
+
+[global.embedding]
+model = "text-embedding-3-small"
+dimensions = 1024
+
+[[global.glossaries]]
+type = "git"
+name = "mca_wiki"
+repository = "https://github.com/Luke100000/minecraft-comes-alive.wiki.git"
+
+[badges]
+enable = false
+
+[converter]
+enable = false
+
+[error]
+enable = false
+
+[fusion_solar]
+enable = false
+
+[horde]
+enable = false
+
+[hugging]
+enable = false
+
+[itch]
+enable = false
+
+[mc_version_stats]
+enable = false
+
+[mca]
+enable = false
+
+[mcr]
+enable = false
+
+[patreons]
+enable = false

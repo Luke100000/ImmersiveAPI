@@ -4,6 +4,3 @@
 /cache
 /data
 /notebooks/
-config.toml
-chroma.log
-chroma_data

@@ -2,9 +2,9 @@ import json
 import logging
 import time
 
-from common.langchain.types import Message, Role
-from modules.mca.chain import get_chat_completion, message_to_dict
-from modules.mca.mca import MODELS, CHARACTERS, HAGRID_SECRET
+from app.llm.types import Message, Role
+from app.modules.mca.chain import get_chat_completion, message_to_dict
+from app.modules.mca.mca import CHARACTERS, HAGRID_SECRET, MODELS
 
 logging.basicConfig(level=logging.INFO)
 

@@ -3,8 +3,8 @@ from datetime import datetime
 
 from dotenv import load_dotenv
 
-from common.langchain.memory import MemoryManager, Memory, clean_conversation
-from common.langchain.types import Message, Role
+from app.llm.memory import MemoryManager, Memory, clean_conversation
+from app.llm.types import Message, Role
 
 load_dotenv()
 

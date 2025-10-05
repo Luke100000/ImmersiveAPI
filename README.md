@@ -5,20 +5,19 @@ etc.
 
 ## Structure
 
-* `modules` - Each directory represents a module and contains at least a `.py` with the same name, containing the
+* `src/modules` - Each directory represents a module and contains at least a `.py` with the same name, containing the
   initializer.
-* `common` - Shared code between modules.
 * `cache` - Persistent cache for data, each module should have its own subdirectory.
 * `temp` - Temporary files, each module should clean up after the task is done.
 * `data` - Static data.
-* `config.toml` / `default_config.toml` - Used to toggle modules and pass additional config.
+* `data/config.toml` / `data/default_config.toml` - Used to toggle modules and pass additional config.
 
 ## Module
 
 Each module is a group of **self-contained, thread safe** endpoints.
 
 ````py
-from main import Configurator
+from ...configurator import Configurator
 
 
 def init(configurator: Configurator):
@@ -36,7 +35,7 @@ For heavy background work, use the worker process pool.
 Either use the primary executor, shared among all endpoints:
 
 ```py
-from common.worker import get_primary_executor
+from worker import get_primary_executor
 
 
 def generate_text():
@@ -56,11 +55,12 @@ async def your_endpoint():
 Or create a private executor for your module:
 
 ```py
-from common.worker import Executor
+from worker import Executor
 
 executor = Executor(1)
 ```
 
 ## Not process-safe
 
-Do not launch with multiple workers, not all operations are process-safe, and especially the ML endpoints would blow up in memory. Use (background) workers instead.
+Do not launch with multiple workers, not all operations are process-safe, and especially the ML endpoints would blow up in memory.
+Use (background) workers instead.
