@@ -86,8 +86,10 @@ def get_system_flags(system: str):
 
     flags = {}
     for match in matches:
-        key, value = match.split(":")
-        flags[key] = value
+        v = match.split(":")
+        if len(v) == 2:
+            key, value = v
+            flags[key] = value
 
     rest = pattern.sub("", system)
 
