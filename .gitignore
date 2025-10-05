@@ -1,6 +1,7 @@
 .*
-/prometheus/
-/temp/
+/prometheus
+/temp
 /cache
+/redis_data
 /data
-/notebooks/
+/notebooks
