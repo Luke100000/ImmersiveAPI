@@ -2,9 +2,6 @@
 name = "api"
 version = "0.1.0"
 description = "A collection of various endpoints"
-authors = [
-    { name = "Luke100000", email = "jonas.peche@aon.at" },
-]
 readme = "README.md"
 requires-python = ">=3.10"
 dependencies = [

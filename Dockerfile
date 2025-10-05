@@ -48,10 +48,3 @@ USER app
 
 # Run FastAPI with configurable workers
 CMD fastapi run --host 0.0.0.0 --workers $FASTAPI_WORKERS /app/main.py
-
-# Labels
-LABEL org.opencontainers.image.title="Immersive API"
-LABEL org.opencontainers.image.description="A collection of various endpoints"
-LABEL org.opencontainers.image.url="https://github.com/Luke100000/ImmersiveAPI"
-LABEL org.opencontainers.image.source="https://github.com/Luke100000/ImmersiveAPI"
-LABEL org.opencontainers.image.licenses="MIT"
