@@ -1,5 +1,6 @@
 from dynaconf import Dynaconf
 
+
 # Load config
 settings = Dynaconf(
     settings_files=[
@@ -9,3 +10,5 @@ settings = Dynaconf(
         "data/config.toml",
     ]
 )
+
+print("Config", settings.as_dict())
