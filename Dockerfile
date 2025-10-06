@@ -28,7 +28,7 @@ RUN --mount=type=cache,target=/root/.cache/uv \
 FROM debian:bookworm-slim
 
 # Install additional system dependencies if needed
-RUN apt-get update && apt-get install -y ffmpeg git imagemagick
+RUN apt-get update && apt-get install -y ffmpeg git imagemagick abcmidi
 
 # Create a non-root user
 RUN groupadd -r app && useradd -r -g app app

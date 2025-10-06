@@ -1,6 +1,7 @@
 import os
 import shutil
 import uuid
+from pathlib import Path
 from typing import Optional
 
 import aiofiles
@@ -16,9 +17,9 @@ from app.utils import fetch_file
 def init(configurator: Configurator):
     configurator.register("Converter", "Converts between different formats.")
 
-    templates = Jinja2Templates(directory="modules/converter/templates")
+    templates = Jinja2Templates(directory=Path(__file__).parent / "templates")
 
-    temp_dir = "temp/conversions"
+    temp_dir = "/tmp/converter"
 
     shutil.rmtree(temp_dir, ignore_errors=True)
     os.makedirs(temp_dir, exist_ok=True)
