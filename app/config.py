@@ -1,13 +1,12 @@
 from dynaconf import Dynaconf
 
+from app.utils import get_data_path
 
 # Load config
 settings = Dynaconf(
     settings_files=[
         "default_config.toml",
-        "data/default_config.toml",
-        "/data/config.toml",
-        "data/config.toml",
+        get_data_path("config.toml"),
     ]
 )
 

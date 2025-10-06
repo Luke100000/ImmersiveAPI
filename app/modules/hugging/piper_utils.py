@@ -1,7 +1,6 @@
 import hashlib
 import json
 import logging
-import os.path
 import shutil
 from functools import cache
 from pathlib import Path
@@ -9,6 +8,8 @@ from typing import Any, Dict, Iterable, Set, Union
 from urllib.request import urlopen
 
 from piper import PiperVoice, SynthesisConfig
+
+from app.utils import get_data_path
 
 URL_FORMAT = "https://huggingface.co/rhasspy/piper-voices/resolve/v1.0.0/{file}"
 
@@ -151,8 +152,9 @@ blacklist = {"thorsten_emotional"}
 
 @cache
 def get_gender_lookup():
-    if os.path.exists("data/piper_gender.json"):
-        with open("data/piper_gender.json", "r") as f:
+    path = get_data_path("piper_gender.json")
+    if path.exists():
+        with open(path, "r", encoding="utf-8") as f:
             return json.load(f)
     return {}
 

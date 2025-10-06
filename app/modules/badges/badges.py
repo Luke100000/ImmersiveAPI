@@ -13,6 +13,7 @@ from PIL import Image, ImageDraw, ImageFont
 from starlette.responses import Response
 
 from app.configurator import Configurator
+from app.utils import get_data_path
 
 
 class BytesCoder(Coder):
@@ -89,7 +90,7 @@ def render_embed(
     title_size: int = -1,
     scale: int = 4,
     border: int = 3,
-    font: str = "data/Roboto-Regular.ttf",
+    font: str = get_data_path("Roboto-Regular.ttf"),
     title_color: str = "#FFFFFF",
     description_color: str = "#C8C8C8",
     background_color: str = "#2C2C2C",

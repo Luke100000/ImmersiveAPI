@@ -1,3 +1,4 @@
+from pathlib import Path
 from typing import Optional, TypeVar
 
 import aiofiles
@@ -21,3 +22,10 @@ def not_none(x: Optional[T]) -> T:
     if x is None:
         raise ValueError("Value is None")
     return x
+
+
+root = Path(__file__).parent.parent
+
+
+def get_data_path(path: str) -> Path:
+    return root / "data" / path
