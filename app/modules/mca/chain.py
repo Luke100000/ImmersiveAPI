@@ -157,7 +157,7 @@ def get_chat_completion(
         )
     else:
         llm = ChatOpenAI(
-            base_url="https://llm.conczin.net",
+            base_url=os.environ.get("LITELLM_URL", "https://llm.conczin.net"),
             model=model.model,
             api_key=os.environ.get("LITELLM_API_KEY"),
             max_retries=3,
