@@ -32,29 +32,29 @@ def collapse(s: str) -> str:
 MODELS: dict[str, Model] = {
     "gpt-4.1-mini": Model(
         price=0.3,
-        model="gpt-4.1-mini",
+        model="openai/gpt-4.1-mini",
         provider="openai",
         tools=True,
     ),
     "mistral-small": Model(
         price=0.2,
-        model="mistral-small-latest",
+        model="mistral/mistral-small",
         provider="mistral",
     ),
     "mistral-medium": Model(
         price=0.3,
-        model="mistral-medium-latest",
+        model="mistral/mistral-medium",
         provider="mistral",
     ),
     "llama3.3-70b": Model(
         price=0.6,
-        model="llama-3.3-70b-versatile",
+        model="groq/llama-3.3-70b-versatile",
         provider="groq",
         tools=True,
     ),
     "llama3.1-8b": Model(
         price=0.1,
-        model="llama-3.1-8b-instant",
+        model="groq/llama-3.1-8b-instant",
         provider="groq",
     ),
     "horde": Model(

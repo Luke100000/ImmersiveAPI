@@ -7,8 +7,6 @@ import requests
 from cachetools import TTLCache, cached
 from dotenv import load_dotenv
 from langchain_core.messages import AIMessage, BaseMessage, SystemMessage
-from langchain_groq import ChatGroq
-from langchain_mistralai import ChatMistralAI
 from langchain_openai import ChatOpenAI
 
 from app.config import settings
@@ -139,30 +137,7 @@ def get_chat_completion(
     get_vector_compressor()
 
     # Instantiate model
-    if model.provider == "mistral":
-        llm = ChatMistralAI(
-            model_name=model.model,
-            max_retries=5,
-            temperature=0.85,
-            max_tokens=150,
-        )
-    elif model.provider == "groq":
-        llm = ChatGroq(
-            model=model.model,
-            max_retries=5,
-            temperature=0.85,
-            max_tokens=150,
-            stop_sequences=character.stop,
-        )
-    elif model.provider == "openai":
-        llm = ChatOpenAI(
-            model=model.model,
-            max_retries=5,
-            temperature=0.85,
-            max_tokens=150,
-            stop_sequences=character.stop,
-        )
-    elif model.provider == "horde":
+    if model.provider == "horde":
         # A model with `llama-3-instruct` format is added to have consistent results
         # TODO: Filter by template
         models = ["koboldcpp/L3-8B-Stheno-v3.2"] + get_models()
@@ -181,7 +156,15 @@ def get_chat_completion(
             timeout=180,
         )
     else:
-        raise ValueError(f"Unknown provider: {model.provider}")
+        llm = ChatOpenAI(
+            base_url="https://llm.zap.conczin.net",
+            model=model.model,
+            api_key=os.environ.get("LITELLM_API_KEY"),
+            max_retries=3,
+            temperature=0.85,
+            max_tokens=150,
+            stop_sequences=character.stop,
+        )
 
     # Enable tools and add glossary functions if requested
     if model.tools and len(tools) > 0:

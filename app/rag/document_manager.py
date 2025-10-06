@@ -24,7 +24,7 @@ def get_model(model: str, max_tokens: Optional[int] = None):
 
 
 @cache
-def get_summary_chain(model: str = "mistral-medium"):
+def get_summary_chain(model: str = "mistral-small"):
     template = """
 You are a summarizer for a RAG system, summarizing the content of a page.
 Return a json dictionary containing the following fields:

@@ -117,7 +117,7 @@ class MemoryManager(Runnable):
         db_file: str = "cache/memory.db",
         characters_per_level: int = 700,
         sentences_per_summary: int = 3,
-        model: str = "mistral-medium",
+        model: str = "mistral-small",
     ):
         self.conn = sqlite3.connect(db_file, check_same_thread=False)
         self.lock = threading.Lock()
@@ -130,7 +130,7 @@ class MemoryManager(Runnable):
         self.chain = _get_compression_chain(model)
 
     def invoke(
-        self, input_dict: dict, config: Optional[RunnableConfig] = None
+        self, input_dict: dict, config: Optional[RunnableConfig] = None, **kwargs
     ) -> list[BaseMessage]:
         assert isinstance(input_dict, dict), "Input must be a dictionary."
         assert "session_id" in input_dict, "Session ID not found in input dict."
