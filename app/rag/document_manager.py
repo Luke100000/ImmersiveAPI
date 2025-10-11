@@ -11,6 +11,7 @@ from pydantic import BaseModel
 
 from ..llm.ratelimit import rate_limited_call
 from ..rag.html_processor import get_chapters
+from ..utils import get_cache_path
 
 
 class Summary(BaseModel):
@@ -89,7 +90,7 @@ CONTEXT_SIZE = 16384
 
 @cache
 def _get_connection():
-    conn = sqlite3.connect("cache/documents.db", check_same_thread=False)
+    conn = sqlite3.connect(get_cache_path("documents.db"), check_same_thread=False)
     conn.execute(
         """
         CREATE TABLE IF NOT EXISTS documents (

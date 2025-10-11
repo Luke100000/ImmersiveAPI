@@ -1,14 +1,13 @@
 import gzip
 import logging
-import os
 from io import BytesIO
 
 import diskcache
 import requests
 
-os.makedirs("cache", exist_ok=True)
+from app.utils import get_cache_path
 
-cache = diskcache.Cache("cache/requests.cache")
+cache = diskcache.Cache(str(get_cache_path("requests.cache")))
 
 
 def _compress(s: bytes) -> bytes:

@@ -13,6 +13,7 @@ from langchain_text_splitters import (
 
 from ..rag.document_manager import InformationPage
 from ..shared_models import ADDITIONAL_QUERY_PROMPTS, get_sentence_embeddings
+from ..utils import get_cache_path
 
 
 class GlossaryManager(Runnable):
@@ -24,7 +25,7 @@ class GlossaryManager(Runnable):
         self.embedding = get_sentence_embeddings()
         self.cached_embedding = CacheBackedEmbeddings.from_bytes_store(
             self.embedding,
-            LocalFileStore("cache/embeddings"),
+            LocalFileStore(get_cache_path("embeddings")),
             namespace=self.embedding.name,
         )
 

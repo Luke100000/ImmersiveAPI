@@ -29,3 +29,7 @@ root = Path(__file__).parent.parent
 
 def get_data_path(path: str) -> Path:
     return root / "data" / path
+
+
+def get_cache_path(path: str) -> Path:
+    return root / "cache" / path

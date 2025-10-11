@@ -3,12 +3,16 @@ import os
 import shelve
 from datetime import datetime, timedelta
 
+from app.utils import get_cache_path
+
 os.makedirs("cache", exist_ok=True)
 
 
 class PremiumManager:
     def __init__(self):
-        self.db = shelve.Shelf(dbm.dumb.open("cache/premium_data", "c"), writeback=True)
+        self.db = shelve.Shelf(
+            dbm.dumb.open(get_cache_path("premium_data"), "c"), writeback=True
+        )
 
     def __del__(self):
         self.db.close()

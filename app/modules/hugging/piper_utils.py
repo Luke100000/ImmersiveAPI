@@ -9,7 +9,7 @@ from urllib.request import urlopen
 
 from piper import PiperVoice, SynthesisConfig
 
-from app.utils import get_data_path
+from app.utils import get_data_path, get_cache_path
 
 URL_FORMAT = "https://huggingface.co/rhasspy/piper-voices/resolve/v1.0.0/{file}"
 
@@ -144,7 +144,7 @@ def ensure_voice_exists(
         _LOGGER.info("Downloaded %s (%s)", download_file_path, file_url)
 
 
-data_dir = Path("cache/piper")
+data_dir = get_cache_path("piper")
 
 # Voices that are either too specific or of low quality
 blacklist = {"thorsten_emotional"}

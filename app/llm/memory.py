@@ -4,6 +4,7 @@ import threading
 from dataclasses import dataclass
 from datetime import datetime
 from functools import cache
+from pathlib import Path
 from typing import Optional
 
 from langchain_core.messages import AIMessage, BaseMessage, HumanMessage
@@ -13,6 +14,7 @@ from langchain_mistralai import ChatMistralAI
 
 from ..llm.ratelimit import rate_limited_call
 from ..llm.types import Message, Role
+from ..utils import get_cache_path
 
 
 @dataclass
@@ -114,7 +116,7 @@ class MemoryManager(Runnable):
 
     def __init__(
         self,
-        db_file: str = "cache/memory.db",
+        db_file: Path = get_cache_path("memory.db"),
         characters_per_level: int = 700,
         sentences_per_summary: int = 3,
         model: str = "mistral-small",

@@ -5,6 +5,7 @@ from dotenv import load_dotenv
 
 from app.llm.memory import MemoryManager, Memory, clean_conversation
 from app.llm.types import Message, Role
+from app.utils import get_cache_path
 
 load_dotenv()
 
@@ -42,7 +43,7 @@ def load_conversation() -> list[Message]:
 def test():
     conversation = load_conversation()
 
-    manager = MemoryManager("cache/test_memory.db")
+    manager = MemoryManager(get_cache_path("test_memory.db"))
     manager.prune()
     session_id = "test"
 

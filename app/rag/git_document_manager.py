@@ -4,6 +4,7 @@ import os
 from typing import List
 
 from ..rag.document_manager import DocumentManager, InformationPage
+from ..utils import get_cache_path
 
 
 class GitDocumentManager(DocumentManager):
@@ -11,8 +12,8 @@ class GitDocumentManager(DocumentManager):
         identifier = hashlib.md5(url.encode()).hexdigest()
 
         # clone
-        path = f"cache/repos/{identifier}"
-        os.makedirs("cache/repos", exist_ok=True)
+        path = get_cache_path(f"repos/{identifier}")
+        path.parent.mkdir(parents=True, exist_ok=True)
         os.system(f"git clone {url} {path}")
         os.system(f"cd {path} && git pull")
 

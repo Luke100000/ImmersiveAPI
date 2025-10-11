@@ -12,6 +12,7 @@ from sqlalchemy import (
 )
 from sqlalchemy.orm import Mapped, declarative_base, mapped_column, sessionmaker
 
+from ...utils import get_cache_path
 from .mod import Mod
 
 Base = declarative_base()
@@ -93,7 +94,7 @@ class ModTable(Base):
 
 
 class ModDatabase:
-    def __init__(self, db_url: str = "sqlite:///cache/mods.sqlite"):
+    def __init__(self, db_url: str = "sqlite:///" + str(get_cache_path("mods.sqlite"))):
         self.engine = create_engine(db_url, echo=False)
         Base.metadata.create_all(self.engine)
         self.Session = sessionmaker(bind=self.engine)

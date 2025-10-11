@@ -22,6 +22,7 @@ from .piper_utils import (
     get_gender_lookup,
     speak,
 )
+from ...utils import get_cache_path
 
 
 class Message(BaseModel):
@@ -89,8 +90,8 @@ def init(configurator: Configurator):
 
             # Also scan for English if the phrase is identical, in most cases it's fine to use the English version
             for scan_language in ["en", language]:
-                cache_key = (
-                    f"cache/tts/{scan_language}-{speaker}/{text_hash}.{file_format}"
+                cache_key = get_cache_path(
+                    f"tts/{scan_language}-{speaker}/{text_hash}.{file_format}"
                 )
 
                 # If a cached file is found, return it
