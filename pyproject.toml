@@ -61,7 +61,6 @@ llms = [
     "langchain-community>=0.3.30",
     "langchain-huggingface>=0.3.1",
     "langchain-openai>=0.3.34",
-    "langchain-mistralai>=0.2.12",
     "openai>=2.1.0",
 ]
 tts = [

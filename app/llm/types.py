@@ -63,5 +63,5 @@ class Character(BaseModel):
     fallback_memory_characters: int = 3000
     memory_characters_per_level: int = 1000
     memory_sentences_per_summary: int = 3
-    memory_model: str = "mistral-medium"
+    memory_model: str = "mistral/mistral-medium"
     stop: list[str] = ["\n"]
