@@ -201,7 +201,7 @@ def init(configurator: Configurator):
     @configurator.get("/v1/mca/verify")
     def verify(email: str, player: str):
         days_left = verify_patron(email)
-        if days_left > 0:
+        if days_left:
             premium_manager.set_premium(player, days_left)
             return {"answer": "success"}
         return {"answer": "failed"}
