@@ -20,7 +20,7 @@ def request_get(
             )
             time.sleep(wait_time)
         elif response.status_code >= 400:
-            print("Forbidden, maybe rate limited, lets sleep a whileapp.")
+            print("Forbidden, maybe rate limited, let's sleep a while.")
             time.sleep(60)
         else:
             return response

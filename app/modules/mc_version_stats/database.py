@@ -36,13 +36,10 @@ class ModTable(Base):
     downloads: Mapped[int] = mapped_column(Integer, default=0)
     follows: Mapped[int] = mapped_column(Integer, default=0)
 
-    body: Mapped[str] = mapped_column(Text)
     license: Mapped[str] = mapped_column(String)
-    links: Mapped[str] = mapped_column(Text)
     icon: Mapped[str] = mapped_column(String)
     gallery: Mapped[str] = mapped_column(Text)
 
-    mod_loaders: Mapped[str] = mapped_column(String, default="")
     versions: Mapped[str] = mapped_column(Text, default="")
 
     def to_mod(self):
@@ -59,12 +56,9 @@ class ModTable(Base):
             categories=set(self.categories.split(",")),
             downloads=self.downloads,
             follows=self.follows,
-            body=self.body,
             license=self.license,
-            links=json.loads(self.links),
             icon=self.icon,
             gallery=json.loads(self.gallery),
-            mod_loaders=set(self.mod_loaders.split(",")),
             versions=self.versions.split(","),
         )
 
@@ -83,12 +77,9 @@ class ModTable(Base):
             categories=",".join(mod.categories),
             downloads=mod.downloads,
             follows=mod.follows,
-            body=mod.body,
             license=mod.license,
-            links=json.dumps(mod.links),
             icon=mod.icon,
             gallery=json.dumps(mod.gallery),
-            mod_loaders=",".join(mod.mod_loaders),
             versions=",".join(mod.versions),
         )
 

@@ -11,7 +11,6 @@ from app.configurator import Configurator
 from .data import database
 from .modrinth import (
     get_modrinth_mods,
-    populate_modrinth_details,
 )
 from .utils import is_clean_version, parse_versions
 
@@ -29,7 +28,6 @@ def init(configurator: Configurator):
         nonlocal last_updated, last_added, scanning_progress
 
         sleep_time = 10
-        populate_min_age = 3600
 
         while not settings["mc_version_stats"].get("debug", False):
             scanning_progress = 0
@@ -38,22 +36,9 @@ def init(configurator: Configurator):
                 scanning_progress += 1
 
                 if existing_mod:
-                    if (
-                        abs(existing_mod.last_modified - mod.last_modified)
-                        > populate_min_age
-                    ):
-                        # Mod has been updated significantly
-                        populate_modrinth_details(mod)
-                        database.add_mod(mod)
-                        time.sleep(sleep_time)
-                        last_updated = mod.name
-                    else:
-                        # Only update metadata
-                        database.update_mod(mod)
-                        time.sleep(0.1 * sleep_time)
+                    database.update_mod(mod)
+                    time.sleep(0.1 * sleep_time)
                 else:
-                    # New mod, populate details
-                    populate_modrinth_details(mod)
                     database.add_mod(mod)
                     time.sleep(sleep_time)
                     last_added = mod.name

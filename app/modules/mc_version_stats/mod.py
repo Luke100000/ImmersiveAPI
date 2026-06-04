@@ -20,13 +20,10 @@ class Mod:
     downloads: int
     follows: int
 
-    body: str
     license: str
-    links: dict[str, str]
     icon: str
     gallery: list[str]
 
-    mod_loaders: set[str] = field(default_factory=set)
     versions: list[str] = field(default_factory=list)
 
     _age: int = -1

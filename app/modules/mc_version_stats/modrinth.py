@@ -73,27 +73,6 @@ def prepare_categories(categories: list[str]) -> set[str]:
     }
 
 
-def populate_modrinth_details(mod: Mod) -> Mod:
-    response = request_get(f"https://api.modrinth.com/v2/project/{mod.id}")
-    if not response:
-        raise Exception("Failed to get response from Modrinth API")
-    response.raise_for_status()
-    result = response.json()
-
-    mod.body = result["body"]
-    mod.links = {
-        "issues": result["issues_url"],
-        "source": result["source_url"],
-        "wiki": result["wiki_url"],
-        "discord": result["discord_url"],
-        **{d["id"]: d["url"] for d in result["donation_urls"]},
-    }
-
-    mod.mod_loaders = set(result["loaders"])
-
-    return mod
-
-
 def get_modrinth_mods(project_type: str = "mod") -> Generator[Mod, None, None]:
     index = 0
     while True:
@@ -125,9 +104,7 @@ def get_modrinth_mods(project_type: str = "mod") -> Generator[Mod, None, None]:
                 categories=prepare_categories(result["categories"]),
                 downloads=result["downloads"],
                 follows=result["follows"],
-                body="",
                 license=result["license"],
-                links={},
                 icon=result["icon_url"],
                 gallery=result["gallery"],
                 versions=parse_versions(result["versions"]),
