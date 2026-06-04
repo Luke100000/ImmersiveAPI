@@ -132,7 +132,5 @@ class ModDatabase:
     @cached(TTLCache(maxsize=1, ttl=10))
     def get_versions(self):
         with self.Session() as session:
-            result = session.scalars(
-                select(ModTable.versions).where(~ModTable.categories.ilike("%library%"))
-            ).all()
+            result = session.scalars(select(ModTable.versions)).all()
         return [v.split(",") for v in result]

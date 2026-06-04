@@ -20,12 +20,11 @@ def init(configurator: Configurator):
         "Minecraft Version Stats", "Metrics endpoint for analysing version popularity."
     )
 
-    last_updated = "NA"
     last_added = "NA"
     scanning_progress = 0
 
     def updater():
-        nonlocal last_updated, last_added, scanning_progress
+        nonlocal last_added, scanning_progress
 
         sleep_time = 10
 
@@ -37,11 +36,10 @@ def init(configurator: Configurator):
 
                 if existing_mod:
                     database.update_mod(mod)
-                    time.sleep(0.1 * sleep_time)
                 else:
                     database.add_mod(mod)
-                    time.sleep(sleep_time)
-                    last_added = mod.name
+                time.sleep(sleep_time)
+                last_added = mod.name
 
             time.sleep(60)
 
@@ -54,12 +52,15 @@ def init(configurator: Configurator):
 
     @configurator.get("/mcv/dashboard")
     def get_dashboard(request: Request):
-        mods = database.get_versions()
+        all_mod_versions = database.get_versions()
 
         versions = set()
         coverage = defaultdict(int)
 
-        for mod_versions in mods:
+        for mod_versions in all_mod_versions:
+            if "library" in mod_versions:
+                continue
+
             for version in mod_versions:
                 versions.add(version)
                 coverage[version] += 1
@@ -84,12 +85,15 @@ def init(configurator: Configurator):
             versions_per_super_version.setdefault(super_version, []).append(version)
 
         super_versions = parse_versions(list(super_versions))
-        global_max_coverage = max(super_version_max_coverage.values())
+        global_max_coverage = (
+            max(super_version_max_coverage.values())
+            if super_version_max_coverage
+            else 0
+        )
 
         context = {
-            "total": len(mods),
+            "total": len(all_mod_versions),
             "versions": versions,
-            "last_updated": last_updated,
             "last_added": last_added,
             "scanning_progress": scanning_progress,
             "versions_per_super_version": versions_per_super_version,
