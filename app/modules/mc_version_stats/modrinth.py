@@ -9,6 +9,7 @@ from .utils import (
 )
 
 PAGE_SIZE = 100
+MIN_DOWNLOADS = 100
 
 
 def modrinth_search(
@@ -79,9 +80,10 @@ def get_modrinth_mods(project_type: str = "mod") -> Generator[Mod, None, None]:
         results = modrinth_search(
             limit=PAGE_SIZE,
             offset=index,
+            # Modrinth documents the downloads facet, but it currently returns
+            # empty search pages when combined with project_type.
             facets=[
                 ["project_type:" + project_type],
-                ["downloads>100"],
             ],
             index="updated",
         )["hits"]
@@ -91,6 +93,9 @@ def get_modrinth_mods(project_type: str = "mod") -> Generator[Mod, None, None]:
             break
 
         for result in results:
+            if result["downloads"] <= MIN_DOWNLOADS:
+                continue
+
             mod = Mod(
                 id=result["project_id"],
                 source="modrinth",

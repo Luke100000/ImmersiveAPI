@@ -1,5 +1,6 @@
 import time
 from collections import defaultdict
+from pathlib import Path
 from threading import Thread
 
 from fastapi import Request
@@ -38,6 +39,7 @@ def init(configurator: Configurator):
                     database.update_mod(mod)
                 else:
                     database.add_mod(mod)
+
                 time.sleep(sleep_time)
                 last_added = mod.name
 
@@ -45,7 +47,7 @@ def init(configurator: Configurator):
 
     Thread(target=updater, daemon=True).start()
 
-    templates = Jinja2Templates(directory="modules/mc_version_stats/templates")
+    templates = Jinja2Templates(directory=str(Path(__file__).parent / "templates"))
 
     def get_super_version(version: str) -> str:
         return ".".join(version.split(".")[:2])
