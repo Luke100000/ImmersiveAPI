@@ -31,9 +31,6 @@ enable = false
 [itch]
 enable = false
 
-[mc_version_stats]
-enable = false
-
 [mca]
 enable = false
 
