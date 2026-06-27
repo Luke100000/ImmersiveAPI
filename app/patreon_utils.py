@@ -133,11 +133,22 @@ def get_member_list():
     return [m["full_name"] for m in sorted_members]
 
 
+def normalized_member_email(member: dict) -> str | None:
+    email = member.get("email")
+    if not email:
+        return None
+
+    normalized_email = email.lower().strip()
+    return normalized_email or None
+
+
 def verify_patron(email: str) -> int | bool:
     email = email.lower().strip()
 
     email_to_user = {
-        m["email"].lower().strip(): m for m in fetch_members() if m["email"] is not None
+        member_email: member
+        for member in fetch_members()
+        if (member_email := normalized_member_email(member)) is not None
     }
 
     return (
