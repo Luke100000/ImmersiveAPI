@@ -1,9 +1,4 @@
-import os
 from typing import List
-
-from app.utils import get_cache_path
-
-os.environ.setdefault("HF_HOME", str(get_cache_path("huggingface")))
 
 from fastapi import FastAPI, HTTPException
 from horde_openai_proxy import (

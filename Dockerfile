@@ -30,8 +30,11 @@ FROM debian:bookworm-slim
 # Install additional system dependencies if needed
 RUN apt-get update && apt-get install -y ffmpeg git imagemagick abcmidi
 
-# Create a non-root user
-RUN groupadd -r app && useradd -r -g app app
+# Create a non-root user with a writable home/cache directory.
+RUN groupadd -r app \
+    && useradd -r -g app -m -d /home/app app \
+    && mkdir -p /cache/huggingface \
+    && chown -R app:app /home/app /cache
 
 # Copy Python runtime and app
 COPY --from=builder --chown=app:app /python /python
@@ -41,6 +44,8 @@ COPY --from=builder --chown=app:app /app /app
 ENV PATH="/app/.venv/bin:$PATH"
 ENV FASTAPI_WORKERS=1
 ENV REDIS_HOST="redis"
+ENV HF_HOME="/cache/huggingface"
+ENV XDG_CACHE_HOME="/cache"
 WORKDIR /app
 
 # Switch to non-root user
