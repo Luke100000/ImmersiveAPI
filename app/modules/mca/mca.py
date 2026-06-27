@@ -46,15 +46,15 @@ MODELS: dict[str, Model] = {
         model="mistral/mistral-medium",
         provider="mistral",
     ),
-    "llama3.3-70b": Model(
-        price=0.6,
-        model="groq/llama-3.3-70b-versatile",
+    "groq-large": Model(
+        price=0.5,
+        model="groq/openai/gpt-oss-120b",
         provider="groq",
         tools=True,
     ),
-    "llama3.1-8b": Model(
-        price=0.1,
-        model="groq/llama-3.1-8b-instant",
+    "groq-small": Model(
+        price=0.2,
+        model="groq/openai/gpt-oss-20b",
         provider="groq",
     ),
     "horde": Model(
@@ -122,15 +122,15 @@ ALIASES = {
     # Provider
     "mistral": "mistral-medium",
     "openai": "gpt-4.1-mini",
-    "groq": "llama3.1-8b",
+    "groq": "groq-small",
     "horde": "horde",
     # Legacy
     "mixtral-8x7b": "mistral-medium",
     "mistral-tiny": "mistral-small",
     "gemma2-9b": "mistral-small",
-    "llama3-70b": "llama3.3-70b",
-    "llama3.1-70b": "llama3.3-70b",
-    "llama3-8b": "llama3.1-8b",
+    "llama3-70b": "groq-large",
+    "llama3.1-70b": "groq-large",
+    "llama3-8b": "groq-small",
     "gpt-3.5-turbo": "gpt-4.1-mini",
     "gpt-4o-mini": "gpt-4.1-mini",
 }
