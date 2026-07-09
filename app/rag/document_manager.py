@@ -33,7 +33,7 @@ def get_model(model: str, max_tokens: Optional[int] = None):
 
 
 @cache
-def get_summary_chain(model: str = "mistral/mistral-medium"):
+def get_summary_chain(model: str = "mistral/mistral-small"):
     template = """
 You are a summarizer for a RAG system, summarizing the content of a page.
 Return a json dictionary containing the following fields:
@@ -61,7 +61,7 @@ Start of the content:
 
 
 @cache
-def get_simplifier_chain(model: str = "mistral/mistral-medium"):
+def get_simplifier_chain(model: str = "mistral/mistral-small"):
     system = """
 You are a content post-processor for a RAG system, removing errors introduced by web scraping.
 For example, perform the following operations:

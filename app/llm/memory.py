@@ -127,7 +127,7 @@ class MemoryManager(Runnable):
         db_file: Path = get_cache_path("memory.db"),
         characters_per_level: int = 700,
         sentences_per_summary: int = 3,
-        model: str = "mistral/mistral-medium",
+        model: str = "mistral/mistral-small",
     ):
         self.conn = sqlite3.connect(db_file, check_same_thread=False)
         self.lock = threading.Lock()
