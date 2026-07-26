@@ -6,6 +6,7 @@ import patreon as patreon
 from cachetools import TTLCache, cached
 
 from app.configurator import Configurator
+from app.crowdin_utils import get_cached_translator_names
 from app.patreon_utils import fetch_members, get_member_list
 
 creator_access_token = os.getenv("PATREON_API_KEY")
@@ -24,6 +25,10 @@ def init(configurator: Configurator):
     @cached(TTLCache(maxsize=1, ttl=1800))
     def get_patron_names():
         return get_member_list()
+
+    @configurator.get("/v1/translator_names")
+    async def get_translator_names():
+        return await get_cached_translator_names()
 
     @configurator.get("/v1/patron_tiers/{emails}")
     def get_patron_tiers(emails: str):
