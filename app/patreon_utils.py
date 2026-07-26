@@ -126,7 +126,13 @@ def subscription_days_left(member: dict) -> int:
 
 
 def get_member_list():
-    members = [m for m in fetch_members() if m["campaign_lifetime_support_cents"] > 0]
+    members = [
+        m
+        for m in fetch_members()
+        if m["campaign_lifetime_support_cents"] > 0
+        and isinstance(m.get("full_name"), str)
+        and m["full_name"].strip()
+    ]
     sorted_members = sorted(
         members, key=lambda m: m["campaign_lifetime_support_cents"], reverse=True
     )
