@@ -4,6 +4,8 @@ from typing import Optional
 from langchain_core.messages import AIMessage, BaseMessage, HumanMessage, SystemMessage
 from pydantic import BaseModel
 
+from .llm_provider import MEMORY_MODEL
+
 
 class Role(Enum):
     system = "system"
@@ -63,5 +65,5 @@ class Character(BaseModel):
     fallback_memory_characters: int = 3000
     memory_characters_per_level: int = 1000
     memory_sentences_per_summary: int = 3
-    memory_model: str = "mistral/mistral-small"
+    memory_model: str = MEMORY_MODEL
     stop: list[str] = ["\n"]

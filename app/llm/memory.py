@@ -1,4 +1,3 @@
-import os
 import re
 import sqlite3
 import threading
@@ -11,11 +10,11 @@ from typing import Optional
 from langchain_core.messages import AIMessage, BaseMessage, HumanMessage
 from langchain_core.prompts import ChatPromptTemplate
 from langchain_core.runnables import Runnable, RunnableConfig
-from langchain_openai import ChatOpenAI
 
 from ..llm.ratelimit import rate_limited_call
 from ..llm.types import Message, Role
 from ..utils import get_cache_path
+from .llm_provider import MEMORY_MODEL, get_chat_model
 
 
 @dataclass
@@ -58,10 +57,8 @@ def _get_compression_chain(model: str):
                 ("human", "{messages}"),
             ]
         )
-        | ChatOpenAI(
-            base_url=os.environ.get("LITELLM_URL", "https://llm.conczin.net"),
+        | get_chat_model(
             model=model,
-            api_key=os.environ.get("LITELLM_API_KEY"),
             max_retries=3,
             temperature=0,
             max_tokens=200,
@@ -127,7 +124,7 @@ class MemoryManager(Runnable):
         db_file: Path = get_cache_path("memory.db"),
         characters_per_level: int = 700,
         sentences_per_summary: int = 3,
-        model: str = "mistral/mistral-small",
+        model: str = MEMORY_MODEL,
     ):
         self.conn = sqlite3.connect(db_file, check_same_thread=False)
         self.lock = threading.Lock()

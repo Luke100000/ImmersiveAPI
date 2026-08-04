@@ -2,7 +2,7 @@
 asyncio_debug = false
 
 [global.embedding]
-model = "text-embedding-3-small"
+model = "openai/text-embedding-3-small"
 dimensions = 1024
 
 [[global.glossaries]]

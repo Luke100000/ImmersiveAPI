@@ -30,26 +30,26 @@ def collapse(s: str) -> str:
 
 
 MODELS: dict[str, Model] = {
-    "gpt-4.1-mini": Model(
-        price=0.3,
-        model="openai/gpt-4.1-mini",
+    "gpt-5.6-luna": Model(
+        price=0.2,
+        model="openai/gpt-5.6-luna",
         provider="openai",
         tools=True,
     ),
     "mistral-small": Model(
         price=0.2,
-        model="mistral/mistral-small",
+        model="mistralai/mistral-small-2603",
         provider="mistral",
     ),
     "groq-large": Model(
         price=0.3,
-        model="groq/openai/gpt-oss-120b",
+        model="openai/gpt-oss-120b",
         provider="groq",
         tools=True,
     ),
     "groq-small": Model(
         price=0.2,
-        model="groq/openai/gpt-oss-20b",
+        model="openai/gpt-oss-20b",
         provider="groq",
     ),
     "horde": Model(
@@ -116,7 +116,7 @@ ALIASES = {
     "default": "mistral-small",
     # Provider
     "mistral": "mistral-small",
-    "openai": "gpt-4.1-mini",
+    "openai": "gpt-5.6-luna",
     "groq": "groq-small",
     "horde": "horde",
     # Legacy
@@ -127,8 +127,9 @@ ALIASES = {
     "llama3-70b": "groq-large",
     "llama3.1-70b": "groq-large",
     "llama3-8b": "groq-small",
-    "gpt-3.5-turbo": "gpt-4.1-mini",
-    "gpt-4o-mini": "gpt-4.1-mini",
+    "gpt-3.5-turbo": "gpt-5.6-luna",
+    "gpt-4o-mini": "gpt-5.6-luna",
+    "gpt-4.1-mini": "gpt-5.6-luna",
 }
 
 

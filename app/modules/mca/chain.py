@@ -11,6 +11,7 @@ from langchain_openai import ChatOpenAI
 
 from app.config import settings
 from app.llm.glossary_manager import GlossaryManager
+from app.llm.llm_provider import get_chat_model
 from app.llm.memory import MemoryManager, clean_conversation
 from app.llm.ratelimit import rate_limited_call
 from app.llm.types import Character, GlossarySearch, Message, Model, Role
@@ -156,10 +157,8 @@ def get_chat_completion(
             timeout=180,
         )
     else:
-        llm = ChatOpenAI(
-            base_url=os.environ.get("LITELLM_URL", "https://llm.conczin.net"),
+        llm = get_chat_model(
             model=model.model,
-            api_key=os.environ.get("LITELLM_API_KEY"),
             max_retries=3,
             temperature=0.85,
             max_tokens=150,

@@ -6,6 +6,7 @@ from langchain_huggingface import HuggingFaceEmbeddings
 from langchain_openai import OpenAIEmbeddings
 
 from .config import settings
+from .llm.llm_provider import get_client_kwargs
 
 ADDITIONAL_QUERY_PROMPTS = {
     "mixedbread-ai/mxbai-embed-large-v1": "Represent this sentence for searching relevant passages: ",
@@ -21,7 +22,7 @@ class NamedEmbedding(Embeddings, ABC):
 class NamedOpenAIEmbeddings(NamedEmbedding, OpenAIEmbeddings):
     @property
     def name(self) -> str:
-        return f"openai/{self.model}/{self.dimensions}/"
+        return f"{self.model}/{self.dimensions}/"
 
 
 class NamedHuggingFaceEmbeddings(NamedEmbedding, HuggingFaceEmbeddings):
@@ -32,13 +33,19 @@ class NamedHuggingFaceEmbeddings(NamedEmbedding, HuggingFaceEmbeddings):
 
 @cache
 def get_sentence_embeddings(
-    model_name: str = settings["global"]["embedding"]["model"],
+    model_name: str = settings.get(
+        "global.embedding.model", "openai/text-embedding-3-small"
+    ),
     dimensions: int = settings["global"]["embedding"]["dimensions"],
 ) -> NamedEmbedding:
     if model_name.startswith("text-embedding-3"):
+        model_name = f"openai/{model_name}"
+
+    if model_name.startswith("openai/text-embedding-3"):
         return NamedOpenAIEmbeddings(
             model=model_name,
             dimensions=None if dimensions <= 0 else dimensions,
+            **get_client_kwargs(),
         )
     else:
         return NamedHuggingFaceEmbeddings(

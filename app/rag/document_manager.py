@@ -1,5 +1,4 @@
 import logging
-import os
 import sqlite3
 from dataclasses import dataclass, field
 from functools import cache
@@ -7,9 +6,9 @@ from typing import List, Optional
 
 from langchain_core.messages import AIMessage
 from langchain_core.prompts import ChatPromptTemplate
-from langchain_openai import ChatOpenAI
 from pydantic import BaseModel
 
+from ..llm.llm_provider import MEMORY_MODEL, get_chat_model
 from ..llm.ratelimit import rate_limited_call
 from ..rag.html_processor import get_chapters
 from ..utils import get_cache_path
@@ -22,10 +21,8 @@ class Summary(BaseModel):
 
 
 def get_model(model: str, max_tokens: Optional[int] = None):
-    return ChatOpenAI(
-        base_url=os.environ.get("LITELLM_URL", "https://llm.conczin.net"),
+    return get_chat_model(
         model=model,
-        api_key=os.environ.get("LITELLM_API_KEY"),
         max_retries=3,
         temperature=0,
         max_tokens=max_tokens,
@@ -33,7 +30,7 @@ def get_model(model: str, max_tokens: Optional[int] = None):
 
 
 @cache
-def get_summary_chain(model: str = "mistral/mistral-small"):
+def get_summary_chain(model: str = MEMORY_MODEL):
     template = """
 You are a summarizer for a RAG system, summarizing the content of a page.
 Return a json dictionary containing the following fields:
@@ -61,7 +58,7 @@ Start of the content:
 
 
 @cache
-def get_simplifier_chain(model: str = "mistral/mistral-small"):
+def get_simplifier_chain(model: str = MEMORY_MODEL):
     system = """
 You are a content post-processor for a RAG system, removing errors introduced by web scraping.
 For example, perform the following operations:
