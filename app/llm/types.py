@@ -42,6 +42,8 @@ class Model(BaseModel):
     system: str = ""
     whitelist: Optional[set] = None
     tools: bool = False
+    reasoning: str = "none"
+    max_tokens: int = 200
 
 
 class GlossarySearch(BaseModel):

@@ -161,8 +161,9 @@ def get_chat_completion(
             model=model.model,
             max_retries=3,
             temperature=0.85,
-            max_tokens=150,
+            max_tokens=model.max_tokens,
             stop_sequences=character.stop,
+            extra_body={"reasoning": {"effort": model.reasoning}},
         )
 
     # Enable tools and add glossary functions if requested

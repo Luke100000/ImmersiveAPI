@@ -46,11 +46,15 @@ MODELS: dict[str, Model] = {
         model="openai/gpt-oss-120b",
         provider="groq",
         tools=True,
+        reasoning="low",
+        max_tokens=1000,
     ),
     "groq-small": Model(
         price=0.2,
         model="openai/gpt-oss-20b",
         provider="groq",
+        reasoning="low",
+        max_tokens=1000,
     ),
     "horde": Model(
         price=0.1,
