@@ -5,7 +5,6 @@ from math import ceil
 import requests
 from cachetools import TTLCache, cached
 from dotenv import load_dotenv
-from patreon.utils import user_agent_string
 
 load_dotenv()
 
@@ -36,7 +35,7 @@ def fetch_members(page_size: int = 1000) -> list[dict]:
                     "campaign_lifetime_support_cents",
                 ]
             ),
-            "fields[user]=" + "%2C".join(["hide_pledges"]),
+            "fields[user]=" + "%2C".join(["hide_pledges", "thumb_url"]),
             "sort=last_charge_date",
             ("page[cursor]=" + cursor) if cursor else "",
             f"page[count]={page_size}",
@@ -47,7 +46,7 @@ def fetch_members(page_size: int = 1000) -> list[dict]:
             + "&".join(params),
             headers={
                 "Authorization": "Bearer {}".format(access_token),
-                "User-Agent": user_agent_string(),
+                "User-Agent": "api",
             },
         )
 
@@ -59,6 +58,7 @@ def fetch_members(page_size: int = 1000) -> list[dict]:
             {
                 **r["attributes"],
                 **users[r["relationships"]["user"]["data"]["id"]]["attributes"],
+                "id": r["relationships"]["user"]["data"]["id"],
                 "tiers": {
                     t["id"]
                     for t in r["relationships"]["currently_entitled_tiers"]["data"]

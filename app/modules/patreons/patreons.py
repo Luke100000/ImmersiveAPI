@@ -1,17 +1,10 @@
 import hashlib
-import os
-from collections import defaultdict
 
-import patreon as patreon
 from cachetools import TTLCache, cached
 
 from app.configurator import Configurator
 from app.crowdin_utils import get_cached_translator_names
 from app.patreon_utils import fetch_members, get_member_list
-
-creator_access_token = os.getenv("PATREON_API_KEY")
-
-api_client = patreon.API(creator_access_token)
 
 
 def hash_email(email: str) -> str:
@@ -41,36 +34,20 @@ def init(configurator: Configurator):
     @configurator.get("/v1/patrons")
     @cached(TTLCache(maxsize=1, ttl=1800))
     def get_patrons():
-        users = {}
-        pledges = defaultdict(int)
-
-        response = api_client.fetch_campaign(
-            includes=["pledges"],
-            fields={
-                "reward": [],
-                "campaign": [],
-                "pledge": ["total_historical_amount_cents"],
-                "user": ["full_name", "thumb_url"],
-            },
-        ).json_data["included"]
-
-        for data in response:
-            if data["type"] == "pledge":
-                userid = data["relationships"]["patron"]["data"]["id"]
-                pledges[userid] += data["attributes"]["total_historical_amount_cents"]
-            elif data["type"] == "user":
-                userid = data["id"]
-                users[userid] = {
-                    "name": data["attributes"]["full_name"],
-                    "thumbnail": data["attributes"]["thumb_url"],
-                }
-
-        return sorted(
-            [
-                user | {"id": userid}
-                for userid, user in users.items()
-                if pledges[userid] > 0
-            ],
-            key=lambda user: pledges[user["id"]],
+        members = sorted(
+            (
+                member
+                for member in fetch_members()
+                if member["campaign_lifetime_support_cents"] > 0
+            ),
+            key=lambda member: member["campaign_lifetime_support_cents"],
             reverse=True,
         )
+        return [
+            {
+                "id": member["id"],
+                "name": member["full_name"],
+                "thumbnail": member["thumb_url"],
+            }
+            for member in members
+        ]
