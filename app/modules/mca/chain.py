@@ -157,14 +157,16 @@ def get_chat_completion(
             timeout=180,
         )
     else:
-        llm = get_chat_model(
-            model=model.model,
-            max_retries=3,
-            temperature=0.85,
-            max_tokens=model.max_tokens,
-            stop_sequences=character.stop,
-            extra_body={"reasoning": {"effort": model.reasoning}},
-        )
+        llm_kwargs = {
+            "model": model.model,
+            "max_retries": 3,
+            "temperature": 0.85,
+            "max_tokens": model.max_tokens,
+            "stop_sequences": character.stop,
+        }
+        if model.reasoning is not None:
+            llm_kwargs["extra_body"] = {"reasoning": {"effort": model.reasoning}}
+        llm = get_chat_model(**llm_kwargs)
 
     # Enable tools and add glossary functions if requested
     if model.tools and len(tools) > 0:

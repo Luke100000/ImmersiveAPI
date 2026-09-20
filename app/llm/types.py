@@ -42,7 +42,7 @@ class Model(BaseModel):
     system: str = ""
     whitelist: Optional[set] = None
     tools: bool = False
-    reasoning: str = "none"
+    reasoning: str | None = None
     max_tokens: int = 200
 
 
