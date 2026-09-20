@@ -15,7 +15,6 @@ from app.patreon_utils import verify_patron
 
 from .chain import get_chat_completion, message_to_dict
 from .multi_bucket_factory import MultiBucketFactory
-from .openai_utils import check_prompt_openai
 from .premium import PremiumManager
 
 # Settings
@@ -30,31 +29,34 @@ def collapse(s: str) -> str:
 
 
 MODELS: dict[str, Model] = {
-    "gpt-5.6-luna": Model(
+    "dev": Model(
         price=0.2,
-        model="openai/gpt-5.6-luna",
-        provider="openai",
+        model="@preset/dev",
+        provider="openrouter",
         tools=True,
     ),
-    "mistral-small": Model(
-        price=0.2,
-        model="mistralai/mistral-small-2603",
-        provider="mistral",
-    ),
-    "groq-large": Model(
+    "groq": Model(
         price=0.3,
-        model="openai/gpt-oss-120b",
-        provider="groq",
+        model="@preset/groq",
+        provider="openrouter",
         tools=True,
-        reasoning="low",
-        max_tokens=1000,
     ),
-    "groq-small": Model(
+    "openai": Model(
+        price=0.3,
+        model="@preset/open-ai",
+        provider="openrouter",
+        tools=True,
+    ),
+    "mistral": Model(
         price=0.2,
-        model="openai/gpt-oss-20b",
-        provider="groq",
-        reasoning="low",
-        max_tokens=1000,
+        model="@preset/mistral",
+        provider="openrouter",
+    ),
+    "default": Model(
+        price=0.25,
+        model="@preset/default",
+        provider="openrouter",
+        tools=True,
     ),
     "horde": Model(
         price=0.1,
@@ -115,25 +117,22 @@ CHARACTERS["villager"] = Character(
     name="Villager", system=system_prompt, memory_characters_per_level=900
 )
 
-# Maps renamed models to their new names
+# Maps legacy model names to their preset aliases
 ALIASES = {
-    "default": "mistral-small",
-    # Provider
-    "mistral": "mistral-small",
-    "openai": "gpt-5.6-luna",
-    "groq": "groq-small",
-    "horde": "horde",
-    # Legacy
-    "mistral-medium": "mistral-small",
-    "mixtral-8x7b": "mistral-small",
-    "mistral-tiny": "mistral-small",
-    "gemma2-9b": "mistral-small",
-    "llama3-70b": "groq-large",
-    "llama3.1-70b": "groq-large",
-    "llama3-8b": "groq-small",
-    "gpt-3.5-turbo": "gpt-5.6-luna",
-    "gpt-4o-mini": "gpt-5.6-luna",
-    "gpt-4.1-mini": "gpt-5.6-luna",
+    "gpt-5.6-luna": "openai",
+    "gpt-3.5-turbo": "openai",
+    "gpt-4o-mini": "openai",
+    "gpt-4.1-mini": "openai",
+    "mistral-small": "mistral",
+    "mistral-medium": "mistral",
+    "mixtral-8x7b": "mistral",
+    "mistral-tiny": "mistral",
+    "gemma2-9b": "mistral",
+    "groq-large": "groq",
+    "groq-small": "groq",
+    "llama3-70b": "groq",
+    "llama3.1-70b": "groq",
+    "llama3-8b": "groq",
 }
 
 
@@ -257,14 +256,6 @@ def init(configurator: Configurator):
                 name=str(request.client.host),
                 weight=weight,
             )
-
-            # Content moderation
-            if model.provider == "openai" and check_prompt_openai(body.messages):
-                return {
-                    "choices": [
-                        {"message": {"content": "I don't want to talk about that."}}
-                    ]
-                }
 
             # Process
             message = get_chat_completion(

@@ -11,7 +11,7 @@ logging.basicConfig(level=logging.INFO)
 
 def main():
     response = get_chat_completion(
-        MODELS["gpt-4.1-mini"],
+        MODELS["dev"],
         CHARACTERS[HAGRID_SECRET],
         [
             Message(
