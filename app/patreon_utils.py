@@ -35,7 +35,7 @@ def fetch_members(page_size: int = 1000) -> list[dict]:
                     "campaign_lifetime_support_cents",
                 ]
             ),
-            "fields[user]=" + "%2C".join(["hide_pledges", "thumb_url"]),
+            "fields[user]=" + "%2C".join(["hide_pledges", "thumb_url", "full_name"]),
             "sort=last_charge_date",
             ("page[cursor]=" + cursor) if cursor else "",
             f"page[count]={page_size}",

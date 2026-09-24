@@ -39,6 +39,8 @@ def init(configurator: Configurator):
                 member
                 for member in fetch_members()
                 if member["campaign_lifetime_support_cents"] > 0
+                and isinstance(member.get("full_name"), str)
+                and member["full_name"].strip()
             ),
             key=lambda member: member["campaign_lifetime_support_cents"],
             reverse=True,
@@ -47,7 +49,7 @@ def init(configurator: Configurator):
             {
                 "id": member["id"],
                 "name": member["full_name"],
-                "thumbnail": member["thumb_url"],
+                "thumbnail": member.get("thumb_url"),
             }
             for member in members
         ]
