@@ -1,12 +1,11 @@
 import json
-import logging
 import time
+
+from loguru import logger
 
 from app.llm.types import Message, Role
 from app.modules.mca.chain import get_chat_completion, message_to_dict
 from app.modules.mca.mca import CHARACTERS, HAGRID_SECRET, MODELS
-
-logging.basicConfig(level=logging.INFO)
 
 
 def main():
@@ -28,7 +27,7 @@ def main():
         HAGRID_SECRET,
     )
 
-    print(json.dumps(message_to_dict(response), indent=2))
+    logger.info("{}", json.dumps(message_to_dict(response), indent=2))
 
     time.sleep(100000)
 

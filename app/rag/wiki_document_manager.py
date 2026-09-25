@@ -1,11 +1,11 @@
 import datetime
 import gzip
 import re
-import traceback
 import xml.etree.ElementTree as ElementTree
 from io import BytesIO
 from typing import List
 
+from loguru import logger
 from tqdm.auto import tqdm
 
 from ..rag.cached_request import cache, cached_request
@@ -109,8 +109,7 @@ def _process_location(data):
         cleaned_content = _get_cached_cleaned_content(loc, content)
         return InformationPage.from_content(loc, cleaned_content, simplify=True)
     except Exception as e:
-        print(f"Error processing {loc}: {e}")
-        traceback.print_exc()
+        logger.exception("Error processing {}: {}", loc, e)
         return None
 
 

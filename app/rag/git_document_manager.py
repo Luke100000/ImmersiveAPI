@@ -3,6 +3,8 @@ import hashlib
 import os
 from typing import List
 
+from loguru import logger
+
 from ..rag.document_manager import DocumentManager, InformationPage
 from ..utils import get_cache_path
 
@@ -38,7 +40,7 @@ class GitDocumentManager(DocumentManager):
                             )
                         )
                     except Exception as e:
-                        print(f"Error reading {filename}: {e}")
+                        logger.exception("Error reading {}: {}", filename, e)
 
     def get_documents(self) -> List[InformationPage]:
         return self.documents

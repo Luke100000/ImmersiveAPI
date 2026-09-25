@@ -6,6 +6,7 @@ from functools import cache
 import requests
 import torch
 import torchaudio
+from loguru import logger
 from tqdm import tqdm
 from transformers import AutoFeatureExtractor, AutoModelForAudioClassification
 
@@ -119,9 +120,9 @@ def main():
             try:
                 audio = generate_audio(TEST_SENTENCES[voice["language"]], voice["id"])
                 genders[voice["id"]] = classify_gender(audio)
-                print(f"\n{voice['id']}: {genders[voice['id']]}")
+                logger.info("{}: {}", voice["id"], genders[voice["id"]])
             except Exception as e:
-                print(f"Error processing {voice['id']}: {e}")
+                logger.exception("Error processing {}: {}", voice["id"], e)
 
     with open("data/piper_gender.json", "w") as f:
         json.dump(genders, f, indent=2)

@@ -1,9 +1,9 @@
-import logging
 import time
 
 from httpx import HTTPStatusError
 from langchain_core.runnables import RunnableSerializable
 from langchain_core.runnables.utils import Input, Output
+from loguru import logger
 
 
 def rate_limited_call(
@@ -19,7 +19,7 @@ def rate_limited_call(
             if e.response.status_code == 429:
                 # Rate limit error, wait and retry
                 retry_after = float(e.response.headers.get("Retry-After", 0.25))
-                logging.info(f"Rate limit hit, retrying after {retry_after} seconds.")
+                logger.info("Rate limit hit, retrying after {} seconds.", retry_after)
                 time.sleep(retry_after)
                 continue
             else:

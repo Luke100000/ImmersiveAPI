@@ -2,6 +2,7 @@ import json
 from datetime import datetime
 
 from dotenv import load_dotenv
+from loguru import logger
 
 from app.llm.memory import MemoryManager, Memory, clean_conversation
 from app.llm.types import Message, Role
@@ -49,13 +50,13 @@ def test():
 
     history = None
     for i in range(0, len(conversation) - 1, 2):
-        print(f"Turn {i}")
-        print(f"{conversation[i].name}: {conversation[i].content}")
+        logger.info("Turn {}", i)
+        logger.info("{}: {}", conversation[i].name, conversation[i].content)
 
         history = manager.add_fetch_compress(session_id, conversation[: i + 1])
         answer = conversation[i + 1]
-        print(f"History: {len(history)}")
-        print()
+        logger.info("History: {}", len(history))
+        logger.info("")
 
         # Add the "generated" message
         manager.add_memory(
@@ -69,13 +70,13 @@ def test():
             )
         )
 
-    print("Full history:")
+    logger.info("Full history:")
     for message in history:
-        print(message)
+        logger.info("{}", message)
 
     total_chars = sum(len(msg.content) for msg in conversation)
     compressed_chars = sum(len(msg.content) for msg in history)
-    print(f"Compression: {compressed_chars / total_chars}")
+    logger.info("Compression: {}", compressed_chars / total_chars)
 
 
 if __name__ == "__main__":

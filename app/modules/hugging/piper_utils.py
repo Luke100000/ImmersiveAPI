@@ -1,12 +1,12 @@
 import hashlib
 import json
-import logging
 import shutil
 from functools import cache
 from pathlib import Path
 from typing import Any, Dict, Iterable, Set, Union
 from urllib.request import urlopen
 
+from loguru import logger
 from piper import PiperVoice, SynthesisConfig
 
 from app.utils import get_data_path, get_cache_path
@@ -14,7 +14,6 @@ from app.utils import get_data_path, get_cache_path
 URL_FORMAT = "https://huggingface.co/rhasspy/piper-voices/resolve/v1.0.0/{file}"
 
 _DIR = Path(__file__).parent
-_LOGGER = logging.getLogger(__name__)
 
 _SKIP_FILES = {"MODEL_CARD"}
 
@@ -45,7 +44,7 @@ def get_voices(
     if update_voices:
         # Download latest voices.json
         voices_url = URL_FORMAT.format(file="voices.json")
-        _LOGGER.debug("Downloading %s to %s", voices_url, voices_download)
+        logger.debug("Downloading {} to {}", voices_url, voices_download)
         with (
             urlopen(voices_url) as response,
             open(voices_download, "wb") as download_file,
@@ -56,7 +55,7 @@ def get_voices(
     voices_embedded = _DIR / "voices.json"
     voices_path = voices_download if voices_download.exists() else voices_embedded
 
-    _LOGGER.debug("Loading %s", voices_path)
+    logger.debug("Loading {}", voices_path)
     with open(voices_path, "r", encoding="utf-8") as voices_file:
         return json.load(voices_file)
 
@@ -89,17 +88,17 @@ def ensure_voice_exists(
                 continue
 
             data_file_path = data_dir / file_name
-            _LOGGER.debug("Checking %s", data_file_path)
+            logger.debug("Checking {}", data_file_path)
             if not data_file_path.exists():
-                _LOGGER.debug("Missing %s", data_file_path)
+                logger.debug("Missing {}", data_file_path)
                 files_to_download.add(file_path)
                 continue
 
             expected_size = file_info["size_bytes"]
             actual_size = data_file_path.stat().st_size
             if expected_size != actual_size:
-                _LOGGER.warning(
-                    "Wrong size (expected=%s, actual=%s) for %s",
+                logger.warning(
+                    "Wrong size (expected={}, actual={}) for {}",
                     expected_size,
                     actual_size,
                     data_file_path,
@@ -110,8 +109,8 @@ def ensure_voice_exists(
             expected_hash = file_info["md5_digest"]
             actual_hash = get_file_hash(data_file_path)
             if expected_hash != actual_hash:
-                _LOGGER.warning(
-                    "Wrong hash (expected=%s, actual=%s) for %s",
+                logger.warning(
+                    "Wrong hash (expected={}, actual={}) for {}",
                     expected_hash,
                     actual_hash,
                     data_file_path,
@@ -134,14 +133,14 @@ def ensure_voice_exists(
         download_file_path = download_dir / file_name
         download_file_path.parent.mkdir(parents=True, exist_ok=True)
 
-        _LOGGER.debug("Downloading %s to %s", file_url, download_file_path)
+        logger.debug("Downloading {} to {}", file_url, download_file_path)
         with (
             urlopen(file_url) as response,
             open(download_file_path, "wb") as download_file,
         ):
             shutil.copyfileobj(response, download_file)
 
-        _LOGGER.info("Downloaded %s (%s)", download_file_path, file_url)
+        logger.info("Downloaded {} ({})", download_file_path, file_url)
 
 
 data_dir = get_cache_path("piper")

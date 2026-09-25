@@ -1,6 +1,5 @@
 import asyncio
 import importlib
-import logging
 import os
 import shutil
 import time
@@ -13,6 +12,7 @@ from fastapi.middleware.gzip import GZipMiddleware
 from fastapi.openapi.utils import get_openapi
 from fastapi_cache import FastAPICache
 from fastapi_cache.backends.redis import RedisBackend
+from loguru import logger
 from prometheus_client import CollectorRegistry, multiprocess
 from prometheus_fastapi_instrumentator import Instrumentator
 from redis.asyncio.client import Redis
@@ -21,9 +21,6 @@ from .config import settings
 from .configurator import Configurator, tags_metadata
 
 load_dotenv()
-
-logging.basicConfig()
-logging.getLogger().setLevel(os.getenv("LOG_LEVEL", "INFO"))
 
 # Setup prometheus for multiprocessing
 prom_dir = (
@@ -59,7 +56,7 @@ instrumentator = Instrumentator().instrument(app)
 
 
 def start_module(name: str):
-    print(f"Initializing {name}app.")
+    logger.info("Initializing {}app.", name)
 
     start_import = time.time()
     module = importlib.import_module(f"app.modules.{name}.{name}")
@@ -69,8 +66,11 @@ def start_module(name: str):
     initializer(Configurator(app, settings[name]))
     end = time.time()
 
-    print(
-        f"Initialized {name} in {end - start_import:.2f}s ({end - start_init:.2f}s spent initializing)"
+    logger.info(
+        "Initialized {} in {:.2f}s ({:.2f}s spent initializing)",
+        name,
+        end - start_import,
+        end - start_init,
     )
 
 
@@ -83,7 +83,7 @@ def start_all_modules():
         if name in settings and getattr(settings[name], "enable", False):
             start_module(name)
         else:
-            print("Skipping", name)
+            logger.debug("Skipping {}", name)
 
 
 # Custom OpenAPI to fix the missing description

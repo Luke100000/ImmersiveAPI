@@ -1,5 +1,4 @@
 import asyncio
-import logging
 import os
 import time
 
@@ -7,8 +6,7 @@ import requests
 from crowdin_api import CrowdinClient
 from crowdin_api.api_resources.reports.enums import Format, Unit
 from crowdin_api.exceptions import NotFound
-
-logger = logging.getLogger(__name__)
+from loguru import logger
 
 TRANSLATOR_CACHE_TTL_SECONDS = 24 * 60 * 60
 TRANSLATOR_MIN_ACTIONS = 10

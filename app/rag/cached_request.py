@@ -1,9 +1,9 @@
 import gzip
-import logging
 from io import BytesIO
 
 import diskcache
 import requests
+from loguru import logger
 
 from app.utils import get_cache_path
 
@@ -28,14 +28,14 @@ def cached_request(url: str, lastmod: str) -> bytes:
     if content and cached_last_mod == lastmod:
         return _decompress(content)
 
-    logging.info(f"Downloading {url}app.")
+    logger.info("Downloading {}app.", url)
     response = requests.get(url)
 
     try:
         response.raise_for_status()
         content = response.content
     except requests.exceptions.HTTPError as e:
-        logging.error(f"Error downloading {url}: {e}")
+        logger.error("Error downloading {}: {}", url, e)
         content = b""
 
     cache.set(url, (_compress(content), lastmod))

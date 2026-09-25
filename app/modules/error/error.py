@@ -8,6 +8,7 @@ from dotenv import load_dotenv
 from github import Auth, Github
 from github.Issue import Issue
 from github.Repository import Repository
+from loguru import logger
 from pydantic import BaseModel
 
 from app.configurator import Configurator
@@ -64,10 +65,19 @@ class Issue(BaseModel):
 def init(configurator: Configurator):
     configurator.register("Error", "Error reporting and artifact uploading.")
 
-    auth = Auth.Token(os.getenv("GITHUB_TOKEN"))
+    gh_token = os.getenv("GITHUB_TOKEN", "")
+    if not gh_token:
+        logger.warning("GITHUB_TOKEN is not set")
+        return
+
+    auth = Auth.Token(gh_token)
     g = Github(auth=auth)
 
-    repo_id = os.getenv("GITHUB_REPO")
+    repo_id = os.getenv("GITHUB_REPO", "")
+    if not repo_id:
+        logger.warning("GITHUB_REPO is not set")
+        return
+
     branch = "issues"
 
     repo = g.get_repo(repo_id)

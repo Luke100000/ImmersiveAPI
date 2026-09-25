@@ -1,4 +1,5 @@
 from dynaconf import Dynaconf
+from loguru import logger
 
 from app.utils import get_data_path
 
@@ -10,4 +11,4 @@ settings = Dynaconf(
     ]
 )
 
-print("Config", settings.as_dict())
+logger.debug("Config {}", settings.as_dict())

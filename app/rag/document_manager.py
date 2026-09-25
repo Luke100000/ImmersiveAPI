@@ -1,4 +1,3 @@
-import logging
 import sqlite3
 from dataclasses import dataclass, field
 from functools import cache
@@ -6,6 +5,7 @@ from typing import List, Optional
 
 from langchain_core.messages import AIMessage
 from langchain_core.prompts import ChatPromptTemplate
+from loguru import logger
 from pydantic import BaseModel
 
 from ..llm.llm_provider import MEMORY_MODEL, get_chat_model
@@ -226,7 +226,7 @@ class InformationPage:
         return changes
 
     def _simplify(self, chunksize: Optional[int] = None):
-        logging.info(f"Simplifying {self.source} ({len(self.content)} characters)")
+        logger.info("Simplifying {} ({} characters)", self.source, len(self.content))
 
         if chunksize is None:
             chunksize = CONTEXT_SIZE // 2
@@ -249,8 +249,12 @@ class InformationPage:
             chunk = rate_limited_call(get_simplifier_chain(), {"content": content})
             simplified_chunks.append(chunk)
             factor = int(len(chunk) / len(content) * 100)
-            logging.info(
-                f"  Reduced size of chunk {i + 1} of {len(merged_chapters)} by {100 - factor}% to {len(chunk)} characters."
+            logger.info(
+                "  Reduced size of chunk {} of {} by {}% to {} characters.",
+                i + 1,
+                len(merged_chapters),
+                100 - factor,
+                len(chunk),
             )
 
         self.simplified_content = "\n".join(simplified_chunks)
@@ -259,7 +263,7 @@ class InformationPage:
         assert self.simplified
 
         # And summarize it
-        logging.info(f"Summarizing {self.source}")
+        logger.info("Summarizing {}", self.source)
 
         summary: Summary = rate_limited_call(
             get_summary_chain(), {"content": self.simplified[:max_size]}
